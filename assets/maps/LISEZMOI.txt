@@ -1,0 +1,4 @@
+Fonds de combat (facultatif)
+Dépose ici des captures de maps Dofus vides (interface masquée), format paysage, en .jpg :
+  champs.jpg   prairie.jpg   fleurs.jpg   grotte.jpg   bergerie.jpg   craq.jpg
+Chaque donjon utilise l'un de ces 6 thèmes. Sans image, le jeu dessine la carte lui-même.
