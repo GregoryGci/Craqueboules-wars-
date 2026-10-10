@@ -1332,7 +1332,7 @@ const Eco = (() => {
       subs.push({ s, v:rollSub(s) });
     }
     const sk = pickSkin(rarity, lvl || 10, want && rarity === 'legendaire' ? main : null);
-    return { id: save.nextId++, slot, rarity, main, lvl:0, subs, owner:null, ...(sk ? { sn:sk.n, si:sk.i } : {}) };
+    return { id: save.nextId++, slot, rarity, main, lvl:0, il: Math.max(1, Math.round(lvl || 20)), subs, owner:null, ...(sk ? { sn:sk.n, si:sk.i } : {}) };
   }
   // Tire un équipement au niveau voulu : on prend une pièce proche de ce niveau, puis chaque ligne fait son jet.
   function genGear(save, lvl, slot){
@@ -1409,7 +1409,11 @@ const Eco = (() => {
     mon.sk[slot] = lv + 1; return { ok:true, lv:lv + 1 };
   }
   const dupOf = (save, mon) => save.monsters.filter(x => x.key === mon.key && x !== mon && !save.team.includes(x.uid)).sort((a,b) => a.level - b.level)[0];
-  const upCost = it => (it.lvl + 1) * (RARITIES.indexOf(it.rarity) + 1) * 45;
+  // Le coût suit le niveau du contenu où le trophée est tombé : un trophée de début de jeu se monte avec
+  // les kamas du début de jeu. Sans ce lien, le prix était fixe alors que les gains sont multipliés par neuf
+  // entre le premier donjon et le dernier — inaccessible au début, dérisoire à la fin.
+  const ilOf = it => it.il || 20;
+  const upCost = it => Math.max(20, Math.round((it.lvl + 1) * (RARITIES.indexOf(it.rarity) + 1) * 45 * (.05 + ilOf(it) * .002)));
   function upgrade(save, it){
     if (it.lvl >= 15) return { err:'Déjà au maximum (+15).' };
     const cost = upCost(it);
@@ -1428,7 +1432,7 @@ const Eco = (() => {
     }
     return { ok:true, cost, sub };
   }
-  const sellValue = it => (RARITIES.indexOf(it.rarity) + 1) * 60 + it.lvl * 40;
+  const sellValue = it => Math.round(((RARITIES.indexOf(it.rarity) + 1) * 60 + it.lvl * 40) * (.15 + ilOf(it) * .006));
   function sell(save, it){ unequip(save, it); save.kamas += sellValue(it); save.items = save.items.filter(i => i !== it); }
 
   function addXp(mon, xp){
@@ -1438,7 +1442,8 @@ const Eco = (() => {
     if (mon.level >= MAX_LVL) mon.xp = 0;
     return ups;
   }
-  const awakenCost = mon => { const st = MONSTERS[mon.key].stars; return { ess: st*8, kamas: st*300, el: MONSTERS[mon.key].el }; };
+  const awakenCost = mon => { const st = MONSTERS[mon.key].stars;
+    return { ess: st*8, kamas: Math.round(st * 300 * (.2 + (mon.level || 1) * .012)), el: MONSTERS[mon.key].el }; };
   function awaken(save, mon){
     if (mon.awakened) return { err:'Déjà éveillé.' };
     const c = awakenCost(mon);
@@ -2214,6 +2219,7 @@ function loadSave(){
       if (s.perfect != null){ s.stones += s.perfect; delete s.perfect; }   // une seule pierre d'âme désormais
       s.ach = s.ach || {}; s.sum = s.sum || 0; s.gold = s.gold || 0; s.scrolls = s.scrolls || 0;
       s.gear = s.gear || [];                                  // sauvegardes d'avant l'équipement
+      for (const it of s.items) if (!it.il) it.il = 20;        // trophées d'avant le niveau d'objet
       for (const m of s.monsters) m.g = m.g || {};
       // anciens formats : « d12 » (donjon terminé) et « camp:d12:5 » (salle du boss terminée) valent le donjon ; les salles 1 à 4 seules ne comptent pas
       s.cleared = [...new Set(s.cleared.flatMap(id => !id.includes(':') ? ['camp:' + id] : /^camp:[^:]+:\d+$/.test(id) ? (id.endsWith(':' + ROOMS) ? [id.slice(0, id.lastIndexOf(':'))] : []) : [id]))];
