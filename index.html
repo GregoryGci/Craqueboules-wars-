@@ -609,21 +609,31 @@ body.in-combat .tabs{display:none}
 .laupan ul{list-style:none; margin:0; padding:0; display:grid; gap:2px}
 .laupan li{display:flex; gap:6px; align-items:baseline}
 .laupan .d{color:#6f6a5c; flex:none}
+.laufoot{display:none}
 .lauver{position:absolute; left:0; right:0; bottom:1%; text-align:center; font-size:9px; color:#8d8371; z-index:1}
 
-/* Portrait : l'image garde ses proportions — sinon les repères en pourcentage tombent à côté — mais le
-   journal descend sous elle, où il est lisible. */
+/* Portrait : l'image est coupée juste sous la barre de progression, et tout ce qui vient après — onglets,
+   journal, œuf — est reconstruit dessous, aligné sur les mêmes marges. Masquer le panneau d'origine par un
+   rectangle, comme avant, laissait un trou qui ne collait ni au cadre ni à la largeur du journal.
+   .lauclip rogne, .lauscreen garde ses proportions entières : les repères en pourcentage restent justes. */
 @media (max-width: 560px){
-  /* le panneau d'origine resterait visible dans l'image alors que le nôtre est passé dessous : on le masque */
-  .lauscreen::after{content:""; position:absolute; left:3.5%; top:44%; width:78.5%; height:53%; border-radius:4px;
-    background:#15100c; box-shadow:inset 0 0 14px #0009}
-  .lauside2{position:static; width:auto; padding:8px 8px 0; background:#15100c}
-  .lautabs button{padding:5px 14px; font-size:12px}
-  .laupan{height:112px; font-size:12px; padding:7px 9px}
-  .lauver{position:static; padding:6px 0 8px}
-  .lauegg .play{bottom:-30%; font-size:10px}
+  .lauclip{position:relative; width:100%; overflow:hidden; aspect-ratio:565/196}
+  .lauclip .lauscreen{position:absolute; inset:0 0 auto 0; height:auto; aspect-ratio:565/407}
+  /* l'œuf et l'engrenage tombent hors de la découpe : on les redescend */
+  .lauscreen .lauegg, .lauscreen .laucog{display:none}
+  .lauside2{position:static; width:auto; padding:9px 10px 0}
+  .lautabs{padding-left:4px}
+  .lautabs button{padding:5px 15px; font-size:12.5px}
+  .laupan{height:118px; font-size:12.5px; padding:7px 9px}
+  .laufoot{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px 4px}
+  /* l'œuf reprend sa portion de l'image : 13,1 % de large et 22,6 % de haut, d'où l'agrandissement et le cadrage */
+  .laufoot .lauegg{position:relative; display:block; width:78px; height:92px; inset:auto;
+    background:url("assets/launcher.jpg") no-repeat; background-size:763% 442%; background-position:96.3% 67.6%}
+  .laufoot .laucog{position:relative; display:block; width:42px; height:42px; inset:auto;
+    background:url("assets/launcher.jpg") no-repeat; background-size:1333% 962%; background-position:93.5% 91.5%}
+  .laufoot .lauegg .play{bottom:-15px}
+  .lauver{position:static; padding:4px 0 9px}
 }
-
 /* Création : sa propre fenêtre, sans l'image de fond */
 .crewrap{background:linear-gradient(#211a14, #15100c 60%, #1b1510); border:1px solid #000;
   box-shadow:inset 0 1px 0 #ffffff18, 0 16px 44px #000c}
@@ -877,14 +887,20 @@ body.in-combat .tabs{display:none}
 
 <div class="lau" id="lau">
   <div class="lauw" id="lauw">
-    <div class="lauscreen">
-      <div class="laubar"><i id="lauFill"></i><span id="lauTxt">Démarrage…</span><em id="lauPct">0 %</em></div>
-      <button class="lauegg" id="lauEgg" data-act="launch" disabled aria-label="Lancer le jeu"><span class="halo"></span><span class="play" id="lauPlay"></span></button>
-      <button class="laucog" data-act="lauCog" title="Réglages" aria-label="Réglages"></button>
+    <div class="lauclip">
+      <div class="lauscreen">
+        <div class="laubar"><i id="lauFill"></i><span id="lauTxt">Démarrage…</span><em id="lauPct">0 %</em></div>
+        <button class="lauegg" id="lauEgg" data-act="launch" disabled aria-label="Lancer le jeu"><span class="halo"></span><span class="play" id="lauPlay"></span></button>
+        <button class="laucog" data-act="lauCog" title="Réglages" aria-label="Réglages"></button>
+      </div>
     </div>
     <div class="lauside2">
       <div class="lautabs" id="lauTabs"><button data-act="lauTab" data-v="news" aria-pressed="false">Nouvelles</button><button data-act="lauTab" data-v="log" aria-pressed="true">Journal</button></div>
       <div class="laupan" id="lauPan"></div>
+    </div>
+    <div class="laufoot">
+      <button class="lauegg" id="lauEgg2" data-act="launch" disabled aria-label="Lancer le jeu"><span class="play" id="lauPlay2"></span></button>
+      <button class="laucog" data-act="lauCog" title="Réglages" aria-label="Réglages"></button>
     </div>
     <div class="lauver">données et images © Ankama · usage privé</div>
   </div>
@@ -4135,8 +4151,9 @@ function lauOpen(){
   if (lauReady) return;
   lauReady = true;
   const e = $('#lauEgg'); if (!e) return;
-  e.disabled = false;
-  $('#lauPlay').textContent = save && save.player ? 'Jouer' : (me ? 'Créer mon personnage' : 'Commencer');
+  const txt = save && save.player ? 'Jouer' : (me ? 'Créer mon personnage' : 'Commencer');
+  for (const id of ['lauEgg', 'lauEgg2']){ const b = $('#' + id); if (b) b.disabled = false; }
+  for (const id of ['lauPlay', 'lauPlay2']){ const t = $('#' + id); if (t) t.textContent = txt; }
   $('#lauTxt').textContent = save && save.player ? 'Prêt à jouer.' : 'Prêt — crée ton invocateur.';
   lauPan();
 }
