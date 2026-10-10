@@ -33,8 +33,14 @@ jobs:
         run: node construire-catalogue.mjs
       - name: Injecter les clés du serveur
         env:
+          # Plusieurs noms acceptés : le secret peut avoir été créé sous l'une ou l'autre forme.
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPA_URL: ${{ secrets.SUPA_URL }}
+          SUPABASE_PROJECT_URL: ${{ secrets.SUPABASE_PROJECT_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPA_ANON_KEY: ${{ secrets.SUPA_ANON_KEY }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: node injecter-cles.mjs
       - name: Préparer le site
         run: |

@@ -4,15 +4,33 @@
 
 import { readFile, writeFile } from 'node:fs/promises';
 
-const url = (process.env.SUPABASE_URL || '').trim();
-const key = (process.env.SUPABASE_ANON_KEY || '').trim();
+// Le secret a pu être créé sous plusieurs noms : on prend le premier qui porte une valeur.
+const NOMS_URL = ['SUPABASE_URL', 'SUPA_URL', 'SUPABASE_PROJECT_URL'];
+const NOMS_KEY = ['SUPABASE_ANON_KEY', 'SUPA_ANON_KEY', 'SUPABASE_KEY', 'SUPABASE_PUBLISHABLE_KEY'];
+const premier = noms => { for (const n of noms){ const v = (process.env[n] || '').trim(); if (v) return [n, v]; } return [null, '']; };
+const [nomUrl, url] = premier(NOMS_URL);
+const [nomKey, key] = premier(NOMS_KEY);
 
-// Diagnostic : on dit ce qu'on a reçu, sans jamais afficher les valeurs.
-const vu = (n, v) => `${n} : ${v ? `présent (${v.length} caractères)` : 'ABSENT'}`;
-console.log(vu('SUPABASE_URL', url));
-console.log(vu('SUPABASE_ANON_KEY', key));
+// Diagnostic : on dit ce qu'on a trouvé, sans jamais afficher les valeurs.
+// Il est aussi déposé dans la page, pour être lisible depuis le site publié sans accès aux journaux.
+const diag = `url=${nomUrl || 'ABSENT'}(${url.length}) key=${nomKey || 'ABSENT'}(${key.length})`;
+console.log('Secrets vus : ' + diag);
+console.log('Noms cherchés pour l\'URL : ' + NOMS_URL.join(', '));
+console.log('Noms cherchés pour la clé : ' + NOMS_KEY.join(', '));
+const marquer = async txt => {
+  const h = await readFile('index.html', 'utf8');
+  await writeFile('index.html', h.replace('<!doctype html>', `<!doctype html>\n<!-- cles: ${txt} -->`));
+};
 
+// Les clés ont pu être écrites à la main dans index.html : dans ce cas on n'y touche pas.
 if (!url || !key) {
+  const h = await readFile('index.html', 'utf8');
+  const m = h.match(/const NET = \{\n\s*url: '([^']*)',[^\n]*\n\s*key: '([^']*)',/);
+  if (m && m[1] && m[2]) {
+    console.log('Clés déjà renseignées dans index.html : rien à injecter.');
+    await marquer('en dur');
+    process.exit(0);
+  }
   console.log('');
   console.log('Le jeu est publié en mode local (sauvegarde dans le navigateur seulement).');
   console.log('Pour activer les comptes, crée les deux secrets dans :');
@@ -20,6 +38,7 @@ if (!url || !key) {
   console.log('en les nommant exactement SUPABASE_URL et SUPABASE_ANON_KEY.');
   console.log("Attention : l'onglet « Variables » juste à côté ne convient pas,");
   console.log('et un secret créé pour un « Environment » autre que github-pages non plus.');
+  await marquer(diag);
   process.exit(0);
 }
 if (!/^https:\/\/[\w-]+\.supabase\.co\/?$/.test(url)) {
@@ -59,4 +78,5 @@ if (out === src) {
   process.exit(1);
 }
 await writeFile('index.html', out);
-console.log(`Clés injectées (${url}).`);
+await marquer(diag + ' OK');
+console.log(`Clés injectées (${url}), depuis ${nomUrl} et ${nomKey}.`);
