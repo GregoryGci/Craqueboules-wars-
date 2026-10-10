@@ -454,9 +454,17 @@ body.in-combat .tabs{display:none}
 .spdesc b{display:block; font-size:13px}
 .ctrlrow{display:flex; flex-wrap:wrap; gap:6px; align-items:center; justify-content:flex-end; padding:0 6px 6px}
 
-/* Fin de combat */
-.over{position:absolute; inset:0; background:#1a120888; display:grid; place-items:center; z-index:5000; padding:12px; overflow:auto}
+/* Fin de combat — en position fixe : l'arène est en overflow:hidden, un overlay absolu y était rogné dès que le bilan dépassait sa hauteur */
+.over{position:fixed; inset:0; background:#1a120888; z-index:5000; overflow:auto; overscroll-behavior:contain;
+  display:grid; place-items:center; place-items:safe center;   /* « safe » : ne rogne jamais le haut quand le bilan est plus grand que l'écran */
+  padding:max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left))}
 .over .win{width:min(760px, 100%)}
+/* Perdants nombreux : on garde le boss et on replie le reste derrière une rangée de portraits */
+.morechips{display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:6px 10px; background:var(--row2); border:1px solid var(--panel-line); border-radius:6px; cursor:pointer; font:inherit; color:var(--ink)}
+.morechips .stack{display:flex; padding-left:7px}
+.morechips .por{margin-left:-7px; box-shadow:0 0 0 1px var(--win-out)}
+.morechips b{color:var(--orange-dk)}
+.morechips .go{margin-left:auto; color:var(--ink2); font-size:12px}
 .modes{gap:4px; margin-bottom:8px}
 .wb .modes{margin-bottom:0}
 .resdot{display:inline-block; border-radius:3px; background:#e0a010; border:1px solid #7a4a00}
@@ -514,29 +522,77 @@ body.in-combat .tabs{display:none}
 .toast{position:fixed; left:50%; bottom:calc(16px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); background:linear-gradient(var(--band), var(--band2)); border:1px solid #2a2926; color:#fff; padding:7px 16px; border-radius:7px; font-weight:bold; z-index:9999; box-shadow:0 6px 18px #0008; max-width:calc(100% - 32px)}
 .toast[hidden]{display:none}
 
+/* ---------- Tactile : cibles confortables, pas de surbrillance fantôme, pas de zoom au double-tap ---------- */
+.btn, .tabs button, .spell, .cell, .tl, .prow, .x, .seg button, .morechips{touch-action:manipulation; -webkit-tap-highlight-color:transparent}
+.field, .spellbar, .timeline, .doll, .tabs{-webkit-user-select:none; user-select:none}
+@media (hover:none){   /* sans souris, :hover reste collé après un appui : on le neutralise */
+  .cell:hover{border-color:var(--slot-line)}
+  .cell.r-magique:hover{border-color:#3b8a17aa} .cell.r-rare:hover{border-color:#2a69b8bb} .cell.r-heroique:hover{border-color:#8a44c4cc}
+  .cell.r-legendaire:hover{border-color:var(--r-legendaire)}
+  .prow:hover{border-color:var(--panel-line)}
+  .tabs button:hover:not([aria-current]){background:linear-gradient(#cfcab7, #b7b19c)}
+  .unit.targetable .token:hover{transform:none}
+}
+@media (pointer:coarse){   /* au doigt : 38 px mini pour les commandes principales */
+  .btn{min-height:38px; padding:7px 16px}
+  .btn.sm{min-height:30px; padding:4px 11px}
+  .x{width:32px; height:32px; font-size:16px}
+  .sel{min-height:34px}
+}
+
 @media (max-width: 900px){
   .split{grid-template-columns:1fr}
   .hudbar{grid-template-columns:120px minmax(0,1fr)}
   .hudbar .chat{grid-column:1 / -1; grid-row:2; height:130px}
   .pcirc .face{width:88px; height:88px} .pcirc .face .por{--sz:88px}
 }
+
+/* ---------- Téléphone : une colonne, l'arène en haut, les sorts sous le pouce ---------- */
 @media (max-width: 620px){
   :root{--tok:40px}
-  .field{aspect-ratio:3/4}
+  body{overflow-x:clip}
+  .wrap{gap:8px; padding-inline:max(10px, env(safe-area-inset-left)) max(10px, env(safe-area-inset-right));
+    padding-block:8px calc(20px + env(safe-area-inset-bottom, 0px))}
+  .top{gap:6px 10px}
+  .wt{padding-inline:38px}
+  .wb{padding:8px}
+  /* onglets : une rangée qui défile, au lieu de trois rangées qui mangent la hauteur */
+  .tabs{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-inline:-10px; padding-inline:10px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button{flex:none; padding:8px 13px}
+  .search, .sel, .foot textarea{font-size:16px}   /* en dessous de 16 px, iOS zoome tout seul au focus */
+
+  /* combat */
+  .field{aspect-ratio:3/4; max-height:min(56vh, 520px)}
   .unit{width:76px} .plate{font-size:9.5px; padding:1px 3px 2px}
   .nm small{display:none}
-  .hudbar{grid-template-columns:1fr}
-  .hudbar .rightcol{order:-1}
-  .pcirc{grid-template-columns:auto 1fr; justify-items:start; text-align:left}
+  .unit .tag{font-size:8px}
   .ftip{display:none}
-  .wt{padding-inline:34px}
-  .tabs button{padding:5px 9px}
-  .spellbar{grid-template-columns:repeat(3, 52px) minmax(0,1fr)}
+  .hudbar{grid-template-columns:minmax(0,1fr); gap:6px}
+  .hudbar .rightcol{order:1}
+  .hudbar .pcirc{order:2}
+  .hudbar .chat{order:3; grid-column:auto; grid-row:auto; height:88px}
+  .pcirc{grid-template-columns:auto 1fr; justify-items:start; text-align:left}
+  .pcirc .face{width:66px; height:66px} .pcirc .face .por{--sz:66px}
+  .heart{right:-10px; width:46px; height:40px; font-size:9.5px}
+  .vit{left:-6px; width:28px; height:28px; font-size:9px}
+  /* sorts : trois grandes touches pleine largeur, description dessous */
+  .spellbar{grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px}
+  .spellbar .spell{width:100%; height:58px}
+  .spellbar .spdesc{grid-column:1 / -1}
+  .ctrlrow{justify-content:space-between}
+
+  /* menus */
   .doll .cell{width:46px; height:46px} .doll .cell svg, .doll .cell img{width:38px; height:38px}
   .dcenter{min-height:160px}
-  .unit .tag{font-size:8px}
   .dlist{max-height:300px}
+  .bigslot{width:76px; height:76px} .bigslot svg, .bigslot img{width:62px; height:62px}
+  .restab{font-size:12.5px}
+  .restab .c-sec{display:none}        /* bilan : on garde le nom, les dégâts et l'XP */
+  .endbtns{display:grid; grid-template-columns:1fr 1fr; gap:6px}
+  .endbtns .btn{width:100%}
 }
+@media (max-width: 380px){ .endbtns{grid-template-columns:1fr} }
 @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms !important; transition-duration:.01ms !important} }
 </style>
 
@@ -2226,6 +2282,8 @@ const ACT = {
   fight(d){ startCombat(+d.i); },
   selDg(d){ selDg = +d.i; render(); },
   refight(){ startCombat(curStage); },
+  endAll(){ endAll = true; paintEnd(); },
+  nextStage(){ if (endData && endData.next != null) startCombat(endData.next); },
   flee(){ ACT.nav({ v:(curStage && curStage.back) || 'donjons' }); toast('Tu as fui le combat.'); },
   selMon(d){ selMon = +d.uid; slotPick = null; swapOpen = false; confirmKey = null; render(); },
   seeMon(d){ selMon = +d.uid; view = 'equipe'; render(); },
@@ -2822,36 +2880,73 @@ async function play(events, my){
   }
   const c = $('#cast'); if (c) c.classList.remove('show');
 }
+// Bilan de fin de combat. Les données sont figées à la fin du combat, l'affichage est repeint à la demande
+// (déplier la liste des perdants) sans toucher à l'état du jeu.
+let endData = null, endAll = false;
+const END_KEEP = 3;   // au-delà, un bloc se replie sur son boss
 function showEnd(w){
   const dg = curStage, win = w === 'A';
   const custom = dg.finish ? dg.finish(win) : null;   // combat spécial : sa propre récompense
   const L = win && !dg.finish ? Eco.loot(save, dg) : null;
   if (win || dg.finish){ persist(); renderTop(); }
-  const top = Math.max(1, ...Engine.all(state).map(u => tal(u.id).dmg), ...pastFoes.map(f => f.t.dmg));
-  const head = '<thead><tr><th>Nom</th><th>Niv.</th><th>Dégâts infligés</th><th>Critiques</th><th>Dégâts subis</th><th>Soins</th><th>K.O.</th><th>XP gagnée</th></tr></thead>';
-  const row = (u, xp, t = tal(u.id)) => `<tr><td><span class="nmc">${portrait(u.key, 26, { badge:false })}${u.name}</span></td><td>${u.level}</td>
+  const nx = curDg + 1;
+  endAll = false;
+  endData = { dg, win, custom, L, turns:state.turn, wave:waveIdx,
+    allies: state.A.map((u,i) => ({ u, t:tal(u.id), xp: L && L.xp[i] })),
+    foes: pastFoes.map(f => ({ u:f.u, t:f.t })).concat(state.B.map(u => ({ u, t:tal(u.id) }))),
+    // « Suivant » : l'étage d'après, s'il existe et vient d'être ouvert par cette victoire
+    next: !dg.finish && win && stages()[nx] && isUnlocked(nx) ? nx : null };
+  const o = document.createElement('div'); o.className = 'over'; o.id = 'endover';
+  field.classList.remove('quake');   // une secousse en cours anime un transform, ce qui re-piégerait l'overlay fixe dans l'arène
+  field.appendChild(o);
+  paintEnd();
+  log(win ? 'Combat terminé : victoire.' : 'Combat terminé : défaite.', 'sys');
+}
+const END_HEAD = `<thead><tr><th>Nom</th><th class="c-sec">Niv.</th><th>Dégâts infligés</th><th class="c-sec">Critiques</th>
+  <th class="c-sec">Dégâts subis</th><th class="c-sec">Soins</th><th class="c-sec">K.O.</th><th>XP gagnée</th></tr></thead>`;
+function endRow(r, top, dg){
+  const { u, t, xp } = r;
+  return `<tr><td><span class="nmc">${portrait(u.key, 26, { badge:false })}${u.name}</span></td><td class="c-sec">${u.level}</td>
     <td><span class="row" style="flex-wrap:nowrap"><b>${fmt(t.dmg)}</b><span class="xpbar dmgbar"><b style="width:${t.dmg / top * 100}%"></b></span></span></td>
-    <td>${t.hits ? `${t.crits}/${t.hits}` : '—'}</td><td>${fmt(t.taken)}</td><td>${t.heal ? `<span class="pos">${fmt(t.heal)}</span>` : '—'}</td><td>${t.kills || '—'}</td>
+    <td class="c-sec">${t.hits ? `${t.crits}/${t.hits}` : '—'}</td><td class="c-sec">${fmt(t.taken)}</td>
+    <td class="c-sec">${t.heal ? `<span class="pos">${fmt(t.heal)}</span>` : '—'}</td><td class="c-sec">${t.kills || '—'}</td>
     <td>${xp ? `<span class="row" style="flex-wrap:nowrap">+${dg.xp}<span class="xpbar"><b style="width:${Math.min(100, dg.xp / xpNeed(u.level) * 100)}%"></b></span>${xp.ups ? `<b class="pos">niv. ${xp.level}</b>` : ''}</span>` : '—'}</td></tr>`;
-  const allies = state.A.map((u,i) => row(u, L && L.xp[i])).join(''), foes = pastFoes.map(f => row(f.u, null, f.t)).concat(state.B.map(u => row(u, null))).join('');
+}
+// Un bloc du bilan. Replié (beaucoup de monstres, typiquement les vagues cumulées), il ne montre que le boss
+// — ou le plus gros score à défaut — et renvoie le reste derrière une rangée de portraits.
+function endBlock(label, rows, top, dg){
+  const fold = rows.length > END_KEEP && !endAll;
+  const keep = fold ? [rows.find(r => r.u.boss) || rows.slice().sort((a,b) => b.t.dmg - a.t.dmg)[0]] : rows;
+  const rest = fold ? rows.filter(r => !keep.includes(r)) : [];
+  return `<div class="band"><span>${label}</span>${rows.length > END_KEEP ? `<span style="opacity:.75">${rows.length}</span>` : ''}</div>
+    <div class="resscroll"><table class="restab">${END_HEAD}<tbody>${keep.map(r => endRow(r, top, dg)).join('')}</tbody></table></div>
+    ${rest.length ? `<button class="morechips" data-act="endAll">
+      <span class="stack">${rest.slice(0,8).map(r => portrait(r.u.key, 26, { badge:false, round:true })).join('')}</span>
+      <b>+${rest.length}</b><span class="go">Tout voir</span></button>` : ''}`;
+}
+function paintEnd(){
+  const o = $('#endover'); if (!o || !endData) return;
+  const { dg, win, custom, L, allies, foes, turns, wave, next } = endData;
+  const top = Math.max(1, ...allies.map(r => r.t.dmg), ...foes.map(r => r.t.dmg));
   const loot = dg.finish ? custom : win ? `<div class="band">Butin</div><div class="lootrow">
       <span class="cell" title="Kamas">${kamaIcon(34)}<span class="lv">${fmt(L.kamas)}</span></span>
       ${L.items.map(it => `<span class="cell r-${it.rarity}" title="${itemName(it)} · ${RAR_LABEL[it.rarity]}">${itemIcon(it)}<span class="lv">+0</span></span>`).join('')}
       <span class="cell" title="Essences ${ELEM[L.ess.el]}"><span class="por round" style="--elc:${elVar(L.ess.el)};--sz:34px"><svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true"><path d="${EL_GLYPH[L.ess.el]}" fill="#fff"/></svg></span><span class="q">${L.ess.n}</span></span>
       ${L.stones ? `<span class="cell r-heroique" title="Pierre d'âme pleine">${gemIcon('perfect',36)}<span class="q">${L.stones}</span></span>` : ''}
     </div>${L.first ? '<p class="hint" style="padding:0 8px 6px">Premier passage : une pierre d\'âme pleine offerte.</p>' : ''}` : '';
-  const o = document.createElement('div'); o.className = 'over';
+  const btns = dg.finish
+    ? `<button class="btn" data-act="nav" data-v="${dg.back}">Retour</button>`
+    : `${next != null ? `<button class="btn" data-act="nextStage">Suivant</button>` : ''}
+       <button class="btn ${next != null ? 'grey' : ''}" data-act="refight">Recommencer</button>
+       <button class="btn grey" data-act="nav" data-v="${win ? 'trophees' : 'equipe'}">${win ? 'Inventaire' : 'Renforcer l\'équipe'}</button>
+       <button class="btn grey" data-act="nav" data-v="donjons">Donjons</button>`;
   o.innerHTML = `<div class="win"><div class="wt"><h2>Fin du combat</h2></div><div class="wb" style="display:grid; gap:6px">
-    <p style="margin:0">${dg.endLabel || (win ? 'Victoire' : 'Défaite')} · ${dg.name} · ${waveWord(dg).toLowerCase()} ${waveIdx + 1} / ${dg.waves.length} · ${state.turn} tours</p>
-    <div class="band">${win ? 'Gagnants' : 'Perdants'}</div>
-    <div class="resscroll"><table class="restab">${head}<tbody>${allies}</tbody></table></div>
+    <p style="margin:0">${dg.endLabel || (win ? 'Victoire' : 'Défaite')} · ${dg.name} · ${waveWord(dg).toLowerCase()} ${wave + 1} / ${dg.waves.length} · ${turns} tours</p>
+    ${endBlock(win ? 'Gagnants' : 'Perdants', allies, top, dg)}
     ${loot}
-    <div class="band">${win ? 'Perdants' : 'Gagnants'}</div>
-    <div class="resscroll"><table class="restab">${head}<tbody>${foes}</tbody></table></div>
-    ${dg.finish ? `<div class="row" style="justify-content:center; margin-top:6px"><button class="btn" data-act="nav" data-v="${dg.back}">Retour</button></div>` : `<div class="row" style="justify-content:center; margin-top:6px"><button class="btn" data-act="refight">Recommencer</button><button class="btn grey" data-act="nav" data-v="${win ? 'trophees' : 'equipe'}">${win ? 'Voir l\'inventaire' : 'Renforcer l\'équipe'}</button><button class="btn grey" data-act="nav" data-v="donjons">Donjons</button></div>`}
+    ${endBlock(win ? 'Perdants' : 'Gagnants', foes, top, dg)}
+    <div class="row endbtns" style="justify-content:center; margin-top:6px">${btns}</div>
   </div></div>`;
-  field.appendChild(o);
-  log(win ? 'Combat terminé : victoire.' : 'Combat terminé : défaite.', 'sys');
 }
 async function loop(my){
   syncAll(); await wait(500);
