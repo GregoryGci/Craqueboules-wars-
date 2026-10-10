@@ -13,6 +13,20 @@ const API = process.env.DOFUSDB_API || 'https://api.dofusdb.fr';
 const PAUSE_MS = Number(process.env.PAUSE_MS ?? 120);
 const ITEM_TYPES = { 23: 'Dofus', 151: 'Trophées', 217: 'Prysmaradites' };
 
+// ---- Équipement : les types DofusDB rangés par emplacement du jeu.
+// Chaque arme du vrai jeu occupe le même emplacement « arme » chez nous.
+const GEAR_TYPES = {
+  coiffe:   [16],
+  cape:     [17],
+  amulette: [1],
+  anneau:   [9],
+  ceinture: [10],
+  bottes:   [11],
+  arme:     [2, 3, 4, 5, 6, 7, 8, 19, 21, 22],
+};
+// Caractéristiques retenues : celles qui ont un sens dans notre moteur. Le reste (pods, portée, prospection…) est ignoré.
+const KEEP_CHARS = new Set([1, 10, 11, 12, 13, 14, 15, 16, 18, 23, 25, 44]);
+
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let requests = 0;
 
@@ -93,6 +107,27 @@ for (const [typeId, label] of Object.entries(ITEM_TYPES)) {
   }, label));
 }
 
+// ---------- Équipement : les vrais objets avec leurs fourchettes de jet (from / to par caractéristique)
+const gear = [];
+for (const [slot, types] of Object.entries(GEAR_TYPES)) {
+  for (const typeId of types) {
+    gear.push(...await all('items', { typeId }, it => {
+      const name = fr(it.name).trim();
+      if (!name || !it.iconId || name.startsWith('[')) return null;
+      const eff = [];
+      for (const e of it.effects || []) {
+        const c = e.characteristic;
+        if (!KEEP_CHARS.has(c)) continue;
+        const a = e.from ?? 0, b = e.to ?? a;
+        if (!a && !b) continue;           // effet purement descriptif
+        eff.push([c, a, b || a]);
+      }
+      if (!eff.length) return null;       // sans effet chiffré, l'objet n'a rien à apporter
+      return { id: it.id, n: name, s: slot, l: it.level ?? 1, i: it.iconId, e: eff };
+    }, `Équipement ${slot} (type ${typeId})`));
+  }
+}
+
 // ---------- Donjons
 const known = new Set(monsters.map(m => m.id));
 const dungeons = await all('dungeons', {}, d => {
@@ -103,6 +138,6 @@ const dungeons = await all('dungeons', {}, d => {
   return { id: d.id, n: name, l: d.optimalPlayerLevel ?? d.minLevel ?? 1, m, b: (d.bosses || []).filter(id => known.has(id)), mp: maps[maps.length - 1] || 0, mps: maps };
 }, 'Donjons');
 
-const cat = { v: 1, source: 'api.dofusdb.fr', date: new Date().toISOString().slice(0, 10), monsters, spells, spellIcons, items, dungeons };
+const cat = { v: 2, source: 'api.dofusdb.fr', date: new Date().toISOString().slice(0, 10), monsters, spells, spellIcons, items, gear, dungeons };
 await writeFile('catalogue.json', JSON.stringify(cat));
-console.log(`\ncatalogue.json écrit : ${monsters.length} monstres, ${items.length} objets, ${dungeons.length} donjons, ${Object.keys(spells).length} noms de sorts (${requests} requêtes).`);
+console.log(`\ncatalogue.json écrit : ${monsters.length} monstres, ${items.length} objets, ${gear.length} équipements, ${dungeons.length} donjons, ${Object.keys(spells).length} noms de sorts (${requests} requêtes).`);
