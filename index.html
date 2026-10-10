@@ -1104,6 +1104,17 @@ function computeStats(m, def){
     else flat[st.s] += st.v * (SCALED[st.s] ? k : 1);
   }
   for (const g of def.gear || []){ const st = gearStats(g); for (const q in st) if (q in flat) flat[q] += st[q] * (SCALED[q] ? k : 1); }
+  // Bonus de classe : ils ne valent que pour les monstres du joueur, jamais pour l'adversaire.
+  if (def.mine){
+    const C = clsFx();
+    if (C.hp) b.hp *= C.hp;
+    if (C.atk) b.atk *= C.atk;
+    if (C.def) b.def *= C.def;
+    if (C.spd) flat.spd += b.spd * (C.spd - 1);
+    if (C.critFlat) flat.crit += C.critFlat;
+    if (C.accFlat) flat.acc += C.accFlat;
+    if (C.resFlat) flat.res += C.resFlat;
+  }
   return {
     hp: Math.round(b.hp*(1+pct.hp/100) + flat.hp), atk: Math.round(b.atk*(1+pct.atk/100) + flat.atk),
     def: Math.round(b.def*(1+pct.def/100) + flat.def), spd: Math.round(b.spd + flat.spd),
@@ -1129,7 +1140,10 @@ const Engine = (() => {
       atb: 0, alive: true, effects: [], cds: {}, skills, skl };
   }
   function createBattle(teamA, teamB, seed){
-    return { A: teamA.map((d,i)=>makeUnit(d,'A',i)), B: teamB.map((d,i)=>makeUnit(d,'B',i)),
+    const A = teamA.map((d,i)=>makeUnit(d,'A',i));
+    const atb0 = clsFx().atb0;
+    if (atb0) for (const u of A) u.atb = Math.min(99, u.atb + atb0 * 100);
+    return { A, B: teamB.map((d,i)=>makeUnit(d,'B',i)),
       rng: mulberry32(seed), seed, turn: 0, actor: null, over: false, winner: null };
   }
   // Vague suivante : l'équipe A garde ses PV, effets et recharges ; de nouveaux ennemis remplacent les morts
@@ -1191,11 +1205,19 @@ const Engine = (() => {
     // un pourcentage de réduction — calculé sur la défense rapportée au niveau, donc comparable d'un bout à l'autre.
     const dref = def / pwrAt(tgt.level), cut = Math.min(.75, dref / (dref + 160));
     let dmg = atk * op.mult * DMG_K * (1 - cut);
+    if (att.side === 'A'){                       // bonus de classe, côté joueur seulement
+      const C = clsFx();
+      if (C.solo && op.nTargets === 1) dmg *= C.solo;
+      if (C.aoe && op.nTargets > 1) dmg *= C.aoe;
+      if (C.boss && tgt.boss) dmg *= C.boss;
+      if (C.lowHp && att.hp / att.stats.hp < .5) dmg *= C.lowHp;
+    }
     const adv = isAdv(att,tgt), dis = isDis(att,tgt);
     let crit = false, glance = false;
     if (dis && rng() < .5){ glance = true; dmg *= .7; }
     else if (rng()*100 < att.stats.crit + (op.critBonus||0) + (adv ? 15 : 0)){ crit = true; dmg *= 1 + att.stats.critDmg/100; }
-    if (adv) dmg *= 1.15; if (dis) dmg *= .9;
+    const elemK = att.side === 'A' && clsFx().elem || 1;
+    if (adv) dmg *= 1 + .15 * elemK; if (dis) dmg *= .9;
     dmg = Math.round(dmg * (.95 + rng()*.1));
     tgt.hp = Math.max(0, tgt.hp - dmg);
     ev.push({ t:'dmg', id:tgt.id, amount:dmg, crit, glance, adv, dis, hp:tgt.hp });
@@ -1214,7 +1236,8 @@ const Engine = (() => {
     for (const op of sk.ops){
       for (const tgt of targets){
         if (!tgt.alive) continue;
-        if (op.op === 'dmg'){ for (let h = 0; h < (op.hits||1) && tgt.alive; h++) hit(s, actor, tgt, pw === 1 ? op : { ...op, mult:op.mult * pw }, ev); }
+        if (op.op === 'dmg'){ const o = { ...op, mult:op.mult * pw, nTargets:targets.length };
+          for (let h = 0; h < (op.hits||1) && tgt.alive; h++) hit(s, actor, tgt, o, ev); }
         else if (op.op === 'debuff'){
           if (rng()*100 >= op.chance) continue;
           if (rng()*100 < Math.max(15, tgt.stats.res - actor.stats.acc)) ev.push({ t:'resist', id:tgt.id });
@@ -1318,7 +1341,13 @@ const Eco = (() => {
     if (!pool.length) return null;
     const near = pool.filter(g => Math.abs(g.l - lvl) <= Math.max(12, lvl * .35));
     const def = pick(near.length ? near : pool);
-    const lines = def.e.map(([c, a, b]) => ({ c, a, b, v: a === b ? a : a + Math.floor(R() * (b - a + 1)) }));
+    // Zobal relève la qualité : une part des lignes est tirée deux fois, on garde le meilleur résultat
+    const bonus = clsFx().jet || 0, tir = (a, b) => a === b ? a : a + Math.floor(R() * (b - a + 1));
+    const lines = def.e.map(([c, a, b]) => {
+      let v = tir(a, b);
+      if (bonus && R() < bonus * 3) v = Math.max(v, tir(a, b));
+      return { c, a, b, v };
+    });
     return { id: save.nextId++, g: def.id, s: def.s, lines, jet: gearJet(lines), owner: null };
   }
   const gearById = (save, id) => (save.gear || []).find(g => g.id === id);
@@ -1353,7 +1382,7 @@ const Eco = (() => {
     save.monsters.push(m); return m;
   }
   function itemsOf(save, mon){ return Object.values(mon.equip).map(id => itemById(save,id)).filter(Boolean); }
-  function monDef(save, mon){ return { key:mon.key, level:mon.level, awakened:mon.awakened, items:itemsOf(save,mon), gear:Object.values(gearOf(save,mon)), sk:mon.sk }; }
+  function monDef(save, mon){ return { key:mon.key, level:mon.level, awakened:mon.awakened, items:itemsOf(save,mon), gear:Object.values(gearOf(save,mon)), sk:mon.sk, mine:true }; }
 
   function unequip(save, it){
     if (it.owner == null) return;
@@ -1427,7 +1456,9 @@ const Eco = (() => {
   function summon(save){
     if (save.stones < 1) return { err:'Plus de pierre d\'âme pleine.' };
     save.stones--; save.sum = (save.sum || 0) + 1;
-    const stars = +weighted(SUMMON.rates);
+    const boost = clsFx().summon4, rates = { ...SUMMON.rates };
+    if (boost) for (const k of [4, 5]) if (rates[k]) rates[k] *= 1 + (boost - 1) * 10;   // Osamodas
+    const stars = +weighted(rates);
     let pool = [];
     for (let d = 0; !pool.length && d < 5; d++) pool = Object.keys(MONSTERS).filter(k => (!ROSTER || ROSTER.has(k)) && Math.abs(MONSTERS[k].stars - stars) === d);
     const key = pick(pool);
@@ -1437,12 +1468,13 @@ const Eco = (() => {
   }
   // team : monstres qui reçoivent l'XP (par défaut l'équipe active ; l'auto-run passe celle de son lancement)
   function loot(save, dg, team){
-    const out = { kamas: randInt(...dg.kamas), xp: [], items: [], stones:0, first:false };
+    const C = clsFx();
+    const out = { kamas: Math.round(randInt(...dg.kamas) * (C.kamas || 1)), xp: [], items: [], stones:0, first:false };
     save.kamas += out.kamas;
-    for (const uid of team || save.team){ const m = monByUid(save, uid); if (m){ const ups = addXp(m, dg.xp); out.xp.push({ key:m.key, name:MONSTERS[m.key].name, ups, level:m.level }); } }
+    for (const uid of team || save.team){ const m = monByUid(save, uid); if (m){ const ups = addXp(m, Math.round(dg.xp * (C.xp || 1))); out.xp.push({ key:m.key, name:MONSTERS[m.key].name, ups, level:m.level }); } }
     // Chaque mode a son butin, et un seul : la campagne l'équipement, les raids les trophées,
     // les dragons leur Dofus (rare) accompagné de quelques pièces d'équipement.
-    const n = 1 + (R() < (dg.mode === 'camp' ? .4 : .5) ? 1 : 0), ilvl = dg.dofusLvl || dg.lvl;
+    const n = 1 + (R() < (dg.mode === 'camp' ? .4 : .5) * (C.drop || 1) ? 1 : 0), ilvl = dg.dofusLvl || dg.lvl;
     out.gear = [];
     const dropGear = () => { const g = genGear(save, dg.lvl); if (g){ save.gear = save.gear || []; save.gear.push(g); out.gear.push(g); } };
     for (let i = 0; i < n; i++){
@@ -2245,6 +2277,30 @@ const CLASSES = [
   { id:18, n:'Ouginak',    r:'Barbare',                 g:'Combat',      b:'+15 % de dégâts sous 50 % de PV' },
   { id:20, n:'Forgelance', r:'Champion immortel',       g:'Combat',      b:'+6 % de points de vie et de dégâts' },
 ];
+// Effets des classes. Volontairement modestes côté combat (8 à 10 % au plus) et plus généreux hors combat :
+// un bonus de butin accélère la progression sans jamais gagner un combat à la place du joueur.
+const CLASS_FX = {
+  1:  { def:1.11 },                 // Féca — encaisse 10 % de moins
+  2:  { summon4:1.10 },             // Osamodas — invocations 4 ★ et plus
+  3:  { drop:1.10 },                // Enutrof — chance de butin
+  4:  { critFlat:8 },               // Sram — +8 points de critique
+  5:  { atb0:.10 },                 // Xélor — jauge de tour au départ
+  6:  { kamas:1.10 },               // Ecaflip
+  7:  { waveHeal:1.15 },            // Eniripsa — soin entre les vagues
+  8:  { solo:1.10 },                // Iop — dégâts sur cible unique
+  9:  { accFlat:10 },               // Crâ — précision
+  10: { xp:1.10 },                  // Sadida
+  11: { hp:1.10 },                  // Sacrieur
+  12: { resFlat:10 },               // Pandawa
+  13: { aoe:1.10 },                 // Roublard — dégâts de zone
+  14: { jet:.10 },                  // Zobal — qualité des jets trouvés
+  15: { boss:1.10 },                // Steamer — dégâts contre les boss
+  16: { spd:1.10 },                 // Eliotrope
+  17: { elem:1.5 },                 // Huppermage — avantage élémentaire renforcé
+  18: { lowHp:1.15 },               // Ouginak — sous la moitié des points de vie
+  20: { hp:1.06, atk:1.06 },        // Forgelance
+};
+const clsFx = () => { const c = classOf(); return (c && CLASS_FX[c.id]) || {}; };
 const clsSlug = c => c.n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 // L'avatar manque côté DofusDB pour une classe ou deux : l'emblème posé dessous prend alors le relais
 const clsHead = (c, sex, sz) => `<img class="chd" src="${IMG_BASE}/heads/SmallHead_${c.id}${sex === 'f' ? 1 : 0}.png" alt="" width="${sz}" height="${sz}" data-fb>`;
@@ -2877,7 +2933,7 @@ function simulate(dg, team, seed){
   let w = 0;
   for (let guard = 0; guard < 6000; guard++){
     if (st.over){
-      if (st.winner === 'A' && w < dg.waves.length - 1){ Engine.nextWave(st, dg.waves[++w], WAVE_HEAL); continue; }
+      if (st.winner === 'A' && w < dg.waves.length - 1){ Engine.nextWave(st, dg.waves[++w], Math.round(WAVE_HEAL * (clsFx().waveHeal || 1))); continue; }
       break;
     }
     const a = Engine.advance(st);
@@ -3304,13 +3360,15 @@ async function nextWave(my){
   const dg = curStage, n = dg.waves.length;
   await wait(450); if (my !== battleId) return;
   for (const u of state.B){ pastFoes.push({ u, t:tal(u.id) }); delete tally[u.id]; nodes[u.id].remove(); tls[u.id].remove(); delete nodes[u.id]; delete tls[u.id]; }
-  waveIdx++; Engine.nextWave(state, dg.waves[waveIdx], WAVE_HEAL);
+  waveIdx++;
+  const heal = Math.round(WAVE_HEAL * (clsFx().waveHeal || 1));   // Eniripsa soigne davantage entre les vagues
+  Engine.nextWave(state, dg.waves[waveIdx], heal);
   for (const u of state.B) addUnit(u);
   layoutField(); syncAll(); renderOrder();
   const boss = state.B.some(u => u.boss);
   const ww = waveWord(dg);
   $('#wave').textContent = `${ww} ${waveIdx + 1} / ${n}`;
-  log(`${ww} ${waveIdx + 1} / ${n}${boss ? ' : le boss arrive !' : '.'} L'équipe récupère ${WAVE_HEAL} % de ses PV.`, 'sys');
+  log(`${ww} ${waveIdx + 1} / ${n}${boss ? ' : le boss arrive !' : '.'} L'équipe récupère ${heal} % de ses PV.`, 'sys');
   const cast = $('#cast'); cast.innerHTML = `<b>${ww} ${waveIdx + 1} / ${n}</b>${boss ? ' · boss' : ''}`; cast.classList.add('show');
   await wait(800);
 }
