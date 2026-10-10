@@ -291,6 +291,14 @@ body.in-combat .tabs{display:none}
 @keyframes upSweep{0%{transform:translateX(-85%) rotate(0deg); opacity:0} 12%{opacity:1} 100%{transform:translateX(85%); opacity:0}}
 @keyframes upShake{0%,100%{transform:translateX(0)} 18%{transform:translateX(-6px)} 36%{transform:translateX(5px)} 56%{transform:translateX(-3px)} 78%{transform:translateX(2px)}}
 @keyframes lvJump{0%{transform:scale(1)} 40%{transform:scale(1.5); color:var(--orange2)} 100%{transform:scale(1)}}
+/* Icônes de butin cliquables, et aperçu des jets */
+.dicos{display:flex; flex-wrap:wrap; gap:4px}
+.dico{padding:2px; border:1px solid var(--slot-line); border-radius:6px; background:linear-gradient(var(--slot-hi), var(--slot)); cursor:pointer; line-height:0}
+.dico:hover{border-color:var(--orange2)}
+.dico img{width:26px; height:26px; object-fit:contain}
+.apercu li{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:baseline}
+.apercu .mono{font-family:"Spline Sans Mono", ui-monospace, monospace; font-size:12.5px; font-variant-numeric:tabular-nums; white-space:nowrap}
+.apercu li.neg b{color:var(--bad)} .apercu li.pos b{color:var(--good)}
 /* Arène en direct */
 .rtagrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:7px}
 .rtamon{position:relative; display:grid; justify-items:center; gap:2px; padding:8px 5px; border-radius:8px; cursor:pointer; font:inherit;
@@ -1547,7 +1555,7 @@ const Eco = (() => {
   function newSave(){
     const s = { v:SAVE_V, sc:1, cat:CAT_MODE, kamas:800, stones:3, gold:0, scrolls:0, sum:0, ach:{}, nextId:1, monsters:[], items:[], gear:[], team:[], cleared:[], seen:[], wins:0 };
     const [k1, k2, k3] = starterKeys();
-    const a = addMonster(s,k1,6), b = addMonster(s,k2,6), c = addMonster(s,k3,6);
+    const a = addMonster(s,k1,10), b = addMonster(s,k2,10), c = addMonster(s,k3,10);   // au niveau du premier donjon
     s.team = [a.uid, b.uid, c.uid]; s.seen = [k1, k2, k3];
     for (const [mon, slot, rar] of [[a,2,'magique'],[b,5,'magique'],[c,1,'magique'],[c,4,'normal'],[null,3,'normal'],[null,6,'rare']]){
       const it = genItem(s, rar, slot); s.items.push(it); if (mon) equip(s, mon, it);
@@ -1886,7 +1894,11 @@ function buildCatalog(cat){
       for (const [a, b] of Object.entries((h.awaken && h.awaken.swap) || {})) swap[ren[a]] = real(b, h.skills.indexOf(a), ' ✦');
       MONSTERS[key] = { ...h, skills, awaken:{ ...h.awaken, swap }, name:c.n, g:c.g, dofusLvl:c.l, sz:sizeOf(c) }; continue;
     }
-    const stars = c.b ? 5 : c.mb ? 4 : c.l >= 150 ? 4 : c.l >= 90 ? 3 : c.l >= 40 ? 2 : 1;
+    // Les étoiles donnent les stats de base. Un boss en recevait cinq d'office, quel que soit son niveau :
+    // le Kardorim de niveau 10 avait donc la carrure d'un boss de niveau 200, et le premier donjon était
+    // imprenable. Un boss vaut désormais une étoile de plus que son niveau, sans jamais tomber sous deux.
+    const parNiveau = c.l >= 150 ? 4 : c.l >= 90 ? 3 : c.l >= 40 ? 2 : 1;
+    const stars = c.b ? Math.min(5, Math.max(2, parNiveau + 1)) : c.mb ? Math.min(4, parNiveau + 1) : parNiveau;
     const ch = c.c || [0,0,0,0], mx = Math.max(...ch), el = mx > 0 ? ELS[ch.indexOf(mx)] : ELS[h0 % 4];
     let role = c.b ? 'Boss' : null;
     if (!role && c.l && c.hp / c.l > 60) role = 'Tank';
@@ -2580,15 +2592,16 @@ function dropsHtml(d){
       if (p.length) vus.push(p[Math.floor(p.length / 2)]);      // une pièce représentative par emplacement
     }
     lignes.push(`<li><span>Équipement <span class="muted">(niveau ${ilvl})</span></span><b>1 ou 2 par victoire</b></li>`);
-    if (vus.length) lignes.push(`<li><span>Pièces possibles</span><span class="dicos">${vus.map(g => `<img src="${IMG_BASE}/items/${g.i}.png" alt="" title="${esc(g.n)} · ${GEAR_LABEL[g.s]}" loading="lazy" data-fb>`).join('')}</span></li>`);
+    if (vus.length) lignes.push(`<li><span>Pièces possibles</span><span class="dicos">${vus.map(g => `<button class="dico" data-act="voirGear" data-id="${g.id}" title="${esc(g.n)} · ${GEAR_LABEL[g.s]}"><img src="${IMG_BASE}/items/${g.i}.png" alt="" loading="lazy" data-fb></button>`).join('')}</span></li>`);
   }
   if (raid){
     const tot = Object.values(d.rarity).reduce((a, b) => a + b, 0) || 1;
     const near = ITEM_SKINS.normal.filter(i => Math.abs(i.l - ilvl) <= 40), skins = near.length ? near : ITEM_SKINS.normal;
     lignes.push(`<li><span>Trophées <span class="muted">(1 ou 2 par victoire)</span></span><span class="dchips">${RARITIES.filter(r => d.rarity[r]).map(r => `<b style="color:var(--r-${r})">${RAR_LABEL[r]} ${Math.round(d.rarity[r] / tot * 100)} %</b>`).join('')}</span></li>`);
-    if (skins.length) lignes.push(`<li><span>Trophées possibles</span><span class="dicos">${skins.slice(0, 7).map(i => `<img src="${IMG_BASE}/items/${i.i}.png" alt="" title="${esc(i.n)}" loading="lazy" data-fb>`).join('')}</span></li>`);
+    if (skins.length) lignes.push(`<li><span>Trophées possibles</span><span class="dicos">${skins.slice(0, 7).map(i => `<button class="dico" data-act="voirTro" data-id="${i.id}" data-l="${ilvl}" title="${esc(i.n)}"><img src="${IMG_BASE}/items/${i.i}.png" alt="" loading="lazy" data-fb></button>`).join('')}</span></li>`);
   }
   if (d.dofus) lignes.push(`<li><span>Dofus</span><b style="color:var(--r-legendaire)">${DOFUS_NAMES[d.dofus]} · ${Math.round(d.dofusRate * 100)} %</b></li>`);
+  if (d.dofus) lignes.push(`<li><span class="muted" style="font-size:11.5px">Clique une icône pour voir ses jets possibles</span></li>`);
   lignes.push(`<li><span>${gemIcon('perfect', 14)} Pierre d'âme pleine</span><b>1 au premier passage</b></li>`);
 
   const tot = Object.values(d.rarity).reduce((a, b) => a + b, 0) || 1;
@@ -2607,7 +2620,7 @@ function dgDetail(i){
       ${d.waves.map((w, wi) => `<div class="band">${waveWord(d)} ${wi + 1} / ${d.waves.length}${w.some(e => e.boss) ? ' · boss' : ''}</div>
       <ul class="foes">${w.map(e => `<li>${portrait(e.key,44)}<span><b>${MONSTERS[e.key].name}</b>${e.boss ? ' <b class="bossb">Boss</b>' : ''}<br><span class="muted">niv. ${e.level} · ${ELEM[MONSTERS[e.key].el]} · <span class="stars">${starsTxt(MONSTERS[e.key].stars)}</span></span></span></li>`).join('')}</ul>`).join('')}
       <div class="band">Butin possible</div>
-      ${dropsHtml(d)}
+      ${dropsHtml(d)}${apercuModal()}
       <footer class="row" style="justify-content:space-between">${done ? '<span class="ok">Terminé</span>' : un ? '<span class="new">1er passage : +1 pierre d\'âme pleine</span>' : '<span class="muted">Termine le niveau précédent pour l\'ouvrir</span>'}
         <span class="row" style="gap:6px"><button class="btn grey" data-act="auto" data-i="${i}" ${un && team.length && !(autoRun && autoRun.on) ? '' : 'disabled'} title="Ton équipe enchaîne ${AUTO_N} combats en arrière-plan pendant que tu fais autre chose">Auto ×${AUTO_N}</button>
         <button class="btn" data-act="fight" data-i="${i}" ${un && team.length ? '' : 'disabled'}>Combattre</button></span></footer>
@@ -3255,6 +3268,52 @@ function viewArene(){
     <p class="muted" style="margin:0">Dix adversaires par jour, calés sur le niveau de tes meilleurs monstres. Chaque victoire rapporte des parchemins dorés ; la liste change à minuit.</p>
     <ul class="shop">${foes.map(f => `<li class="${f.done ? 'done' : ''}"><span class="lvn">${f.r + 1}</span><span class="achn"><b>${f.name}</b> <span class="muted">niv. ${f.lvl}</span><br><span class="fchips">${foeChips(f.team)}</span></span>
       <span class="achr">${f.done ? '<span class="ok">Battu</span>' : `<span class="row" style="gap:6px; flex-wrap:nowrap">${resIcon(GOLD_ICON, 14)} <b>${f.gold}</b><button class="btn sm" data-act="arFight" data-r="${f.r}" ${team.length ? '' : 'disabled'}>Défier</button></span>`}</span></li>`).join('')}</ul></div></section>`;
+}
+
+// Aperçu d'un objet du butin : ce qu'il peut donner, avant même de l'avoir.
+let apercu = null;   // { t:'g'|'i', def, il }
+function apercuModal(){
+  if (!apercu) return '';
+  if (apercu.t === 'g'){
+    const d = apercu.def;
+    const lignes = (d.e || []).map(([c, a, b]) => {
+      const neg = b < 0;
+      return `<li class="${neg ? 'neg' : 'pos'}"><span>${CHAR_NAME[c] || 'Effet'}</span>
+        <b class="mono">${a === b ? (a > 0 ? '+' + a : a) : `${a} à ${b}`}</b></li>`;
+    }).join('');
+    return `<div class="over modal" data-act="apercuOff"><div class="win" style="width:min(430px,100%)" data-stop>
+      <div class="wt"><h2>${esc(d.n)}</h2></div>
+      <div class="wb" style="display:grid; gap:9px">
+        <div class="gdbody" style="padding:0">
+          <div class="gdicon"><span class="box">${gearIcon({ g:d.id }, 64)}</span></div>
+          <div style="display:grid; gap:4px; align-content:start; min-width:0">
+            <b>${GEAR_LABEL[d.s]} · niveau ${d.l}</b>
+            <span class="muted" style="font-size:12px">Chaque ligne tire sa valeur dans sa fourchette au moment du drop.</span>
+          </div></div>
+        <div class="band">Jets possibles</div>
+        <ul class="rows apercu">${lignes || '<li><span class="muted">Aucun effet chiffré.</span></li>'}</ul>
+        <div class="row" style="justify-content:flex-end"><button class="btn grey" data-act="apercuOff">Fermer</button></div>
+      </div></div></div>`;
+  }
+  // Trophée ou Dofus : les fourchettes viennent des tables du jeu, pas du catalogue
+  const sk = apercu.def, legend = apercu.legend;
+  const mains = Object.keys(MAIN);
+  return `<div class="over modal" data-act="apercuOff"><div class="win" style="width:min(430px,100%)" data-stop>
+    <div class="wt"><h2>${esc(sk.n)}</h2></div>
+    <div class="wb" style="display:grid; gap:9px">
+      <div class="gdbody" style="padding:0">
+        <div class="gdicon"><span class="box"><img class="gimg" src="${IMG_BASE}/items/${sk.i}.png" alt="" width="64" height="64" data-fb></span></div>
+        <div style="display:grid; gap:4px; align-content:start; min-width:0">
+          <b>${legend ? 'Dofus' : 'Trophée'}</b>
+          <span class="muted" style="font-size:12px">L'effet principal dépend de l'emplacement. Il grandit de +0 à +15.</span>
+        </div></div>
+      <div class="band">Effet principal selon l'emplacement</div>
+      <ul class="rows apercu">${[1,2,3,4,5,6].map(n => `<li><span>Emplacement ${n}</span>
+        <b class="mono">${[...new Set(SLOT_MAINS[n])].map(k => `${STAT[k]} ${MAIN[k][0]} à ${MAIN[k][1]}`).join(' · ')}</b></li>`).join('')}</ul>
+      <div class="band">Sous-effets, un par rareté au-dessus de « normal »</div>
+      <ul class="rows apercu">${Object.keys(SUB).slice(0, 6).map(k => `<li><span>${STAT[k]}</span><b class="mono">+${SUB[k][0]} à ${SUB[k][1]} par palier</b></li>`).join('')}</ul>
+      <div class="row" style="justify-content:flex-end"><button class="btn grey" data-act="apercuOff">Fermer</button></div>
+    </div></div></div>`;
 }
 
 // ---------- Arène en direct
@@ -4236,6 +4295,10 @@ function lauStart(){
 Object.assign(ACT, {
   lauTab(d){ lauTab = d.v; $('#lauTabs').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === lauTab))); lauPan(); },
   chatSend(){ chatSend(); },
+  voirGear(d){ const g = GEAR.find(x => x.id === +d.id); if (g){ apercu = { t:'g', def:g }; render(); } },
+  voirTro(d){ const i = (ITEM_SKINS.normal.concat(ITEM_SKINS.legend)).find(x => x.id === +d.id);
+    if (i){ apercu = { t:'i', def:i, legend:ITEM_SKINS.legend.includes(i) }; render(); } },
+  apercuOff(){ apercu = null; render(); },
   rtaQueue(){ rtaQueue(); },
   rtaQuit(){ if (rta && rta.chM) rtaSend({ t:'parti' }); rtaReset('Duel quitté.'); },
   rtaBan(d){ if (!rta || rta.banMien != null) return; rta.banMien = +d.uid; rtaSend({ t:'ban', uid:rta.banMien }); rtaStep(); },
