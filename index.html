@@ -2214,7 +2214,8 @@ const TEST = new URLSearchParams(location.search).has('test');   // ?test : ress
 let view = 'jouer', selMon = null, selItem = null, slotPick = null, filt = { slot:0, rar:'' };
 let swapOpen = false;
 let gearPick = null;   // emplacement d'équipement ouvert sur la fiche du monstre
-let teamPick = null;   // monstre en attente d'entrer dans l'équipe, quand elle est déjà pleine   // dans la fiche du monstre : la liste « Changer » est dépliée sous l'objet équipé
+let teamPick = null;   // monstre en attente d'entrer dans l'équipe, quand elle est déjà pleine
+let selKind = 'i';     // inventaire : « i » trophée ou Dofus, « g » équipement   // dans la fiche du monstre : la liste « Changer » est dépliée sous l'objet équipé
 let upFx = null;   // sous-effet à animer après une amélioration : { s, added, v }
 let lastSummon = null, upMsg = null, confirmKey = null, inCombat = false, curDg = 0, curStage = null;
 let speed = 1, auto = false;
@@ -2681,24 +2682,51 @@ function slotPanel(mon){
 
 // ---------- Inventaire
 function viewTrophees(){
-  const list = save.items.filter(i => (!filt.slot || i.slot === filt.slot) && (!filt.rar || i.rarity === filt.rar))
-    .sort((a,b) => RARITIES.indexOf(b.rarity) - RARITIES.indexOf(a.rarity) || b.lvl - a.lvl || a.slot - b.slot);
-  if (!save.items.some(i => i.id === selItem)) selItem = list[0] && list[0].id;
-  const it = selItem && Eco.itemById(save, selItem);
-  const cells = list.map(i => `<button class="cell r-${i.rarity} ${selItem === i.id ? 'on' : ''}" data-act="selItem" data-id="${i.id}" title="${itemName(i)} +${i.lvl}">
-    ${itemIcon(i)}<span class="lv">+${i.lvl}</span>${i.owner != null ? '<span class="own"></span>' : ''}</button>`).join('');
+  // Deux familles cohabitent : trophées et Dofus (améliorables) d'un côté, équipement (jet figé) de l'autre.
+  // Le même onglet les montre, avec un filtre par type comme l'inventaire du jeu.
+  const kind = filt.kind || 'tous';
+  const slotKind = GEAR_SLOTS.includes(kind);
+  const voirTro = kind === 'tous' || kind === 'trophee' || kind === 'dofus';
+  const voirGear = kind === 'tous' || kind === 'gear' || slotKind;
+  const tros = !voirTro ? [] : save.items
+    .filter(i => (kind !== 'dofus' || i.rarity === 'legendaire') && (kind !== 'trophee' || i.rarity !== 'legendaire')
+      && (!filt.rar || i.rarity === filt.rar))
+    .sort((a, b) => RARITIES.indexOf(b.rarity) - RARITIES.indexOf(a.rarity) || b.lvl - a.lvl || a.slot - b.slot);
+  const gears = !voirGear ? [] : (save.gear || [])
+    .filter(g => !slotKind || g.s === (GEAR_SRC[kind] || kind))
+    .sort((a, b) => gearLvl(b) - gearLvl(a) || b.jet - a.jet);
+
+  const tout = [...tros.map(o => ({ t:'i', o })), ...gears.map(o => ({ t:'g', o }))];
+  if (!tout.some(x => x.t === selKind && x.o.id === selItem)){
+    const p = tout[0];
+    if (p){ selKind = p.t; selItem = p.o.id; } else selItem = null;
+  }
+  const cells = tout.map(x => x.t === 'i'
+    ? `<button class="cell r-${x.o.rarity} ${selKind === 'i' && selItem === x.o.id ? 'on' : ''}" data-act="selItem" data-id="${x.o.id}" title="${esc(itemName(x.o))} +${x.o.lvl}">
+        ${itemIcon(x.o)}<span class="lv">+${x.o.lvl}</span>${x.o.owner != null ? '<span class="own"></span>' : ''}</button>`
+    : `<button class="cell ${JET_CLASS(x.o.jet)} ${selKind === 'g' && selItem === x.o.id ? 'on' : ''}" data-act="selGear" data-id="${x.o.id}" title="${esc(gearName(x.o))} · niveau ${gearLvl(x.o)} · jet ${Math.round(x.o.jet * 100)} %">
+        ${gearIcon(x.o, 42)}<span class="lv">${Math.round(x.o.jet * 100)}</span>${x.o.owner != null ? '<span class="own"></span>' : ''}</button>`).join('');
+
+  const sel = selItem && (selKind === 'g' ? Eco.gearById(save, selItem) : Eco.itemById(save, selItem));
+  const detail = !sel
+    ? '<section class="win"><div class="wt"><h2>Objet</h2></div><div class="wb muted">Sélectionne un objet.</div></section>'
+    : selKind === 'g'
+      ? `<section class="win"><div class="wt"><h2>Équipement</h2></div><div class="wb" style="padding:6px">${gearDetail(sel, null, sel.s)}</div></section>`
+      : itemDetail(sel);
+
+  const TYPES = [['tous', 'Tous types'], ['trophee', 'Trophées'], ['dofus', 'Dofus'], ['gear', "Tout l'équipement"],
+    ...GEAR_SLOTS.filter(sl => sl !== 'anneau2').map(sl => [sl, GEAR_LABEL[sl]])];
   return `<div class="split">
-    ${it ? itemDetail(it) : '<section class="win"><div class="wt"><h2>Objet</h2></div><div class="wb muted">Sélectionne un objet.</div></section>'}
-    <section class="win"><div class="wt"><h2>Inventaire</h2></div><div class="wb" style="display:grid; gap:8px">
+    ${detail}
+    <section class="win"><div class="wt"><h2>Inventaire<small>${tout.length} objets</small></h2></div><div class="wb" style="display:grid; gap:8px">
       <div class="row">
-        <span class="selwrap"><select class="sel" id="fSlot" aria-label="Emplacement">${[0,1,2,3,4,5,6].map(n => `<option value="${n}" ${filt.slot === n ? 'selected' : ''}>${n ? 'Emplacement ' + n : 'Tous emplacements'}</option>`).join('')}</select></span>
-        <span class="selwrap"><select class="sel" id="fRar" aria-label="Rareté"><option value="">Toutes raretés</option>${RARITIES.map(r => `<option value="${r}" ${filt.rar === r ? 'selected' : ''}>${RAR_LABEL[r]}</option>`).join('')}</select></span>
+        <span class="selwrap"><select class="sel" id="fKind" aria-label="Type">${TYPES.map(([v, l]) => `<option value="${v}" ${kind === v ? 'selected' : ''}>${l}</option>`).join('')}</select></span>
+        ${voirTro && !slotKind && kind !== 'gear' ? `<span class="selwrap"><select class="sel" id="fRar" aria-label="Rareté"><option value="">Toutes raretés</option>${RARITIES.map(r => `<option value="${r}" ${filt.rar === r ? 'selected' : ''}>${RAR_LABEL[r]}</option>`).join('')}</select></span>` : ''}
       </div>
       <div class="panel" style="padding:8px; max-height:460px; overflow:auto"><div class="grid">${cells || '<span class="muted" style="grid-column:1/-1">Rien ici pour ces filtres.</span>'}</div></div>
-      <div class="invfoot"><span class="muted" style="font-weight:normal; margin-right:auto">Point bleu : objet équipé</span>${kamaIcon(16)} ${fmt(save.kamas)} K</div>
+      <div class="invfoot"><span class="muted" style="font-weight:normal; margin-right:auto">Point bleu : porté par un monstre</span>${kamaIcon(16)} ${fmt(save.kamas)} K</div>
     </div></section></div>`;
 }
-// ---------- Briques d'affichage d'un objet, partagées par l'inventaire et la fiche du monstre
 const itemKind = it => it.rarity === 'legendaire' ? 'Dofus' : 'Trophée';
 // Paliers d'amélioration : un sous-effet apparaît ou grandit tous les 3 niveaux jusqu'à +12
 function itemSteps(it){
@@ -3163,7 +3191,8 @@ const ACT = {
     persist(); render();
   },
   unequip(d){ Eco.unequip(save, Eco.itemById(save, +d.id)); slotPick = null; swapOpen = false; persist(); render(); },
-  selItem(d){ selItem = +d.id; upFx = null; upMsg = null; confirmKey = null; render(); },
+  selItem(d){ selKind = 'i'; selItem = +d.id; upFx = null; upMsg = null; confirmKey = null; render(); },
+  selGear(d){ selKind = 'g'; selItem = +d.id; upFx = null; upMsg = null; confirmKey = null; render(); },
   upgrade(){
     const it = Eco.itemById(save, selItem), r = Eco.upgrade(save, it);
     upFx = r.ok && r.sub ? r.sub : null;
@@ -3231,7 +3260,8 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target;
-  if (t.id === 'fSlot'){ filt.slot = +t.value; render(); }
+  if (t.id === 'fKind'){ filt.kind = t.value; render(); }
+  else if (t.id === 'fSlot'){ filt.slot = +t.value; render(); }
   else if (t.id === 'fRar'){ filt.rar = t.value; render(); }
 });
 document.addEventListener('input', e => {
