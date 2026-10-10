@@ -64,15 +64,24 @@ secret**, et crée les deux :
 | Nom | Valeur |
 | --- | --- |
 | `SUPABASE_URL` | `https://xxxxxxxxxxxx.supabase.co` |
-| `SUPABASE_ANON_KEY` | la clé **anon public** |
+| `SUPABASE_ANON_KEY` | la clé **publique** (voir ci-dessous) |
+
+Supabase a changé de système de clés, et les deux formats fonctionnent :
+
+| Format | Publique — à utiliser | Privée — jamais dans le jeu |
+| --- | --- | --- |
+| Nouveau | `sb_publishable_…` | `sb_secret_…` |
+| Ancien | `anon` (commence par `eyJ`) | `service_role` |
 
 Relance ensuite la publication (n'importe quel push, ou **Actions → Publier le
 jeu → Run workflow**). Le launcher proposera alors un écran de compte avant la
 création du personnage.
 
 Le script `injecter-cles.mjs` vérifie la forme de l'URL et **refuse de publier
-une clé `service_role`** si elle est collée par erreur : celle-là contourne
-toutes les règles d'accès et ne doit jamais partir dans la page.
+une clé privée** (`sb_secret_…` comme `service_role`) si elle est collée par
+erreur : celles-là contournent toutes les règles d'accès et ne doivent jamais
+partir dans la page. La publication échoue alors, plutôt que de mettre la clé
+en ligne.
 
 Sans secrets, la publication se fait normalement en mode local.
 

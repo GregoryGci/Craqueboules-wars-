@@ -15,19 +15,27 @@ if (!/^https:\/\/[\w-]+\.supabase\.co\/?$/.test(url)) {
   console.error(`URL Supabase inattendue : ${url}`);
   process.exit(1);
 }
-// La clé anon est un JWT : trois parties séparées par des points. La clé service_role
-// en est un aussi, mais elle ne doit JAMAIS partir dans la page — on refuse de la publier.
-if (key.split('.').length !== 3) {
-  console.error('La clé ne ressemble pas à une clé Supabase.');
+// Deux formats cohabitent chez Supabase :
+//   · les nouvelles clés   sb_publishable_… (publique)  et  sb_secret_… (privée)
+//   · les anciennes, des JWT, dont la charge porte role: anon ou role: service_role
+// Dans les deux cas, seule la clé publique a le droit de partir dans la page.
+if (key.startsWith('sb_secret_')) {
+  console.error('Refus de publier une clé « sb_secret_ ». Utilise la clé sb_publishable_.');
   process.exit(1);
 }
-try {
-  const role = JSON.parse(Buffer.from(key.split('.')[1], 'base64url').toString()).role;
-  if (role && role !== 'anon') {
-    console.error(`Refus de publier une clé « ${role} ». Utilise la clé anon public.`);
+if (!key.startsWith('sb_publishable_')) {
+  if (key.split('.').length !== 3) {
+    console.error('La clé ne ressemble ni à sb_publishable_…, ni à une ancienne clé anon.');
     process.exit(1);
   }
-} catch { /* charge illisible : on laisse passer, la validation de forme a suffi */ }
+  try {
+    const role = JSON.parse(Buffer.from(key.split('.')[1], 'base64url').toString()).role;
+    if (role && role !== 'anon') {
+      console.error(`Refus de publier une clé « ${role} ». Utilise la clé anon public.`);
+      process.exit(1);
+    }
+  } catch { /* charge illisible : la validation de forme a suffi */ }
+}
 
 const esc = s => s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 const src = await readFile('index.html', 'utf8');
