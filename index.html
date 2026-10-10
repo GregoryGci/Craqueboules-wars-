@@ -879,9 +879,15 @@ body.in-combat .tabs{display:none}
    Stats de base données au niveau 40 ; elles sont réduites aux bas niveaux.
    ===================================================================== */
 const ATB_RATE = 0.07;
+const DMG_K = 0.45;   // calibré pour un coup d'environ 15 au niveau 1, et le même rythme de combat qu'avant
 const BEATS = { feu:'air', air:'terre', terre:'eau', eau:'feu' };
 const ELEM = { terre:'Terre', feu:'Feu', eau:'Eau', air:'Air' };
 const MAX_LVL = 40;
+// Courbe de puissance : tout ce qui est brut — PV, ATK, DEF, apports d'objets — est multiplié par ce facteur.
+// Au niveau 1 il vaut 1, au niveau 40 environ 333 000, ce qui porte les coups de ~15 à ~5 millions.
+// Le rapport entre les forces ne bouge pas : il faut toujours le même nombre de coups pour abattre une cible.
+const POW_STEP = Math.pow(333000, 1 / (MAX_LVL - 1));
+const pwrAt = lv => Math.pow(POW_STEP, Math.max(0, (lv || 1) - 1));
 const SK_MAX = 5, SK_STEP = .08;   // niveaux de sort : +8 % d'effet par niveau, recharge −1 au niveau max
 
 const EFFECTS = {
@@ -1052,16 +1058,20 @@ const fmtStat = (s,v) => `${STAT[s]} +${v}${PCT.has(s) ? ' %' : ''}`;
 const xpNeed = l => 80 + l*35;
 
 function computeStats(m, def){
-  const lv = def.level || 1, k = .55 + .45 * (lv - 1) / (MAX_LVL - 1);
+  const lv = def.level || 1, pwr = pwrAt(lv), k = (.55 + .45 * (lv - 1) / (MAX_LVL - 1)) * pwr;
   const b = { ...m.base }; b.hp *= k; b.atk *= k; b.def *= k;
   if (def.awakened && m.awaken) for (const [s,v] of Object.entries(m.awaken.stats)) b[s] += v;
   if (def.boss){ const bm = def.bossMult || 2.4; b.hp *= bm; b.atk *= 1 + (bm - 1) * .07; }
   if (def.hpMult){ b.hp *= def.hpMult; b.atk *= def.atkMult || 1; }   // monstres des premières vagues
   const flat = { hp:0, atk:0, def:0, spd:0, crit:0, critDmg:0, acc:0, res:0 }, pct = { hp:0, atk:0, def:0 };
+  // Les apports chiffrés (PV, ATK, DEF, VIT) suivent la même courbe que les stats de base, sinon un trophée
+  // ou une pièce d'équipement ne pèserait plus rien passé les premiers niveaux. Les pourcentages, eux, ne bougent pas.
+  const SCALED = { hp:1, atk:1, def:1, spd:1 };
   for (const it of def.items || []) for (const st of itemBonuses(it)){
-    if (st.s.endsWith('Pct')) pct[st.s.slice(0,-3)] += st.v; else flat[st.s] += st.v;
+    if (st.s.endsWith('Pct')) pct[st.s.slice(0,-3)] += st.v;
+    else flat[st.s] += st.v * (SCALED[st.s] ? k : 1);
   }
-  for (const g of def.gear || []){ const st = gearStats(g); for (const k in st) if (k in flat) flat[k] += st[k]; }
+  for (const g of def.gear || []){ const st = gearStats(g); for (const q in st) if (q in flat) flat[q] += st[q] * (SCALED[q] ? k : 1); }
   return {
     hp: Math.round(b.hp*(1+pct.hp/100) + flat.hp), atk: Math.round(b.atk*(1+pct.atk/100) + flat.atk),
     def: Math.round(b.def*(1+pct.def/100) + flat.def), spd: Math.round(b.spd + flat.spd),
@@ -1144,7 +1154,11 @@ const Engine = (() => {
     const rng = s.rng;
     const atk = att.stats.atk * (has(att,'atkUp') ? 1.5 : 1);
     const def = tgt.stats.def * (has(tgt,'defUp') ? 1.7 : 1) * (has(tgt,'defBreak') ? .3 : 1);
-    let dmg = atk * op.mult * 100 / (114 + 3.5*def);
+    // L'ancienne formule divisait l'attaque par la défense : les deux montant ensemble, les dégâts restaient
+    // figés autour de 25 à tous les niveaux. Désormais les dégâts suivent l'attaque, et la défense se lit comme
+    // un pourcentage de réduction — calculé sur la défense rapportée au niveau, donc comparable d'un bout à l'autre.
+    const dref = def / pwrAt(tgt.level), cut = Math.min(.75, dref / (dref + 160));
+    let dmg = atk * op.mult * DMG_K * (1 - cut);
     const adv = isAdv(att,tgt), dis = isDis(att,tgt);
     let crit = false, glance = false;
     if (dis && rng() < .5){ glance = true; dmg *= .7; }
@@ -1865,7 +1879,7 @@ const ROOMS = 5;
 // Map de la salle jouée : les salles du vrai donjon réparties sur les vagues, la dernière étant celle du boss
 const roomMap = (dg, w) => dg.maps && dg.maps.length ? dg.maps[Math.round(w * (dg.maps.length - 1) / Math.max(1, dg.waves.length - 1))] : dg.mapId;
 const waveWord = dg => dg.mode === 'camp' ? 'Salle' : 'Vague';
-function bossStages(defs, mode, floors, lvStep, mult0, multStep){
+function bossStages(defs, mode, floors, lvStep, mult0, multStep, lv0 = 0){
   const out = [], keys = Object.keys(MONSTERS), strong = keys.filter(k => MONSTERS[k].stars >= 4);
   defs.forEach((D, di) => {
     const named = keys.filter(k => D.boss.test(MONSTERS[k].name.toLowerCase())).sort((a,b) => (MONSTERS[a].dofusLvl || 0) - (MONSTERS[b].dofusLvl || 0));
@@ -1876,7 +1890,7 @@ function bossStages(defs, mode, floors, lvStep, mult0, multStep){
     if (!pool.length) pool = [bossK];
     const place = src ? src.n : `Repaire de ${MONSTERS[bossK].name}`, bn = MONSTERS[bossK].name;
     for (let f = 1; f <= floors; f++){
-      const L = clampL(f * lvStep), id = `${mode}:${D.k}:${f}`;
+      const L = clampL(lv0 + f * lvStep), id = `${mode}:${D.k}:${f}`;
       const last = [{ key:pool[(f+1) % pool.length], level:clampL(L-1) }, { key:bossK, level:clampL(L+1), boss:true, bossMult:mult0 + f*multStep }, { key:pool[(f+2) % pool.length], level:L }];
       const rw = rewardsFor(L), raid = mode === 'raid';
       out.push({ id, mode, grp:D.k, gname:place, short:`Étage ${f}`, name:`${place} · étage ${f}`, map:src ? themeFor(src.n, src.id) : 'grotte', mapId:src ? src.mp || 0 : 0, lvl:L, dofusLvl:0,
@@ -1902,7 +1916,7 @@ function finalizeStages(){
     prev = id;
   }
   STAGES.camp = camp;
-  STAGES.raid = bossStages(RAID_DEFS, 'raid', 10, 4, 1, .12);
+  STAGES.raid = bossStages(RAID_DEFS, 'raid', 10, 2, 1.25, .12, 5);   // 1er étage au niveau 7 : hors de portée d'une équipe nue, passable avec un peu d'équipement
   STAGES.dragon = bossStages(DRAGON_DEFS, 'dragon', 5, 8, 1.1, .22);
 }
 
@@ -1990,6 +2004,12 @@ function wbBoss(){
    ===================================================================== */
 const $ = (sel, r=document) => r.querySelector(sel);
 const fmt = n => Math.round(n).toLocaleString('fr-FR');
+// En combat les nombres montent jusqu'aux millions : on les abrège pour qu'ils tiennent au-dessus d'un monstre.
+const fmtC = n => { const a = Math.abs(n);
+  if (a >= 1e9) return (n/1e9).toFixed(a >= 1e10 ? 0 : 1).replace('.', ',') + ' Md';
+  if (a >= 1e6) return (n/1e6).toFixed(a >= 1e7 ? 0 : 1).replace('.', ',') + ' M';
+  if (a >= 1e4) return Math.round(n/1e3) + ' k';
+  return Math.round(n).toLocaleString('fr-FR'); };
 function elVar(el){ return `var(--el-${el})`; }
 const sideVar = s => s === 'A' ? 'var(--ally)' : 'var(--foe)';
 const starsTxt = n => '★'.repeat(n);
@@ -3051,7 +3071,7 @@ async function nextWave(my){
 }
 function setHp(id, hp){
   const u = Engine.byId(state, id), r = hp / u.stats.hp, bar = nodes[id].querySelector('.bar.hp');
-  bar.style.setProperty('--w', (r*100) + '%'); bar.querySelector('span').textContent = `${fmt(hp)} / ${fmt(u.stats.hp)}`;
+  bar.style.setProperty('--w', (r*100) + '%'); bar.querySelector('span').textContent = `${fmtC(hp)} / ${fmtC(u.stats.hp)}`;
   tls[id].querySelector('.hp b').style.setProperty('--w', (r*100) + '%');
 }
 function setAtb(id, atb, dur){
@@ -3393,12 +3413,12 @@ async function play(events, my){
         tal(e.id).taken += e.amount;
         if (curCaster){ const t = tal(curCaster); t.dmg += e.amount; t.hits++; if (e.crit) t.crits++; }
         setHp(e.id, e.hp); hitFx(e.id, e.crit, e.glance);
-        pop(e.id, '−' + fmt(e.amount), e.crit ? 'crit' : e.glance ? 'glance' : '');
+        pop(e.id, '−' + fmtC(e.amount), e.crit ? 'crit' : e.glance ? 'glance' : '');
         log(`${uname(e.id)} perd ${fmt(e.amount)} PV${e.crit ? ' (coup critique)' : e.glance ? ' (effleuré)' : ''}.`, 'dmg');
         await wait(nx && nx.t === 'dmg' && nx.id !== e.id ? 55 : 230); break;   // une zone touche toutes ses cibles presque en même temps
       case 'heal':
         if (curCaster) tal(curCaster).heal += e.amount;
-        setHp(e.id, e.hp); if (e.amount > 0){ healFx(e.id); pop(e.id, '+' + fmt(e.amount), 'heal'); log(`${uname(e.id)} récupère ${fmt(e.amount)} PV.`, 'heal'); }
+        setHp(e.id, e.hp); if (e.amount > 0){ healFx(e.id); pop(e.id, '+' + fmtC(e.amount), 'heal'); log(`${uname(e.id)} récupère ${fmt(e.amount)} PV.`, 'heal'); }
         await wait(nx && nx.t === 'heal' ? 40 : 150); break;
       case 'fx':
         setFx(e.id, e.effects);
