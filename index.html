@@ -291,6 +291,8 @@ body.in-combat .tabs{display:none}
 @keyframes upSweep{0%{transform:translateX(-85%) rotate(0deg); opacity:0} 12%{opacity:1} 100%{transform:translateX(85%); opacity:0}}
 @keyframes upShake{0%,100%{transform:translateX(0)} 18%{transform:translateX(-6px)} 36%{transform:translateX(5px)} 56%{transform:translateX(-3px)} 78%{transform:translateX(2px)}}
 @keyframes lvJump{0%{transform:scale(1)} 40%{transform:scale(1.5); color:var(--orange2)} 100%{transform:scale(1)}}
+.uptiers{gap:4px; margin-top:-2px}
+.uptiers .btn{min-width:38px; padding:3px 8px}
 .upmsg{transition:none}
 .upmsg.ok, .upmsg.ko{animation:msgIn .3s ease-out}
 @keyframes msgIn{0%{opacity:0; transform:translateY(-4px)} 100%{opacity:1; transform:none}}
@@ -2569,9 +2571,14 @@ function itemEffects(it){
   const { locked } = itemSteps(it);
   return `<ul class="effects"><li class="pos"><b>${fmtStat(it.main, itemMainVal(it))}</b></li>${it.subs.map(s => { const fx = upFx && upFx.s === s.s ? upFx : null; return `<li class="pos ${fx ? (fx.added ? 'subnew' : 'subproc') : ''}">${fmtStat(s.s, s.v)}${fx && !fx.added ? `<b class="procv">+${fx.v}</b>` : fx ? '<b class="procv">Nouveau</b>' : ''}</li>`; }).join('')}${'<li class="empty">Effet à débloquer</li>'.repeat(locked)}</ul>`;
 }
+const UP_TIERS = [3, 6, 9, 12, 15];
 function upgradeBtn(it){
-  const cost = Eco.upCost(it);
-  return `<button class="btn" data-act="upgrade" ${it.lvl >= 15 || save.kamas < cost ? 'disabled' : ''}>${it.lvl >= 15 ? 'Niveau maximum' : `Améliorer vers +${it.lvl+1} · ${fmt(cost)} K · ${UP_RATE[it.lvl]} %`}</button>
+  const cost = Eco.upCost(it), max = it.lvl >= 15;
+  // Paliers : on relance les tentatives jusqu'au palier visé, en s'arrêtant à court de kamas.
+  const tiers = UP_TIERS.filter(t => t > it.lvl).map(t =>
+    `<button class="btn grey sm" data-act="upTo" data-v="${t}" ${save.kamas < cost ? 'disabled' : ''}>+${t}</button>`).join('');
+  return `<button class="btn" data-act="upgrade" ${max || save.kamas < cost ? 'disabled' : ''}>${max ? 'Niveau maximum' : `Améliorer vers +${it.lvl+1} · ${fmt(cost)} K · ${UP_RATE[it.lvl]} %`}</button>
+    ${tiers ? `<div class="row uptiers"><span class="muted" style="font-size:11.5px">Monter jusqu'à</span>${tiers}</div>` : ''}
     <div class="upmsg ${upMsg ? (upMsg.ok ? 'ok' : 'ko') : ''}">${upMsg ? upMsg.text : ''}</div>`;
 }
 function itemDetail(it){
@@ -3014,6 +3021,24 @@ const ACT = {
     if (r.err) upMsg = { ok:false, text:r.err };
     else if (!r.ok) upMsg = { ok:false, text:`Échec. ${fmt(r.cost)} kamas perdus, l'objet reste à +${it.lvl}.` };
     else upMsg = { ok:true, text:`Réussi : +${it.lvl}.${r.sub ? (r.sub.added ? ` Nouvel effet : ${STAT[r.sub.s]}.` : ` ${STAT[r.sub.s]} +${r.sub.v}.`) : ''}` };
+    persist(); render();
+  },
+  // Monte l'objet jusqu'au palier demandé : chaque tentative coûte et peut échouer, on s'arrête
+  // quand le palier est atteint ou qu'il n'y a plus de kamas.
+  upTo(d){
+    const target = +d.v, it = Eco.itemById(save, selItem);
+    if (!it) return;
+    let tries = 0, spent = 0, gained = 0, stop = '';
+    while (it.lvl < target && tries < 500){
+      const before = it.lvl, r = Eco.upgrade(save, it);
+      if (r.err){ stop = r.err; break; }
+      tries++; spent += r.cost;
+      if (it.lvl > before) gained++;
+      upFx = r.ok && r.sub ? r.sub : upFx;
+    }
+    upMsg = it.lvl >= target
+      ? { ok:true, text:`+${it.lvl} atteint en ${tries} tentative${tries > 1 ? 's' : ''} · ${fmt(spent)} kamas.` }
+      : { ok:false, text:`${stop || 'Arrêté'} Objet à +${it.lvl} après ${tries} tentative${tries > 1 ? 's' : ''} · ${fmt(spent)} kamas dépensés.` };
     persist(); render();
   },
   sell(){
