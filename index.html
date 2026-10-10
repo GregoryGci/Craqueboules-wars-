@@ -78,9 +78,6 @@ h1,h2,h3{font-family:var(--font); margin:0; line-height:1.15; text-wrap:balance}
 
 /* ---------- En-tête ---------- */
 .top{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 16px}
-.brand h1{font-size:clamp(20px,3vw,26px); color:#fff; font-weight:bold; text-shadow:0 2px 0 #000a; letter-spacing:.01em}
-.brand h1 span{color:var(--orange)}
-.brand p{margin:2px 0 0; color:#c9bfa9; font-size:11px; letter-spacing:.1em; text-transform:uppercase}
 .res{display:flex; flex-wrap:wrap; list-style:none; margin:0; padding:3px 4px; background:var(--panel); border:1px solid var(--win-out); border-radius:8px; box-shadow:inset 0 0 0 2px var(--win-hi)}
 .res li{display:flex; align-items:center; gap:5px; padding:2px 9px 2px 6px; font-variant-numeric:tabular-nums; font-weight:bold}
 .res li + li{border-left:1px solid var(--panel-line)}
@@ -228,9 +225,18 @@ body.in-combat .tabs{display:none}
 .grow .sub{font-size:11px; color:var(--ink2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .grow .q{font-size:11px; font-weight:bold; white-space:nowrap}
 @media (max-width:620px){
-  .inv2{grid-template-columns:auto auto minmax(0,1fr); gap:5px; padding:6px}
-  .inv2 .ecol:last-child{grid-column:1 / -1; grid-auto-flow:column; justify-content:start}
-  .ecell{width:46px; height:46px} .ecell img{width:38px; height:38px}
+  /* En portrait : le monstre en haut sur toute la largeur, puis les emplacements en rangées sous lui.
+     Empiler quatre colonnes donnait une page de 300 px de haut et des cases écrasées. */
+  .inv2{grid-template-columns:minmax(0,1fr); gap:7px; padding:7px}
+  .inv2 .dcenter{order:-1; min-height:168px}
+  .inv2 .ecol{grid-auto-flow:column; justify-content:center; gap:5px}
+  .inv2 .ecol.dof{border-right:0; padding-right:0; border-top:1px solid var(--panel-line); padding-top:7px; order:3}
+  .ecell{width:clamp(42px, 11.5vw, 52px); height:clamp(42px, 11.5vw, 52px)}
+  .ecell img{width:82%; height:82%}
+  .ecell .sl{font-size:7.5px; line-height:10px}
+  .gdbody{grid-template-columns:minmax(0,1fr); gap:8px}
+  .gdicon{width:auto; grid-auto-flow:column; justify-items:start; align-items:center; gap:9px}
+  .glist{max-height:46vh}
 }
 .picker{margin-top:8px; padding:8px; display:grid; gap:6px}
 .prow{display:grid; grid-template-columns:auto minmax(0,1fr); gap:0 10px; align-items:center; text-align:left; background:var(--row2); border:1px solid var(--panel-line); border-radius:6px; padding:3px 8px 3px 3px; cursor:pointer}
@@ -474,8 +480,17 @@ body.in-combat .tabs{display:none}
 @keyframes lungeB{40%{transform:translate(-24px,0) scale(1.05)}}
 @keyframes shake{20%{transform:translateX(-6px)} 40%{transform:translateX(5px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(2px)}}
 
-/* Bandeau du bas (chat · portrait · timeline + sorts) */
-.hudbar{display:grid; grid-template-columns:minmax(0,1.1fr) 150px minmax(0,1.3fr); gap:8px; align-items:stretch; margin-top:6px}
+/* Commandes posées dans l'arène, en haut à gauche */
+.fctrl{position:absolute; left:7px; top:7px; z-index:40; display:flex; gap:6px; align-items:center;
+  background:#1a140ebb; border:1px solid #0008; border-radius:7px; padding:4px 5px; backdrop-filter:blur(2px)}
+.fctrl .seg button{font-size:11px; padding:3px 7px}
+.fctrl .btn.sm{min-height:22px; padding:2px 9px}
+/* Ordre des tours puis sorts, sous l'arène et sur toute sa largeur */
+.cwin .timeline{margin-top:6px}
+.spellwrap{margin-top:6px}
+/* Bandeau du bas (chat · portrait) */
+.hudbar{display:grid; grid-template-columns:minmax(0,1fr) 150px auto; gap:8px; align-items:stretch; margin-top:6px}
+.seedrow{display:grid; align-content:end; justify-items:end}
 .chat{background:#eef0e4; border:1px solid #9ea08f; border-radius:6px; box-shadow:inset 0 1px 3px #0002; padding:4px 8px; height:170px; overflow:auto}
 .chat ol{list-style:none; margin:0; padding:0; display:grid; gap:1px; font-size:11.5px}
 .chat li{color:#2c4a17}
@@ -495,7 +510,6 @@ body.in-combat .tabs{display:none}
 .vit{position:absolute; left:-8px; bottom:-2px; width:34px; height:34px; display:grid; place-items:center; font-weight:bold; font-size:10px; color:#3b2a00}
 .vit svg{position:absolute; inset:0}
 .vit span{position:relative}
-.rightcol{display:grid; gap:6px; align-content:start; min-width:0}
 .timeline{display:flex; gap:4px; padding:5px; overflow-x:auto}
 .tl{position:relative; flex:none; display:grid; gap:2px; width:48px; padding:2px; border-radius:5px; background:#3d3c38; border:2px solid var(--side); transition:transform .2s}
 .tl .por{--sz:40px; border:0; border-radius:3px}
@@ -517,78 +531,71 @@ body.in-combat .tabs{display:none}
 .spell:disabled:not(.oncd){filter:grayscale(.7); opacity:.6}
 .spdesc{font-size:12px; min-width:0}
 .spdesc b{display:block; font-size:13px}
-.ctrlrow{display:flex; flex-wrap:wrap; gap:6px; align-items:center; justify-content:flex-end; padding:0 6px 6px}
 
-/* ---------- Launcher : calqué sur l'updater Dofus 2.0. Cadre brun très sombre, bandeau illustré cerclé
-   d'argent avec la barre de progression DEDANS, onglets décalés posés sur un panneau clair en creux,
-   et la colonne de droite : le gros œuf qui lance le jeu, l'engrenage olive en dessous. ---------- */
+/* ---------- Launcher : la capture de l'updater Dofus 2.0 sert de décor, et on ne superpose que ce qui vit —
+   la barre de progression, le panneau de journal et la zone cliquable de l'œuf. Les repères sont en pourcentage
+   de l'image (565 × 407), relevés au découpage, pour que tout suive quand la fenêtre change de taille. ---------- */
 .lau{position:fixed; inset:0; z-index:9000; display:grid; place-items:center; place-items:safe center; overflow:auto;
   background:#0d0a07 radial-gradient(ellipse at 50% -10%, #241b12, #0d0a07 70%);
   padding:max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom))}
 .lau[hidden]{display:none}
-.lauw{width:min(620px, 100%); background:linear-gradient(#211a14, #15100c 60%, #1b1510); border:1px solid #000;
-  border-radius:12px; box-shadow:inset 0 1px 0 #ffffff18, inset 0 0 60px #0008, 0 16px 44px #000c; overflow:hidden; color:#e9e4d8}
-/* volutes d'angle, discrètes, comme les ornements du cadre d'origine */
-.lauw::before{content:""; position:absolute; inset:0; pointer-events:none; border-radius:12px;
-  background:radial-gradient(60px 40px at 4% 2%, #ffffff0e, #0000 70%), radial-gradient(60px 40px at 96% 2%, #ffffff0e, #0000 70%)}
-.lauw{position:relative}
-.lautt{display:flex; align-items:center; gap:7px; padding:9px 11px 7px; font-size:14px}
-.lautt .ic{width:17px; height:21px; flex:none}
-.lautt b{font-weight:bold; color:#fff; letter-spacing:.01em}
-.lautt .v{color:#9a927f; font-size:12.5px}
-.lautt .sp{margin-left:auto; display:flex; gap:7px; align-items:center}
-.lautt .x{width:27px; height:24px; border-radius:5px; border:1px solid #000; background:linear-gradient(#4a453d, #2e2a24);
-  color:#ded7c6; font-size:14px; line-height:1; display:grid; place-items:center; cursor:pointer; box-shadow:inset 0 1px 0 #ffffff22}
-
-/* bandeau : cadre argent, scène, logo, et la barre posée dedans en bas */
-.lauhero{position:relative; margin:0 11px; height:clamp(132px, 30vw, 172px); border-radius:13px; overflow:hidden;
-  border:3px solid #9d968a; box-shadow:0 2px 10px #000a, inset 0 0 40px #0006;
-  background:radial-gradient(ellipse at 50% 30%, #8fbf45, #4b7d26 42%, #1f3d16 95%)}
-.lauhero .glow{position:absolute; inset:0; background:radial-gradient(ellipse at 50% 24%, #ffffff30, #0000 55%), radial-gradient(ellipse at 50% 118%, #0000, #000a)}
-.lauhero .lt{position:absolute; left:50%; top:30%; translate:-50% -50%; text-align:center; line-height:1; z-index:2}
-.lauhero .lt i{display:block; font-style:normal; font-weight:bold; font-size:clamp(23px, 5.6vw, 33px); color:#ffd98a;
-  text-shadow:0 2px 0 #7a4406, 0 3px 0 #4a2703, 0 0 18px #ffb21a66; letter-spacing:.01em}
-.lauhero .lt small{display:block; font-size:clamp(10px, 2.2vw, 12.5px); color:#fdf3dc; letter-spacing:.3em; text-transform:uppercase; margin-top:5px; text-shadow:0 1px 2px #0009}
-.lauhero .mon{position:absolute; bottom:38px; z-index:2; filter:drop-shadow(0 3px 5px #0008)}
-.lauhero .mon.l{left:12px} .lauhero .mon.r{right:12px}
-.laubar{position:absolute; left:9px; right:9px; bottom:9px; z-index:3; height:25px; border-radius:13px; overflow:hidden;
-  background:linear-gradient(#1c1a17, #2b2824); border:2px solid #9d968a; box-shadow:0 2px 6px #0009, inset 0 2px 5px #000b}
-.laubar i{position:absolute; inset:0 auto 0 0; width:0; border-radius:11px 3px 3px 11px;
-  background:linear-gradient(#ffc264 0%, #f08a1e 45%, #d2691e 100%); box-shadow:inset 0 1px 0 #fff8, 0 0 10px #f08a1e66; transition:width .4s ease-out}
-.laubar span{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:bold; color:#fff; text-shadow:0 1px 2px #000d; z-index:2}
-.laubar em{position:absolute; right:10px; top:50%; translate:0 -50%; z-index:2; font-style:normal; font-size:12.5px; font-weight:bold; color:#fff; text-shadow:0 1px 2px #000d}
-
-.laumid{display:grid; grid-template-columns:minmax(0,1fr) clamp(104px, 20vw, 132px); gap:10px; padding:12px 11px 4px}
-.lautabs{display:flex; gap:4px; padding-left:clamp(10px, 7vw, 46px)}
-.lautabs button{background:linear-gradient(#6b655b, #4a453d); border:1px solid #000; border-bottom:0; border-radius:8px 8px 0 0;
-  padding:5px 18px; font:inherit; font-size:13px; font-weight:bold; color:#ded7c6; cursor:pointer; box-shadow:inset 0 1px 0 #ffffff26}
-.lautabs button[aria-pressed="true"]{background:linear-gradient(#cbc7bc, #b9b5a9); color:#2a2520; position:relative; z-index:2}
-.laupan{height:clamp(124px, 26vw, 164px); overflow:auto; background:#c9c6bd; border:1px solid #000; border-radius:4px;
-  padding:8px 10px; color:#2f2d27; font-size:12.5px; box-shadow:inset 0 2px 6px #00000055; margin-top:-1px}
-.laupan ul{list-style:none; margin:0; padding:0; display:grid; gap:4px}
-.laupan li{display:flex; gap:7px; align-items:baseline}
+.lauw{position:relative; width:min(640px, 100%); aspect-ratio:565/407; border-radius:10px; overflow:hidden;
+  background:#15100c url("assets/launcher.jpg") center/100% 100% no-repeat; box-shadow:0 16px 44px #000c; color:#e9e4d8}
+/* la barre, posée exactement sur celle de l'image */
+.laubar{position:absolute; left:4.07%; top:37.35%; width:92.9%; height:6.39%; border-radius:999px; overflow:hidden;
+  background:linear-gradient(#17150f, #2a2620); box-shadow:inset 0 2px 5px #000c}
+.laubar i{position:absolute; inset:0 auto 0 0; width:0; border-radius:999px;
+  background:linear-gradient(#ffc264 0%, #f08a1e 45%, #d2691e 100%); box-shadow:inset 0 1px 0 #fff9; transition:width .4s ease-out}
+.laubar span{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:2;
+  font-size:clamp(9px, 2vw, 12.5px); font-weight:bold; color:#fff; text-shadow:0 1px 2px #000d}
+.laubar em{position:absolute; right:2%; top:50%; translate:0 -50%; z-index:2; font-style:normal;
+  font-size:clamp(9px, 2vw, 12.5px); font-weight:bold; color:#fff; text-shadow:0 1px 2px #000d}
+/* onglets et panneau, posés sur ceux de l'image pour en masquer le texte d'origine */
+.lautabs{position:absolute; left:5.3%; top:45.4%; height:8%; display:flex; gap:1.4%; z-index:3}
+.lautabs button{font:inherit; font-size:clamp(9px, 1.9vw, 12.5px); font-weight:bold; padding:0 3%; min-width:13%;
+  border:1px solid #2a2620; border-bottom:0; border-radius:7px 7px 0 0; cursor:pointer;
+  background:linear-gradient(#6b655b, #4a453d); color:#ded7c6}
+.lautabs button[aria-pressed="true"]{background:linear-gradient(#cbc7bc, #b9b5a9); color:#2a2520}
+.laupan{position:absolute; left:5.3%; top:53.4%; width:75.8%; height:42.4%; overflow:auto; z-index:2;
+  background:#c9c6bd; border:1px solid #2a2620; border-radius:3px; padding:2% 2.5%; color:#2f2d27;
+  font-size:clamp(8.5px, 1.85vw, 12.5px); line-height:1.35; box-shadow:inset 0 2px 6px #00000055}
+.laupan ul{list-style:none; margin:0; padding:0; display:grid; gap:2px}
+.laupan li{display:flex; gap:6px; align-items:baseline}
 .laupan .d{color:#6f6a5c; flex:none}
-
-.lauside{display:grid; justify-items:center; align-content:space-between; gap:10px; padding:2px 0 6px}
-.lauegg{position:relative; width:100%; max-width:106px; aspect-ratio:1/1.22; border:0; background:none; padding:0; cursor:pointer; display:grid; place-items:center}
+/* l'œuf de l'image devient la zone cliquable */
+.lauegg{position:absolute; left:83.7%; top:52.3%; width:13.1%; height:22.6%; z-index:3;
+  border:0; background:none; padding:0; cursor:pointer; border-radius:50%/42%}
 .lauegg:disabled{cursor:progress}
-.lauegg svg{width:100%; height:100%; filter:drop-shadow(0 5px 8px #000b); transition:transform .25s}
-.lauegg:not(:disabled):hover svg{transform:scale(1.06) translateY(-3px)}
-.lauegg:disabled svg{opacity:.45; filter:grayscale(.7) drop-shadow(0 4px 6px #0009)}
-.lauegg:not(:disabled) svg{animation:eggBob 2.6s ease-in-out infinite}
-@keyframes eggBob{50%{transform:translateY(-5px)}}
-.lauegg .play{position:absolute; bottom:-14px; left:50%; translate:-50% 0; font-size:11px; font-weight:bold; letter-spacing:.12em;
-  text-transform:uppercase; color:#ffd98a; text-shadow:0 1px 3px #000c; white-space:nowrap}
-.laucog{width:46px; height:46px; border-radius:50%; border:2px solid #0a0a08; background:radial-gradient(circle at 36% 30%, #b6c552, #7d8c2c 60%, #4e5a17);
-  color:#23290c; cursor:pointer; display:grid; place-items:center; box-shadow:0 3px 7px #000a, inset 0 1px 0 #ffffff44}
-.laucog svg{width:26px; height:26px}
-.laucog:hover{filter:brightness(1.12)}
-.lauver{padding:0 13px 10px; font-size:10.5px; color:#6f685c; text-align:right}
-@media (max-width:430px){
-  .laumid{grid-template-columns:minmax(0,1fr) 92px; gap:8px}
-  .lautabs button{padding:5px 12px; font-size:12px}
+.lauegg .halo{position:absolute; inset:-12%; border-radius:50%; opacity:0; transition:opacity .25s;
+  background:radial-gradient(circle, #ffd98a55, #0000 70%)}
+.lauegg:not(:disabled) .halo{opacity:1; animation:eggGlow 2.4s ease-in-out infinite}
+.lauegg:not(:disabled):hover .halo{opacity:1; background:radial-gradient(circle, #ffd98a99, #0000 72%)}
+@keyframes eggGlow{50%{opacity:.45}}
+.lauegg .play{position:absolute; left:50%; bottom:-24%; translate:-50% 0; white-space:nowrap;
+  font-size:clamp(8px, 1.7vw, 11px); font-weight:bold; letter-spacing:.1em; text-transform:uppercase;
+  color:#ffd98a; text-shadow:0 1px 3px #000c}
+.laucog{position:absolute; left:86.5%; top:82%; width:7.5%; height:10.4%; z-index:3; border:0; background:none;
+  padding:0; cursor:pointer; border-radius:50%}
+.laucog:hover{filter:brightness(1.3)}
+.lauver{position:absolute; left:0; right:0; bottom:1%; text-align:center; font-size:9px; color:#8d8371; z-index:1}
+
+/* Téléphone : l'image garderait un panneau de journal illisible, on la coupe sous la barre
+   et on remet le journal et l'œuf en dessous, à taille lisible. */
+@media (max-width: 540px){
+  .lauw{aspect-ratio:auto; height:auto; background-size:100% auto; background-position:top center; padding-top:46%}
+  .lautabs{position:static; height:auto; padding:0 0 0 8px; margin-top:8px}
+  .lautabs button{min-width:0; padding:5px 14px; font-size:12px}
+  .laupan{position:static; width:auto; height:118px; margin:0 8px; padding:7px 9px; font-size:12px}
+  .lauegg{position:static; width:84px; height:96px; margin:10px auto 22px; display:block}
+  .lauegg::after{content:""; position:absolute; inset:0; background:url("assets/launcher.jpg") -468px -212px no-repeat; border-radius:50%/42%}
+  .laucog{display:none}
+  .lauver{position:static; padding-bottom:6px}
 }
 
+/* Création : sa propre fenêtre, sans l'image de fond */
+.crewrap{aspect-ratio:auto !important; background:linear-gradient(#211a14, #15100c 60%, #1b1510) !important;
+  border:1px solid #000; padding:0 !important; height:auto !important; box-shadow:inset 0 1px 0 #ffffff18, 0 16px 44px #000c}
+.crewrap[hidden]{display:none}
 /* Création : compte puis classe */
 .cre{display:grid; gap:10px; padding:10px}
 .cre .fld{display:grid; gap:5px}
@@ -599,6 +606,8 @@ body.in-combat .tabs{display:none}
 .j-bon{border-color:#2a69b8bb !important} .j-excellent{border-color:#8a44c4cc !important}
 .j-parfait{border-color:var(--r-legendaire) !important; box-shadow:inset 0 0 8px #ff9a2e66, 0 0 6px #ff9a2e55 !important}
 .gimg{object-fit:contain}
+.top{justify-content:space-between; align-items:center}
+.credit{flex-basis:100%; opacity:.75}
 .pbadge{display:flex; align-items:center; gap:8px}
 .pbadge:empty{display:none}
 .pbadge .pb-t{display:grid; line-height:1.15; min-width:0}
@@ -761,9 +770,10 @@ body.in-combat .tabs{display:none}
   .unit .tag{font-size:8px}
   .ftip{display:none}
   .hudbar{grid-template-columns:minmax(0,1fr); gap:6px}
-  .hudbar .rightcol{order:1}
-  .hudbar .pcirc{order:2}
-  .hudbar .chat{order:3; grid-column:auto; grid-row:auto; height:88px}
+  .hudbar .pcirc{order:1}
+  .hudbar .chat{order:2; grid-column:auto; grid-row:auto; height:88px}
+  .hudbar .seedrow{display:none}
+  .fctrl{left:5px; top:5px; padding:3px 4px; gap:4px}
   .pcirc{grid-template-columns:auto 1fr; justify-items:start; text-align:left}
   .pcirc .face{width:66px; height:66px} .pcirc .face .por{--sz:66px}
   .heart{right:-10px; width:46px; height:40px; font-size:9.5px}
@@ -772,7 +782,6 @@ body.in-combat .tabs{display:none}
   .spellbar{grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px}
   .spellbar .spell{width:100%; height:58px}
   .spellbar .spdesc{grid-column:1 / -1}
-  .ctrlrow{justify-content:space-between}
 
   /* menus */
   .doll .cell{width:46px; height:46px} .doll .cell svg, .doll .cell img{width:38px; height:38px}
@@ -795,12 +804,13 @@ body.in-combat .tabs{display:none}
   .wrap{gap:6px; padding-block:6px calc(10px + env(safe-area-inset-bottom, 0px))}
   body.in-combat .top, body.in-combat .foot{display:none}   /* en combat, ni onglets ni ressources à lire */
 
-  .cwin .wb{display:grid; grid-template-columns:minmax(0,1fr) clamp(214px, 30vw, 292px); gap:8px; align-items:stretch}
-  .field{aspect-ratio:auto; height:calc(100vh - 96px); height:calc(100dvh - 96px); min-height:200px; max-height:460px}
+  /* en paysage la hauteur manque : l'arène à gauche, l'ordre des tours et les sorts en colonne à droite */
+  .cwin .wb{display:grid; grid-template-columns:minmax(0,1fr) clamp(214px, 30vw, 292px); gap:8px; align-items:start}
+  .field{grid-row:1 / span 3; aspect-ratio:auto; height:calc(100vh - 96px); height:calc(100dvh - 96px); min-height:200px; max-height:460px}
+  .cwin .timeline, .spellwrap{margin-top:0}
   .hudbar{margin-top:0; display:flex; flex-direction:column; gap:6px; min-width:0}
-  .hudbar .pcirc{display:none}                       /* le portrait n'a pas la place ; les plaques portent déjà l'info */
-  .hudbar .rightcol{order:1}
-  .hudbar .chat{order:2; height:72px; grid-column:auto; grid-row:auto}
+  .hudbar .pcirc, .hudbar .seedrow{display:none}     /* pas la place ; les plaques portent déjà l'info */
+  .hudbar .chat{height:72px; grid-column:auto; grid-row:auto}
   .ftip{display:none}
 
   .timeline{padding:4px}
@@ -810,7 +820,6 @@ body.in-combat .tabs{display:none}
   .spellbar .spell svg{width:36px; height:36px}
   .spdesc{grid-column:1 / -1; font-size:11.5px}
   .spdesc b{font-size:12px}
-  .ctrlrow{padding:0 5px 5px}
   .unit{width:68px} .plate{font-size:9px; padding:1px 3px 2px}
   .nm small{display:none}
   .unit .tag{font-size:8px}
@@ -827,53 +836,26 @@ body.in-combat .tabs{display:none}
 </style>
 
 <div class="lau" id="lau">
-  <div class="lauw">
-    <div class="lautt">
-      <svg class="ic" viewBox="0 0 20 25" aria-hidden="true"><defs><radialGradient id="tic" cx="36%" cy="26%" r="78%">
-        <stop offset="0" stop-color="#eaf5c8"/><stop offset="60%" stop-color="#9dc14a"/><stop offset="100%" stop-color="#4e6a1c"/></radialGradient></defs>
-        <path d="M10 1c4.6 0 8.3 6 8.3 12.2 0 6.9-3.7 11.6-8.3 11.6S1.7 20.1 1.7 13.2C1.7 7 5.4 1 10 1z" fill="url(#tic)" stroke="#1d2708" stroke-width="1.6"/></svg>
-      <b>Invocateurs</b><span class="v">des Douze</span>
-      <span class="sp"><button class="x" data-act="lauCog" title="Réglages" aria-label="Réglages">⚙</button></span>
-    </div>
-    <div class="lauhero">
-      <span class="glow"></span>
-      <span class="mon l" id="lauMonL"></span>
-      <span class="lt"><i>Invocateurs</i><small>des Douze</small></span>
-      <span class="mon r" id="lauMonR"></span>
-      <div class="laubar"><i id="lauFill"></i><span id="lauTxt">Démarrage…</span><em id="lauPct">0 %</em></div>
-    </div>
-    <div class="laumid" id="lauMid">
-      <div>
-        <div class="lautabs" id="lauTabs"><button data-act="lauTab" data-v="news" aria-pressed="false">Nouvelles</button><button data-act="lauTab" data-v="log" aria-pressed="true">Journal</button></div>
-        <div class="laupan" id="lauPan"></div>
-      </div>
-      <div class="lauside">
-        <button class="lauegg" id="lauEgg" data-act="launch" disabled aria-label="Lancer le jeu">
-          <svg viewBox="0 0 100 122" aria-hidden="true">
-            <defs><radialGradient id="eggg" cx="35%" cy="24%" r="80%">
-              <stop offset="0" stop-color="#fbf8ee"/><stop offset="48%" stop-color="#e4ddc8"/><stop offset="100%" stop-color="#9d9479"/></radialGradient></defs>
-            <path d="M50 4c21.5 0 39.5 27.5 39.5 56.5C89.5 93.5 72 118 50 118S10.5 93.5 10.5 60.5C10.5 31.5 28.5 4 50 4z" fill="url(#eggg)" stroke="#2b2418" stroke-width="3.5"/>
-            <path d="M62 38c-9-7-22-4-25 6-2.6 8.6 4.6 15 12 14 7.4-1 11.6-7.6 9-14-2.4-6-10-8.6-16-5" fill="none" stroke="#b7ad90" stroke-width="5.5" stroke-linecap="round"/>
-            <path d="M44 24c-7 6-12 16-13.5 27" fill="none" stroke="#ffffffbb" stroke-width="6" stroke-linecap="round"/></svg>
-          <span class="play" id="lauPlay"></span></button>
-        <button class="laucog" data-act="lauCog" title="Réglages" aria-label="Réglages">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 0 0 0-7.2zm9 4.6v-2l-2.3-.4a6.9 6.9 0 0 0-.7-1.7l1.4-1.9-1.4-1.4-1.9 1.4a6.9 6.9 0 0 0-1.7-.7L14 4h-2l-.4 2.3a6.9 6.9 0 0 0-1.7.7L8 5.6 6.6 7l1.4 1.9a6.9 6.9 0 0 0-.7 1.7L5 11v2l2.3.4c.16.6.4 1.17.7 1.7L6.6 17 8 18.4l1.9-1.4c.53.3 1.1.54 1.7.7L12 20h2l.4-2.3c.6-.16 1.17-.4 1.7-.7l1.9 1.4 1.4-1.4-1.4-1.9c.3-.53.54-1.1.7-1.7z"/></svg>
-        </button>
-      </div>
-    </div>
-    <div class="lauver" id="lauVer">données et images © Ankama · usage privé</div>
+  <div class="lauw" id="lauw">
+    <div class="laubar"><i id="lauFill"></i><span id="lauTxt">Démarrage…</span><em id="lauPct">0 %</em></div>
+    <div class="lautabs" id="lauTabs"><button data-act="lauTab" data-v="news" aria-pressed="false">Nouvelles</button><button data-act="lauTab" data-v="log" aria-pressed="true">Journal</button></div>
+    <div class="laupan" id="lauPan"></div>
+    <button class="lauegg" id="lauEgg" data-act="launch" disabled aria-label="Lancer le jeu"><span class="halo"></span><span class="play" id="lauPlay"></span></button>
+    <button class="laucog" data-act="lauCog" title="Réglages" aria-label="Réglages"></button>
+    <div class="lauver">données et images © Ankama · usage privé</div>
   </div>
+  <div class="lauw crewrap" id="lauMid" hidden></div>
 </div>
 
 <div class="wrap" id="wrap" hidden>
   <header class="top">
-    <div class="brand"><h1>Invocateurs <span>des Douze</span></h1><p>Fan game Dofus · données et images © Ankama, usage privé</p></div>
     <div class="pbadge" id="pbadge"></div>
     <ul class="res" id="res" aria-label="Ressources"></ul>
   </header>
   <nav class="tabs" id="tabs" aria-label="Menu"></nav>
   <main id="main" style="display:grid; gap:12px"></main>
   <footer class="foot">
+    <span class="credit">Invocateurs des Douze · fan game non officiel · données et images © Ankama, usage privé</span>
     <span>Sauvegarde automatique dans ce navigateur.</span>
     <button class="btn grey sm" data-act="copySave">Copier ma sauvegarde</button>
     <button class="btn grey sm" data-act="toggleImport">Importer</button>
@@ -2968,17 +2950,20 @@ function startCombat(dg){
     <section class="win cwin">
       <div class="wt"><div class="lft"><span id="wave">${waveWord(dg)} 1 / ${dg.waves.length}</span>·<span id="turn">Tour 0</span></div><h2>${dg.name}</h2><button class="x" data-act="flee" title="Fuir le combat" aria-label="Fuir le combat">×</button></div>
       <div class="wb">
-        <section class="field" id="field" aria-label="Arène"><canvas id="mapcv" aria-hidden="true"></canvas><canvas id="fxcv" aria-hidden="true"></canvas><div class="cast" id="cast"></div><div class="win ftip" id="ftip"></div></section>
+        <section class="field" id="field" aria-label="Arène">
+          <canvas id="mapcv" aria-hidden="true"></canvas><canvas id="fxcv" aria-hidden="true"></canvas>
+          <div class="cast" id="cast"></div><div class="win ftip" id="ftip"></div>
+          <div class="fctrl">
+            <div class="seg" role="group" aria-label="Vitesse" id="speedSeg"><button data-s="1">×1</button><button data-s="2">×2</button><button data-s="3">×3</button></div>
+            <button class="btn grey sm" id="autoBtn" aria-pressed="false">Auto</button>
+          </div>
+        </section>
+        <div class="panel timeline" id="timeline" aria-label="Ordre des tours"></div>
+        <div class="panel spellwrap"><div class="spellbar" id="spellbar"></div></div>
         <div class="hudbar">
           <div class="chat" id="chat" aria-label="Journal du combat"><ol id="log"></ol></div>
           <div class="pcirc" id="pcirc"></div>
-          <div class="rightcol">
-            <div class="panel timeline" id="timeline" aria-label="Ordre des tours"></div>
-            <div class="panel"><div class="spellbar" id="spellbar"></div>
-              <div class="ctrlrow"><span class="muted" style="margin-right:auto; font-size:11px">graine ${seed}</span>
-                <div class="seg" role="group" aria-label="Vitesse" id="speedSeg"><button data-s="1">×1</button><button data-s="2">×2</button><button data-s="3">×3</button></div>
-                <button class="btn grey sm" id="autoBtn" aria-pressed="false">Auto</button></div></div>
-          </div>
+          <div class="seedrow"><span class="muted" style="font-size:11px">graine ${seed}</span></div>
         </div>
       </div></section>`;
   field = $('#field'); logEl = $('#log');
@@ -3575,19 +3560,10 @@ function lauOpen(){
   $('#lauTxt').textContent = save && save.player ? 'Prêt à jouer.' : 'Prêt — crée ton invocateur.';
   lauPan();
 }
-// Deux monstres de la collection encadrent le titre, comme les personnages du bandeau d'origine
-function lauHero(){
-  const L = $('#lauMonL'), R = $('#lauMonR'); if (!L) return;   // marche aussi avec le bestiaire de secours
-  const owned = (save && save.monsters || []).map(m => m.key);
-  const keys = (owned.length >= 2 ? owned : Object.keys(MONSTERS)).slice();
-  const pick = () => keys.length ? keys.splice(Math.floor(Math.random()*keys.length), 1)[0] : null;
-  const a = pick(), b = pick();
-  if (a) L.innerHTML = portrait(a, 62, { badge:false });
-  if (b) R.innerHTML = portrait(b, 62, { badge:false });
-}
 // ---- Création : le nom, puis la classe
 function creStep(){
   const mid = $('#lauMid'); if (!mid) return;
+  $('#lauw').hidden = true; mid.hidden = false;
   if (!creName){
     mid.innerHTML = `<div class="cre" style="grid-column:1/-1">
       <div class="fld"><label for="creN">Le nom de ton invocateur</label>
@@ -3626,7 +3602,7 @@ function lauStart(){
 Object.assign(ACT, {
   lauTab(d){ lauTab = d.v; $('#lauTabs').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === lauTab))); lauPan(); },
   lauCog(){ toast('Les réglages sont dans le bas de page, une fois le jeu lancé.'); },
-  launch(){ if (!lauReady) return; if (save && save.player) return lauStart(); creName = ''; creCls = null; creStep(); },
+  launch(){ if (!lauReady) return; if (save && save.player) return lauStart(); creName = ''; creCls = null; creSex = 'm'; creStep(); },
   creName(){
     const v = ($('#creN').value || '').trim().slice(0, 18);
     if (!v) return toast('Choisis un nom.');
@@ -3665,7 +3641,7 @@ fetch('catalogue.json', { cache:'no-cache' })
       for (const el in save.ess) save.ess[el] = Math.max(save.ess[el], 999);
     }
     persist();
-    lauHero(); lauPan();
+    lauPan();
     setTimeout(() => lauTo(100, 'Prêt.'), Math.max(0, LAU_MIN - (Date.now() - lauT0)));
   });
 })();
