@@ -593,6 +593,44 @@ body.in-combat .tabs{display:none}
   .endbtns .btn{width:100%}
 }
 @media (max-width: 380px){ .endbtns{grid-template-columns:1fr} }
+
+/* ---------- Écran bas — typiquement le téléphone en paysage (~844 × 390).
+   Ce cas se jouait jusqu'ici avec les règles « large » : l'arène gardait son ratio 16/8.2 et dépassait à elle seule
+   la hauteur de l'écran. On raisonne donc en hauteur, pas en largeur : arène à gauche, commandes à droite,
+   le tout tenant d'un bloc sans défilement. ---------- */
+@media (max-height: 560px) and (min-width: 560px){
+  :root{--tok:34px}
+  .wrap{gap:6px; padding-block:6px calc(10px + env(safe-area-inset-bottom, 0px))}
+  body.in-combat .top, body.in-combat .foot{display:none}   /* en combat, ni onglets ni ressources à lire */
+
+  .cwin .wb{display:grid; grid-template-columns:minmax(0,1fr) clamp(214px, 30vw, 292px); gap:8px; align-items:stretch}
+  .field{aspect-ratio:auto; height:calc(100vh - 96px); height:calc(100dvh - 96px); min-height:200px; max-height:460px}
+  .hudbar{margin-top:0; display:flex; flex-direction:column; gap:6px; min-width:0}
+  .hudbar .pcirc{display:none}                       /* le portrait n'a pas la place ; les plaques portent déjà l'info */
+  .hudbar .rightcol{order:1}
+  .hudbar .chat{order:2; height:72px; grid-column:auto; grid-row:auto}
+  .ftip{display:none}
+
+  .timeline{padding:4px}
+  .tl{width:40px} .tl .por{--sz:34px}
+  .spellbar{grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px; padding:5px}
+  .spellbar .spell{width:100%; height:46px}
+  .spellbar .spell svg{width:36px; height:36px}
+  .spdesc{grid-column:1 / -1; font-size:11.5px}
+  .spdesc b{font-size:12px}
+  .ctrlrow{padding:0 5px 5px}
+  .unit{width:68px} .plate{font-size:9px; padding:1px 3px 2px}
+  .nm small{display:none}
+  .unit .tag{font-size:8px}
+
+  .over .win{width:min(640px, 100%)}
+  .restab .c-sec{display:none}
+  /* hors combat : la largeur est abondante et la hauteur rare, on remet deux colonnes pour défiler moins */
+  .split{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); gap:8px}
+  .dlist{max-height:calc(100dvh - 190px)}
+  .doll .cell{width:44px; height:44px} .doll .cell svg, .doll .cell img{width:36px; height:36px}
+  .dcenter{min-height:140px}
+}
 @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms !important; transition-duration:.01ms !important} }
 </style>
 
