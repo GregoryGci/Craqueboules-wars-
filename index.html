@@ -2040,8 +2040,9 @@ const starsTxt = n => '★'.repeat(n);
    fonctionne comme avant, et aucune requête n'est faite.
    ===================================================================== */
 const NET = {
-  url: '',   // https://xxxxxxxx.supabase.co
-  key: '',   // clé « anon public »
+  url: 'https://zsuqxzqtjfwxggrjxjay.supabase.co',
+  key: 'sb_publishable_oDE3Xg6GW3KJayUMbMSDZg_2POVgmF5',   // clé publiable : elle part dans la page, c'est voulu.
+  // Ce sont les règles « row level security » de la base qui protègent les données (voir SERVEUR.md).
 };
 let sb = null, me = null;           // client Supabase, utilisateur connecté
 let netState = 'off';               // off · anon · on · erreur
