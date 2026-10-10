@@ -1,5 +1,5 @@
 # Génère le catalogue DofusDB et publie le jeu sur GitHub Pages à chaque push sur main.
-# À activer une fois : Settings → Pages → Source : « GitHub Actions ».
+# Pages s'active tout seul au premier run (enablement: true plus bas).
 name: Publier le jeu
 
 on:
@@ -36,6 +36,8 @@ jobs:
           mkdir _site
           cp -r index.html catalogue.json assets .nojekyll _site/
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true   # active GitHub Pages si ce n'est pas déjà fait (évite « Get Pages site failed »)
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

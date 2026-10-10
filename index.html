@@ -2539,6 +2539,8 @@ const FX_EL = {
 const FX_HEAL = { c:['#8dff9a','#2fbf52','#ffffff'], plus:true }, FX_BUFF = { c:['#ffd66a','#ff9a1a','#fff6d0'] },
   FX_BAD = { c:['#b06aff','#7a2fd0','#e9d0ff'] }, FX_DEAD = { c:['#3a3733','#1c1a18','#6b665a'], g:-70, dk:true };
 const fxOff = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const FX_MAX = 260;   // garde-fou : si l'appareil rame, le dt plafonné (voir fxTick) fait vivre les particules plus longtemps en temps réel,
+                       // ce qui en accumule encore plus et ralentit davantage — ce plafond casse cette spirale
 let fxcv = null, fxG = null, fxP = [], fxRaf = 0, fxLast = 0;
 const fxr = (a,b) => a + Math.random()*(b-a);
 function fxSize(){
@@ -2555,6 +2557,7 @@ function fxPt(id, at = .45){
 function fxAdd(p){
   if (fxOff || !fxcv) return;
   fxP.push(p);
+  if (fxP.length > FX_MAX) fxP.splice(0, fxP.length - FX_MAX);
   if (!fxRaf){ fxLast = performance.now(); fxRaf = requestAnimationFrame(fxTick); }
 }
 function fxBurst(x, y, E, n, pw, s = 1){
