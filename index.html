@@ -2957,7 +2957,7 @@ const FX_HEAL = { c:['#8dff9a','#2fbf52','#ffffff'], plus:true }, FX_BUFF = { c:
 const fxOff = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const FX_MAX = 260;   // garde-fou : si l'appareil rame, le dt plafonné (voir fxTick) fait vivre les particules plus longtemps en temps réel,
                        // ce qui en accumule encore plus et ralentit davantage — ce plafond casse cette spirale
-let fxcv = null, fxG = null, fxP = [], fxRaf = 0, fxLast = 0;
+let fxcv = null, fxG = null, fxP = [], fxRaf = 0, fxLast = 0, fxInTick = false;
 const fxr = (a,b) => a + Math.random()*(b-a);
 function fxSize(){
   fxcv = $('#fxcv'); if (!fxcv) return;
@@ -2974,7 +2974,10 @@ function fxAdd(p){
   if (fxOff || !fxcv) return;
   fxP.push(p);
   if (fxP.length > FX_MAX) fxP.splice(0, fxP.length - FX_MAX);
-  if (!fxRaf){ fxLast = performance.now(); fxRaf = requestAnimationFrame(fxTick); }
+  // fxInTick : pendant une image, fxRaf vaut 0 alors qu'une image EST en cours. Sans ce garde-fou, les traînées
+  // de projectiles et les impacts programmaient chacun une image de plus, qui en programmait deux, etc. — le nombre
+  // de boucles par image doublait, et le combat devenait injouable au fil des sorts lancés.
+  if (!fxRaf && !fxInTick){ fxLast = performance.now(); fxRaf = requestAnimationFrame(fxTick); }
 }
 function fxBurst(x, y, E, n, pw, s = 1){
   for (let i = 0; i < n; i++){
@@ -2992,6 +2995,7 @@ function fxRise(id, E, n, dir = -1){
 function fxTick(now){
   fxRaf = 0;
   if (!fxcv || !fxcv.isConnected){ fxP = []; return; }
+  fxInTick = true;
   const dt = Math.min(.05, (now - fxLast)/1000) * speed, g = fxG, cur = fxP; fxLast = now; fxP = [];
   g.clearRect(0, 0, fxcv.width, fxcv.height);
   for (const p of cur){
@@ -3067,6 +3071,7 @@ function fxTick(now){
     fxP.push(p);
   }
   g.globalAlpha = 1;
+  fxInTick = false;
   if (fxP.length) fxRaf = requestAnimationFrame(fxTick);
 }
 // ---------- Allure propre à chaque sort : type d'animation, teinte et forme des éclats, tirés du nom et de l'identifiant du sort
