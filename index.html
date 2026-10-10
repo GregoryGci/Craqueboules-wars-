@@ -93,6 +93,10 @@ body.in-combat .tabs{display:none}
   background:radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--elc) 38%, #fff) 0, var(--elc) 70%, color-mix(in srgb, var(--elc) 55%, #000) 100%);
   border:1px solid #00000055; font-weight:bold; font-size:calc(var(--sz) * .34); color:#fff; text-shadow:0 1px 0 #000a}
 .por.round{border-radius:50%}
+/* Les initiales ne sont qu'un repli : dès qu'une image est là, elles disparaissent. Si l'image échoue,
+   data-fb la retire du DOM et le :has() cesse de s'appliquer — les initiales reviennent d'elles-mêmes. */
+.ini{font-style:normal}
+.por:has(.pimg) .ini, .token:has(.spr) .ini{display:none}
 .por .pimg{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; padding:5%; box-sizing:border-box; background:radial-gradient(circle at 50% 40%, #f6f3e8, #d6d1be 78%); z-index:1}
 .por.round .pimg{border-radius:50%}
 .por .elb{z-index:2}
@@ -2143,7 +2147,7 @@ function toast(msg){ const t = $('#toast'); t.textContent = msg; t.hidden = fals
 const monImg = m => m.g && IMG_OK ? `${IMG_BASE}/monsters/${m.g}.png` : null;
 function portrait(key, sz, o = {}){
   const m = MONSTERS[key], src = monImg(m);
-  return `<span class="por ${o.round ? 'round' : ''}" style="--elc:${elVar(m.el)};--sz:${sz}px" title="${m.name}">${m.short}${o.badge !== false && sz >= 34 ? elBadge(m.el) : ''}${src ? `<img class="pimg" src="${src}" alt="" loading="lazy" data-fb>` : ''}</span>`;
+  return `<span class="por ${o.round ? 'round' : ''}" style="--elc:${elVar(m.el)};--sz:${sz}px" title="${m.name}"><i class="ini">${m.short}</i>${o.badge !== false && sz >= 34 ? elBadge(m.el) : ''}${src ? `<img class="pimg" src="${src}" alt="" loading="lazy" data-fb>` : ''}</span>`;
 }
 const sico = s => { const [g,c] = STAT_ICO[s.replace('Pct','')]; return `<svg class="sico" viewBox="0 0 16 16" aria-hidden="true"><path d="${GLYPH[g]}" fill="${c}" fill-rule="evenodd" stroke="#0006" stroke-width=".6"/></svg>`; };
 function spellIcon(id, el){
@@ -3175,7 +3179,7 @@ function addUnit(u){
     n.innerHTML = `
       <div class="plate"><div class="nm"><span>${u.name}${u.awakened ? ' ✦' : ''}</span><small>${u.level}</small></div>
         <div class="bar hp"><i></i><span></span></div><div class="bar atb"><i></i></div><div class="fx"></div></div>
-      <button class="token" aria-label="${u.name}"><span>${u.short}</span>${elBadge(u.el)}${img ? `<img class="spr" src="${img}" alt="" data-fb>` : ''}<span class="tag"></span></button>
+      <button class="token" aria-label="${u.name}"><i class="ini">${u.short}</i>${elBadge(u.el)}${img ? `<img class="spr" src="${img}" alt="" data-fb>` : ''}<span class="tag"></span></button>
       <div class="ring"></div>`;
     n.querySelector('.token').addEventListener('click', () => onUnitClick(u.id));
     n.addEventListener('mouseenter', () => { hoverId = u.id; renderInfo(); });
