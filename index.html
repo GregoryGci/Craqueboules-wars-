@@ -1500,10 +1500,11 @@ const Eco = (() => {
   function release(save, mon){
     if (save.team.includes(mon.uid)) return { err:'Retire-le d\'abord de l\'équipe.' };
     for (const it of itemsOf(save, mon)) unequip(save, it);
-    const st = MONSTERS[mon.key].stars;
-    save.kamas += st*100; save.ess[MONSTERS[mon.key].el] += st*2;
+    for (const g of Object.values(gearOf(save, mon))) unequipGear(save, g);   // son équipement retourne au sac
+    const st = starsOf(mon), kamas = Math.round(st * 100 * (.4 + (mon.level || 1) * .01));
+    save.kamas += kamas;
     save.monsters = save.monsters.filter(m => m !== mon);
-    return { ok:true, kamas:st*100, ess:st*2 };
+    return { ok:true, kamas };
   }
   function summon(save){
     if (save.stones < 1) return { err:'Plus de pierre d\'âme pleine.' };
@@ -1544,7 +1545,7 @@ const Eco = (() => {
     return out;
   }
   function newSave(){
-    const s = { v:SAVE_V, sc:1, cat:CAT_MODE, kamas:800, stones:3, gold:0, scrolls:0, sum:0, ach:{}, ess:{ terre:0, feu:0, eau:0, air:0 }, nextId:1, monsters:[], items:[], gear:[], team:[], cleared:[], seen:[], wins:0 };
+    const s = { v:SAVE_V, sc:1, cat:CAT_MODE, kamas:800, stones:3, gold:0, scrolls:0, sum:0, ach:{}, nextId:1, monsters:[], items:[], gear:[], team:[], cleared:[], seen:[], wins:0 };
     const [k1, k2, k3] = starterKeys();
     const a = addMonster(s,k1,6), b = addMonster(s,k2,6), c = addMonster(s,k3,6);
     s.team = [a.uid, b.uid, c.uid]; s.seen = [k1, k2, k3];
@@ -1853,7 +1854,7 @@ function themeFor(name, id){
 function rewardsFor(L){
   const rarity = L < 40 ? { normal:60, magique:30, rare:10 } : L < 80 ? { normal:35, magique:40, rare:20, heroique:5 } : L < 120 ? { normal:15, magique:40, rare:35, heroique:10 }
     : L < 150 ? { magique:35, rare:40, heroique:25 } : L < 180 ? { rare:45, heroique:55 } : { rare:30, heroique:70 };
-  return { kamas:[100 + L*6, 160 + L*8], xp:50 + L*9, ess:2 + Math.floor(L/25), stone:Math.min(.75, .3 + L/450), perfect:L >= 75 ? Math.min(.3, (L-60)/600) : 0, rarity };
+  return { kamas:[100 + L*6, 160 + L*8], xp:50 + L*9, stone:Math.min(.75, .3 + L/450), perfect:L >= 75 ? Math.min(.3, (L-60)/600) : 0, rarity };
 }
 function buildCatalog(cat){
   const hand = {};
@@ -2019,7 +2020,7 @@ function bossStages(defs, mode, floors, lvStep, mult0, multStep, lv0 = 0){
       out.push({ id, mode, grp:D.k, gname:place, short:`Étage ${f}`, name:`${place} · étage ${f}`, map:src ? themeFor(src.n, src.id) : 'grotte', mapId:src ? src.mp || 0 : 0, lvl:L, dofusLvl:0,
         desc: raid ? `${bn} lâche des ${D.tag}.` : `${bn} garde le ${DOFUS_NAMES[D.stat]} (${STAT_LONG[D.stat]}).`,
         enemies:last, waves:wavesFor(pool, L, last), req:f > 1 ? `${mode}:${D.k}:${f-1}` : null,
-        kamas:rw.kamas.map(k => Math.round(k*1.5)), xp:rw.xp, ess:rw.ess,
+        kamas:rw.kamas.map(k => Math.round(k*1.5)), xp:rw.xp,
         rarity: !raid ? { rare:50, heroique:50 } : f <= 3 ? { normal:30, magique:45, rare:25 } : f <= 6 ? { magique:35, rare:45, heroique:20 } : f <= 8 ? { rare:50, heroique:50 } : { rare:25, heroique:75 },
         mains:raid ? D.mains : null, dofus:raid ? null : D.stat, dofusRate:raid ? 0 : .02 + .008*f });   // un Dofus doit se raconter : de 2,8 % au premier étage à 8,4 % au dernier
     }
@@ -2035,7 +2036,7 @@ function finalizeStages(){
     const pool = d.pool && d.pool.length ? d.pool : [...new Set(d.enemies.filter(e => !e.boss).map(e => e.key))];
     const id = `camp:${d.id}`;
     camp.push({ id, mode:'camp', grp:d.id, gname:d.name, short:d.name, name:d.name, lvl:d.lvl, dofusLvl:d.dofusLvl || 0, map:d.map, mapId:d.mapId || 0, maps:d.maps || null,
-      desc:d.desc, enemies:d.enemies, waves:wavesFor(pool, d.lvl, d.enemies, ROOMS), req:prev, kamas:d.kamas, xp:d.xp, ess:d.ess, rarity:d.rarity });
+      desc:d.desc, enemies:d.enemies, waves:wavesFor(pool, d.lvl, d.enemies, ROOMS), req:prev, kamas:d.kamas, xp:d.xp, rarity:d.rarity });
     prev = id;
   }
   STAGES.camp = camp;
@@ -2561,21 +2562,41 @@ function dgListHtml(){
 }
 // Tout ce qu'un niveau peut lâcher : kamas, XP, trophées par rareté, apparences, essences, Dofus, pierre du premier passage
 function dropsHtml(d){
-  const tot = Object.values(d.rarity).reduce((a,b) => a+b, 0), ilvl = d.dofusLvl || d.lvl * 5;
-  const near = ITEM_SKINS.normal.filter(i => Math.abs(i.l - ilvl) <= 30), skins = near.length ? near : ITEM_SKINS.normal;
-  const els = [...new Set(d.enemies.map(e => MONSTERS[e.key].el))];
-  const mains = d.mains ? [...new Set(d.mains.map(m => STAT_LONG[m.replace('Pct','')]))].join(', ') : 'tous';
-  return `<ul class="rows droplist">
-    <li><span>${kamaIcon(12)} Kamas</span><b>${fmt(d.kamas[0])} – ${fmt(d.kamas[1])}</b></li>
-    <li><span>Expérience par monstre</span><b>${d.xp}</b></li>
-    <li><span>Trophées <span class="muted">(1 ou 2 par victoire)</span></span><span class="dchips">${RARITIES.filter(r => d.rarity[r]).map(r => `<b style="color:var(--r-${r})">${RAR_LABEL[r]} ${Math.round(d.rarity[r]/tot*100)} %</b>`).join('')}</span></li>
-    <li><span>Effet principal</span><b>${mains}</b></li>
-    ${skins.length ? `<li><span>Apparences</span><span class="dicos">${skins.slice(0, 7).map(i => `<img src="${IMG_BASE}/items/${i.i}.png" alt="" title="${esc(i.n)}" loading="lazy" data-fb>`).join('')}${skins.length > 7 ? `<span class="muted">+${skins.length - 7}</span>` : ''}</span></li>` : ''}
-    ${d.dofus ? `<li><span>Dofus</span><b style="color:var(--r-legendaire)">${DOFUS_NAMES[d.dofus]} · ${Math.round(d.dofusRate*100)} %</b></li>` : ''}
-    <li><span>Essences</span><b>${d.ess} à ${d.ess + 2} · ${els.map(e => ELEM[e]).join(' ou ')}</b></li>
-    <li><span>${gemIcon('perfect', 14)} Pierre d'âme pleine</span><b>1 au premier passage</b></li></ul>
-    <div class="dropbar">${RARITIES.filter(r => d.rarity[r]).map(r => `<span style="--rc:var(--r-${r});width:${d.rarity[r]/tot*100}%" title="${RAR_LABEL[r]} ${d.rarity[r]} %"></span>`).join('')}</div>`;
+  // Chaque mode a son butin, et un seul : inutile d'annoncer des trophées en campagne ou des essences nulle part.
+  const camp = d.mode === 'camp', dragon = d.mode === 'dragon', raid = d.mode === 'raid';
+  const ilvl = d.dofusLvl || d.lvl;
+  const lignes = [
+    `<li><span>${kamaIcon(12)} Kamas</span><b>${fmt(d.kamas[0])} – ${fmt(d.kamas[1])}</b></li>`,
+    `<li><span>Expérience par monstre</span><b>${fmt(d.xp)}</b></li>`,
+  ];
+  // Équipement : on montre les pièces de ce niveau qui peuvent tomber ici
+  if (camp || dragon){
+    const prochesNiveau = g => Math.abs(g.l - ilvl) <= Math.max(12, ilvl * .35);
+    const pieces = GEAR.filter(prochesNiveau);
+    const vus = [];
+    for (const sl of GEAR_SLOTS){
+      if (sl === 'anneau2') continue;
+      const p = pieces.filter(g => g.s === sl);
+      if (p.length) vus.push(p[Math.floor(p.length / 2)]);      // une pièce représentative par emplacement
+    }
+    lignes.push(`<li><span>Équipement <span class="muted">(niveau ${ilvl})</span></span><b>1 ou 2 par victoire</b></li>`);
+    if (vus.length) lignes.push(`<li><span>Pièces possibles</span><span class="dicos">${vus.map(g => `<img src="${IMG_BASE}/items/${g.i}.png" alt="" title="${esc(g.n)} · ${GEAR_LABEL[g.s]}" loading="lazy" data-fb>`).join('')}</span></li>`);
+  }
+  if (raid){
+    const tot = Object.values(d.rarity).reduce((a, b) => a + b, 0) || 1;
+    const near = ITEM_SKINS.normal.filter(i => Math.abs(i.l - ilvl) <= 40), skins = near.length ? near : ITEM_SKINS.normal;
+    lignes.push(`<li><span>Trophées <span class="muted">(1 ou 2 par victoire)</span></span><span class="dchips">${RARITIES.filter(r => d.rarity[r]).map(r => `<b style="color:var(--r-${r})">${RAR_LABEL[r]} ${Math.round(d.rarity[r] / tot * 100)} %</b>`).join('')}</span></li>`);
+    if (skins.length) lignes.push(`<li><span>Trophées possibles</span><span class="dicos">${skins.slice(0, 7).map(i => `<img src="${IMG_BASE}/items/${i.i}.png" alt="" title="${esc(i.n)}" loading="lazy" data-fb>`).join('')}</span></li>`);
+  }
+  if (d.dofus) lignes.push(`<li><span>Dofus</span><b style="color:var(--r-legendaire)">${DOFUS_NAMES[d.dofus]} · ${Math.round(d.dofusRate * 100)} %</b></li>`);
+  lignes.push(`<li><span>${gemIcon('perfect', 14)} Pierre d'âme pleine</span><b>1 au premier passage</b></li>`);
+
+  const tot = Object.values(d.rarity).reduce((a, b) => a + b, 0) || 1;
+  return `<ul class="rows droplist">${lignes.join('')}</ul>${raid
+    ? `<div class="dropbar">${RARITIES.filter(r => d.rarity[r]).map(r => `<span style="--rc:var(--r-${r});width:${d.rarity[r] / tot * 100}%" title="${RAR_LABEL[r]} ${d.rarity[r]} %"></span>`).join('')}</div>`
+    : ''}`;
 }
+
 function dgDetail(i){
   const d = stages()[i], un = isUnlocked(i), done = save.cleared.includes(d.id), team = teamMons();
   const tot = Object.values(d.rarity).reduce((a,b) => a+b, 0);
@@ -3381,7 +3402,7 @@ const ACT = {
     confirmKey = null;
     const r = Eco.release(save, Eco.monByUid(save, selMon));
     if (r.err){ toast(r.err); return render(); }
-    persist(); toast(`Relâché : +${r.kamas} kamas, +${r.ess} essences.`); selMon = null; render();
+    persist(); toast(`Relâché : +${fmt(r.kamas)} kamas, son équipement retourne au sac.`); selMon = null; render();
   },
   // Ouvrir un emplacement vise aussi son objet : « Améliorer » et « Vendre » agissent dessus sans passer par l'inventaire
   slot(d){
@@ -4294,7 +4315,6 @@ fetch('catalogue.json', { cache:'no-cache' })
     save = loadSave();
     if (TEST){
       save.kamas = Math.max(save.kamas, 1e6); save.stones = Math.max(save.stones, 1000); save.gold = Math.max(save.gold, 500); save.scrolls = Math.max(save.scrolls, 50);
-      for (const el in save.ess) save.ess[el] = Math.max(save.ess[el], 999);
     }
     persist();
     lauPan();
