@@ -70,14 +70,14 @@ const monsters = await all('monsters', {}, m => {
 
 // ---------- Noms des sorts (facultatif : le jeu met des noms génériques sinon)
 const spellIds = [...new Set(monsters.flatMap(m => m.sp))];
-const spells = {};
+const spells = {}, spellIcons = {};
 try {
   for (let i = 0; i < spellIds.length; i += 40) {
     const q = new URLSearchParams();
     for (const id of spellIds.slice(i, i + 40)) q.append('id[$in][]', String(id));
     q.set('$limit', '50');
     const res = await get(`${API}/spells?${q}`);
-    for (const s of res.data || []) { const n = fr(s.name).trim(); if (n) spells[s.id] = n; }
+    for (const s of res.data || []) { const n = fr(s.name).trim(); if (n) spells[s.id] = n; if (s.iconId) spellIcons[s.id] = s.iconId; }
     process.stdout.write(`\rSorts : ${Math.min(i + 40, spellIds.length)} / ${spellIds.length}   `);
   }
   process.stdout.write('\n');
@@ -99,9 +99,10 @@ const dungeons = await all('dungeons', {}, d => {
   const name = fr(d.name).trim();
   const m = (d.monsters || []).filter(id => known.has(id));
   if (!name || !m.length) return null;
-  return { id: d.id, n: name, l: d.optimalPlayerLevel ?? d.minLevel ?? 1, m, b: (d.bosses || []).filter(id => known.has(id)) };
+  const maps = d.mapIds || [];   // mps : les salles du donjon dans l'ordre (une par vague en campagne) ; mp : la dernière, celle du boss
+  return { id: d.id, n: name, l: d.optimalPlayerLevel ?? d.minLevel ?? 1, m, b: (d.bosses || []).filter(id => known.has(id)), mp: maps[maps.length - 1] || 0, mps: maps };
 }, 'Donjons');
 
-const cat = { v: 1, source: 'api.dofusdb.fr', date: new Date().toISOString().slice(0, 10), monsters, spells, items, dungeons };
+const cat = { v: 1, source: 'api.dofusdb.fr', date: new Date().toISOString().slice(0, 10), monsters, spells, spellIcons, items, dungeons };
 await writeFile('catalogue.json', JSON.stringify(cat));
 console.log(`\ncatalogue.json écrit : ${monsters.length} monstres, ${items.length} objets, ${dungeons.length} donjons, ${Object.keys(spells).length} noms de sorts (${requests} requêtes).`);
