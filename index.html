@@ -219,6 +219,23 @@ body.in-combat .tabs{display:none}
 @keyframes subNew{0%{opacity:0; transform:translateX(-18px); background:#ffe08a; box-shadow:0 0 0 2px var(--orange2)} 60%{opacity:1; transform:none; background:#ffe08a; box-shadow:0 0 12px 2px var(--orange)} 100%{box-shadow:none}}
 @keyframes subProc{0%{background:#c9f0a8} 30%{transform:scale(1.04); background:#c9f0a8; box-shadow:0 0 10px 1px var(--good)} 100%{transform:none; box-shadow:none}}
 @keyframes procV{0%{opacity:0; transform:translateY(6px) scale(.7)} 15%{opacity:1; transform:scale(1.2)} 70%{opacity:1; transform:none} 100%{opacity:0; transform:translateY(-6px)}}
+
+/* Amélioration d'un trophée. Réussite et échec se ressemblaient : seul le texte changeait.
+   Réussite : l'objet encaisse et un éclat le balaie. Échec : une secousse sèche, sans fioriture. */
+.bigslot{overflow:hidden}
+.itemhead.up-ok .bigslot{animation:upPop .5s cubic-bezier(.2,1.6,.4,1); border-color:var(--orange2)}
+.itemhead.up-ok .bigslot::after{content:""; position:absolute; inset:-30% -60%; z-index:3; pointer-events:none;
+  background:linear-gradient(104deg, transparent 40%, #ffffffcc 50%, transparent 60%); animation:upSweep .8s ease-out .08s both}
+.itemhead.up-ok .lvjump{animation:lvJump .7s cubic-bezier(.2,1.6,.4,1)}
+.itemhead.up-ko .bigslot{animation:upShake .45s ease-out}
+.itemhead.up-ko .lvjump{opacity:.55}
+@keyframes upPop{0%{transform:scale(1)} 34%{transform:scale(1.12)} 100%{transform:scale(1)}}
+@keyframes upSweep{0%{transform:translateX(-85%) rotate(0deg); opacity:0} 12%{opacity:1} 100%{transform:translateX(85%); opacity:0}}
+@keyframes upShake{0%,100%{transform:translateX(0)} 18%{transform:translateX(-6px)} 36%{transform:translateX(5px)} 56%{transform:translateX(-3px)} 78%{transform:translateX(2px)}}
+@keyframes lvJump{0%{transform:scale(1)} 40%{transform:scale(1.5); color:var(--orange2)} 100%{transform:scale(1)}}
+.upmsg{transition:none}
+.upmsg.ok, .upmsg.ko{animation:msgIn .3s ease-out}
+@keyframes msgIn{0%{opacity:0; transform:translateY(-4px)} 100%{opacity:1; transform:none}}
 .effects li.empty{color:var(--ink2); font-style:italic}
 .invfoot{display:flex; justify-content:flex-end; align-items:center; gap:6px; font-weight:bold; padding:6px 10px 0}
 .upmsg{min-height:1.4em; font-weight:bold}
@@ -453,6 +470,28 @@ body.in-combat .tabs{display:none}
 .spdesc{font-size:12px; min-width:0}
 .spdesc b{display:block; font-size:13px}
 .ctrlrow{display:flex; flex-wrap:wrap; gap:6px; align-items:center; justify-content:flex-end; padding:0 6px 6px}
+
+/* Jouer : le hub des modes. Une carte par mode, avec son boss, sa couleur et son avancement. */
+.mgrid2{display:grid; grid-template-columns:repeat(auto-fit, minmax(278px, 1fr)); gap:10px}
+.mcard{position:relative; display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:12px; align-items:center; text-align:left;
+  padding:10px 12px 10px 17px; border:1px solid var(--win-out); border-radius:9px; cursor:pointer; font:inherit; color:var(--ink);
+  background:linear-gradient(var(--row2), var(--row)); box-shadow:inset 0 1px 0 #fff9, 0 2px 6px #0003; overflow:hidden}
+.mcard::before{content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--mc)}
+.mcard:hover{border-color:var(--orange2); background:linear-gradient(#f2efe2, var(--row2))}
+.mcard:disabled{opacity:.55; cursor:not-allowed}
+.mc-art{position:relative; width:62px; height:62px; display:grid; place-items:center; border-radius:8px; flex:none; overflow:hidden;
+  background:radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--mc) 34%, #fff) 0, color-mix(in srgb, var(--mc) 72%, #000) 100%);
+  border:1px solid #0005; box-shadow:inset 0 0 10px #0004}
+.mc-art .por{--sz:56px; background:none; border:0; box-shadow:none}
+.mc-art .gemw{width:38px; height:38px}
+.mc-body{display:grid; gap:3px; min-width:0}
+.mc-t{font-size:16px; line-height:1.15}
+.mc-s{font-size:12px; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.mc-n{font-size:11.5px; color:var(--ink2); font-weight:bold}
+.elline{display:inline-flex; align-items:center; gap:5px}
+.mc-go{font-size:24px; color:var(--ink2); line-height:1; opacity:.6}
+.mcard .seg-bar{margin-top:1px}
+@media (hover:none){ .mcard:hover{border-color:var(--win-out); background:linear-gradient(var(--row2), var(--row))} }
 
 /* Fin de combat — en position fixe : l'arène est en overflow:hidden, un overlay absolu y était rogné dès que le bilan dépassait sa hauteur */
 .over{position:fixed; inset:0; background:#1a120888; z-index:5000; overflow:auto; overscroll-behavior:contain;
@@ -1153,6 +1192,13 @@ function shade(hex, amt){
   return '#' + c.map(v => v.toString(16).padStart(2,'0')).join('');
 }
 const elBadge = el => `<i class="elb" style="--elc:${elVar(el)}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="${EL_GLYPH[el]}" fill="#fff"/></svg></i>`;
+// Les quatre runes élémentaires de forgemagie — les seules vraies icônes d'élément que DofusDB expose
+// (les caractéristiques n'ont pas d'icône). Elles partagent la même silhouette et ne se distinguent qu'à la
+// couleur : lisibles à partir de 24 px, illisibles dans le badge de 14 px, qui garde donc son glyphe.
+const EL_RUNE = { terre:78043, feu:78037, eau:78040, air:78046 };
+const elIcon = (el, sz) => sz >= 24 && IMG_OK
+  ? `<span class="gemw" style="width:${sz}px;height:${sz}px" title="${ELEM[el]}"><svg viewBox="0 0 16 16" width="${sz}" height="${sz}" aria-hidden="true"><path d="${EL_GLYPH[el]}" fill="${elVar(el)}"/></svg><img src="${IMG_BASE}/items/${EL_RUNE[el]}.png" alt="" data-fb></span>`
+  : `<svg viewBox="0 0 16 16" width="${sz}" height="${sz}" aria-hidden="true" title="${ELEM[el]}"><path d="${EL_GLYPH[el]}" fill="${elVar(el)}"/></svg>`;
 function itemIcon(it){
   return itemSvg(it) + (it.si && IMG_OK ? `<img class="iimg" src="${IMG_BASE}/items/${it.si}.png" alt="" loading="lazy" data-fb>` : '');
 }
@@ -1679,7 +1725,7 @@ const STAT_LONG = { hp:'Points de vie', atk:'Attaque', def:'Défense', spd:'Vite
 let save = null, selDg = null, dq = '', mode = 'camp', openGrp = null;
 const stages = () => STAGES[mode];
 const TEST = new URLSearchParams(location.search).has('test');   // ?test : ressources pleines et tous les niveaux ouverts
-let view = 'donjons', selMon = null, selItem = null, slotPick = null, filt = { slot:0, rar:'' };
+let view = 'jouer', selMon = null, selItem = null, slotPick = null, filt = { slot:0, rar:'' };
 let swapOpen = false;   // dans la fiche du monstre : la liste « Changer » est dépliée sous l'objet équipé
 let upFx = null;   // sous-effet à animer après une amélioration : { s, added, v }
 let lastSummon = null, upMsg = null, confirmKey = null, inCombat = false, curDg = 0, curStage = null;
@@ -1737,8 +1783,9 @@ function renderTop(){
     <li title="Parchemins de sort">${resIcon(SCROLL_ICON,16)}${save.scrolls}</li>
     ${Object.keys(ELEM).map(el => `<li title="Essences ${ELEM[el]}"><span class="por round" style="--elc:${elVar(el)};--sz:16px"><svg viewBox="0 0 16 16" width="10" height="10" aria-hidden="true"><path d="${EL_GLYPH[el]}" fill="#fff"/></svg></span>${save.ess[el]}</li>`).join('')}`;
   const ready = ACHS.filter(a => achState(save, a).ready).length;
-  const tabs = [['donjons','Aventure'],['equipe','Équipe'],['trophees','Inventaire'],['invocation','Invocation'],['arene','Arène'],['boss','Boss mondial'],['succes','Succès' + (ready ? ` <b class="tabn">${ready}</b>` : '')]];
-  $('#tabs').innerHTML = tabs.map(([v,l]) => `<button data-act="nav" data-v="${v}" ${view === v ? 'aria-current="page"' : ''}>${l}</button>`).join('');
+  const tabs = [['jouer','Jouer'],['equipe','Équipe'],['trophees','Inventaire'],['invocation','Invocation'],['succes','Succès' + (ready ? ` <b class="tabn">${ready}</b>` : '')]];
+  const cur = ['donjons','arene','boss'].includes(view) ? 'jouer' : view;   // ces vues sont des enfants du hub
+  $('#tabs').innerHTML = tabs.map(([v,l]) => `<button data-act="nav" data-v="${v}" ${cur === v ? 'aria-current="page"' : ''}>${l}</button>`).join('');
 }
 function render(){
   if (!save) return;
@@ -1746,7 +1793,8 @@ function render(){
   document.body.classList.toggle('in-combat', inCombat);
   if (inCombat) return;
   const main = $('#main');
-  if (view === 'donjons'){ const sc = $('#dlist') ? $('#dlist').scrollTop : null; main.innerHTML = viewDonjons(); drawMinis(); if (sc != null) $('#dlist').scrollTop = sc; else scrollToSel(); }
+  if (view === 'jouer') main.innerHTML = viewJouer();
+  else if (view === 'donjons'){ const sc = $('#dlist') ? $('#dlist').scrollTop : null; main.innerHTML = viewDonjons(); drawMinis(); if (sc != null) $('#dlist').scrollTop = sc; else scrollToSel(); }
   else if (view === 'equipe') main.innerHTML = viewEquipe();
   else if (view === 'trophees') main.innerHTML = viewTrophees();
   else if (view === 'invocation') main.innerHTML = viewInvocation();
@@ -1816,12 +1864,62 @@ function dgDetail(i){
         <button class="btn" data-act="fight" data-i="${i}" ${un && team.length ? '' : 'disabled'}>Combattre</button></span></footer>
     </div></section>`;
 }
+// Bandeau d'équipe, partagé par le hub et la liste des donjons
+function teamStrip(){
+  const team = teamMons();
+  return `<section class="win"><div class="wt"><h2>Ton équipe<small>${team.length}/3</small></h2><div class="side" style="right:8px"><button class="btn sm" data-act="nav" data-v="equipe">Modifier</button></div></div>
+    <div class="wb teamstrip"><ul>${team.map(m => `<li>${portrait(m.key,46)}<span><b>${MONSTERS[m.key].name}${m.awakened ? ' ✦' : ''}</b><span class="muted">Niveau ${m.level} </span><span class="stars">${starsTxt(MONSTERS[m.key].stars)}</span></span></li>`).join('') || '<li class="muted">Aucun monstre dans l\'équipe.</li>'}</ul></div></section>`;
+}
+const backToModes = '<div class="row" style="margin-bottom:8px"><button class="btn grey sm" data-act="nav" data-v="jouer">‹ Tous les modes</button></div>';
+
+// ---------- Jouer : le hub de tous les modes
+const stageBoss = d => {
+  for (let i = d.waves.length - 1; i >= 0; i--){ const b = d.waves[i].find(e => e.boss); if (b) return b.key; }
+  const w = d.waves[d.waves.length - 1];
+  return w && w[0] && w[0].key;
+};
+const MODE_CARD = {
+  camp:   { t:'Campagne', s:'Donjons, équipement et progression',  col:'#5c8a35', u:'niveaux' },
+  raid:   { t:'Raids',    s:'La seule source de trophées',         col:'#c25e0a', u:'étages' },
+  dragon: { t:'Dragons',  s:'Les Dofus, gardés par leurs dragons', col:'#7a3fb0', u:'étages' },
+};
+function modeCard(o){
+  return `<button class="mcard" style="--mc:${o.col}" data-act="${o.act}" data-v="${o.v}"${o.off ? ' disabled' : ''}>
+    <span class="mc-art">${o.art}</span>
+    <span class="mc-body"><b class="mc-t">${o.t}</b><span class="mc-s">${o.s}</span>${o.r != null ? segBar(o.r, 14) : ''}<span class="mc-n">${o.n}</span></span>
+    <span class="mc-go" aria-hidden="true">›</span></button>`;
+}
+function viewJouer(){
+  const team = teamMons();
+  const cards = Object.keys(MODE_CARD).map(k => {
+    const C = MODE_CARD[k], L = STAGES[k] || [], done = doneIn(save, k);
+    const nx = L.findIndex(d => !save.cleared.includes(d.id));
+    const d = L[nx < 0 ? L.length - 1 : nx];
+    const bk = d && stageBoss(d);
+    return modeCard({ t:C.t, s:C.s, col:C.col, act:'play', v:k, off:!L.length,
+      art: bk ? portrait(bk, 56, { badge:false }) : '',
+      r: L.length ? done / L.length : 0,
+      n: L.length ? `${done} / ${L.length} ${C.u} terminés` : 'Bientôt' });
+  });
+  const foes = arenaFoes(save), won = foes.filter(f => f.done).length;
+  cards.push(modeCard({ t:'Arène', s:'Dix duels par jour, payés en parchemins dorés', col:'#b8860b', act:'nav', v:'arene',
+    art: resIcon(GOLD_ICON, 38), r: foes.length ? won / foes.length : 0,
+    n: `${won} / ${foes.length} duels gagnés aujourd'hui` }));
+  const W = daily(save).wb, B = wbBoss();
+  cards.push(modeCard({ t:'Boss mondial', s:'Trois assauts par jour, récompense au score', col:'#2f7bc8', act:'nav', v:'boss',
+    art: portrait(B.key, 56, { badge:false }), r: W.tries / WB_TRIES,
+    n: `${W.tries} / ${WB_TRIES} assauts${W.best ? ` · record ${fmt(W.best)}` : ''}` }));
+  return `<section class="win"><div class="wt"><h2>Jouer</h2></div>
+    <div class="wb" style="display:grid; gap:10px">
+      ${team.length ? '' : '<p class="hint" style="margin:0">Ajoute au moins un monstre à ton équipe avant de partir au combat.</p>'}
+      <div class="mgrid2">${cards.join('')}</div>
+    </div></section>` + teamStrip();
+}
+
 function viewDonjons(){
   const team = teamMons();
   if (selDg == null || !stages()[selDg]){ const f = stages().findIndex((d,i) => isUnlocked(i) && !save.cleared.includes(d.id)); selDg = f < 0 ? 0 : f; openGrp = stages()[selDg].grp; }
-  const strip = `<section class="win"><div class="wt"><h2>Ton équipe<small>${team.length}/3</small></h2><div class="side" style="right:8px"><button class="btn sm" data-act="nav" data-v="equipe">Modifier</button></div></div>
-    <div class="wb teamstrip"><ul>${team.map(m => `<li>${portrait(m.key,46)}<span><b>${MONSTERS[m.key].name}${m.awakened ? ' ✦' : ''}</b><span class="muted">Niveau ${m.level} </span><span class="stars">${starsTxt(MONSTERS[m.key].stars)}</span></span></li>`).join('') || '<li class="muted">Aucun monstre dans l\'équipe.</li>'}</ul></div></section>`;
-  return strip + `<div class="split dsplit">
+  return backToModes + teamStrip() + `<div class="split dsplit">
     <section class="win"><div class="wt"><h2>${MODE_LABEL[mode]}<small>${doneIn(save, mode)} / ${stages().length} terminés</small></h2></div>
       <div class="wb" style="display:grid; gap:8px">
       <div class="row modes" role="group" aria-label="Mode de jeu">${Object.keys(MODE_LABEL).map(k => `<button class="btn grey sm" data-act="mode" data-v="${k}" aria-pressed="${mode === k}">${MODE_LABEL[k]}</button>`).join('')}</div>
@@ -1864,7 +1962,7 @@ function monDetail(mon){
     <div class="wb" style="display:grid; gap:8px">
       <div class="fhead">${portrait(mon.key,52)}<div style="flex:1; min-width:0">
         <h3>${m.name}${mon.awakened ? ' <span style="color:var(--orange2)">✦</span>' : ''} <span class="stars" style="font-size:13px">${starsTxt(m.stars)}</span></h3>
-        <span class="muted">${ELEM[m.el]} · ${m.role}, Niveau ${mon.level}</span>
+        <span class="muted elline">${elIcon(m.el, 24)}${ELEM[m.el]} · ${m.role}, Niveau ${mon.level}</span>
         <div class="row" style="flex-wrap:nowrap; margin-top:3px"><span class="muted" style="font-size:11px; width:72px; flex:none">Expérience</span>${segBar(mon.level < MAX_LVL ? mon.xp/xpNeed(mon.level) : 1)}</div></div></div>
       <div class="panel doll">
         <div class="dcol">${slotCell(mon,1)}${slotCell(mon,2)}${slotCell(mon,3)}</div>
@@ -1939,7 +2037,8 @@ function itemSteps(it){
 }
 function itemFace(it){
   const owner = it.owner != null && Eco.monByUid(save, it.owner), { next, empty } = itemSteps(it);
-  return `<div class="itemhead"><div class="cell bigslot r-${it.rarity}">${itemIcon(it)}</div>
+  const anim = upMsg ? (upMsg.ok ? ' up-ok' : ' up-ko') : '';   // rejoué à chaque rendu tant que le message est affiché
+  return `<div class="itemhead${anim}"><div class="cell bigslot r-${it.rarity}">${itemIcon(it)}<span class="lv lvjump">+${it.lvl}</span></div>
     <div style="display:grid; gap:4px; align-content:start">
       <b style="font-size:15px; color:var(--r-${it.rarity})">${fmtStat(it.main, itemMainVal(it))}</b>
       <span class="muted">Emplacement ${it.slot} · ${owner ? `équipé sur ${MONSTERS[owner.key].name}` : 'libre'}</span>
@@ -2245,7 +2344,7 @@ function arenaFight(r){
     } });
 }
 function viewArene(){
-  const tabs = `<div class="row modes">${[['duel','Duels du jour'],['shop','Boutique'],['rta','Joueurs (RTA)']].map(([k,l]) => `<button class="btn grey sm" data-act="arTab" data-v="${k}" aria-pressed="${arTab === k}">${l}</button>`).join('')}</div>`;
+  const tabs = backToModes + `<div class="row modes">${[['duel','Duels du jour'],['shop','Boutique'],['rta','Joueurs (RTA)']].map(([k,l]) => `<button class="btn grey sm" data-act="arTab" data-v="${k}" aria-pressed="${arTab === k}">${l}</button>`).join('')}</div>`;
   if (arTab === 'shop') return tabs + `<section class="win"><div class="wt"><h2>Boutique de l'arène<small>${save.gold} parchemins dorés</small></h2></div><div class="wb">
     <ul class="shop">${ARENA_SHOP.map(o => `<li><span class="achn"><b>${o.name}</b><br><span class="muted">${o.desc}</span></span>
       <button class="btn sm" data-act="arBuy" data-id="${o.id}" ${save.gold >= o.cost ? '' : 'disabled'}>${resIcon(GOLD_ICON, 14)} ${o.cost}</button></li>`).join('')}</ul></div></section>`;
@@ -2274,7 +2373,7 @@ function wbFight(){
 }
 function viewBoss(){
   const W = daily(save).wb, B = wbBoss(), m = MONSTERS[B.key], team = topMons(save, WB_TEAM), cur = wbTier(W.today);
-  return `<div class="split"><section class="win"><div class="wt"><h2>${esc(m.name)}<small>boss mondial</small></h2></div><div class="wb" style="display:grid; gap:8px">
+  return backToModes + `<div class="split"><section class="win"><div class="wt"><h2>${esc(m.name)}<small>boss mondial</small></h2></div><div class="wb" style="display:grid; gap:8px">
       <div class="ehead">${portrait(B.key, 110, { badge:false })}<div><b>${ELEM[m.el]}</b> · increvable<br><span class="muted">L'assaut dure ${WB_TURNS} tours ou jusqu'à la chute de ton équipe. Seul le total de dégâts compte.</span></div></div>
       <ul class="rows"><li><span>Assauts du jour</span><b>${W.tries} / ${WB_TRIES}</b></li><li><span>Meilleur du jour</span><b>${fmt(W.today)}${W.tries ? ` · rang ${cur.rank}` : ''}</b></li><li><span>Record personnel</span><b>${fmt(W.best)}</b></li></ul>
       <div class="band">Ton équipe (${team.length} / ${WB_TEAM})</div>
@@ -2309,6 +2408,7 @@ const ACT = {
   arBuy(d){ const o = ARENA_SHOP.find(x => x.id === d.id); if (!o || save.gold < o.cost) return toast('Pas assez de parchemins dorés.'); save.gold -= o.cost; o.give(save); persist(); toast(`Acheté : ${o.name}.`); render(); },
   wbFight(){ wbFight(); },
   mode(d){ mode = d.v; selDg = null; openGrp = null; dq = ''; render(); },
+  play(d){ mode = d.v; selDg = null; openGrp = null; dq = ''; view = 'donjons'; render(); window.scrollTo(0,0); },
   grp(d){ openGrp = openGrp === d.k ? null : d.k; const l = $('#dlist'), sc = l.scrollTop; l.innerHTML = dgListHtml(); l.scrollTop = sc; },
   skUp(d){ const r = Eco.skillUp(save, Eco.monByUid(save, selMon), +d.i, d.w); if (r.err) return toast(r.err); persist(); toast(`Sort monté au niveau ${r.lv}.`); render(); },
   eqTab(d){ eqTab = d.v; render(); },
