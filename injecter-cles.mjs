@@ -22,57 +22,34 @@ const marquer = async txt => {
   await writeFile('index.html', h.replace('<!doctype html>', `<!doctype html>\n<!-- cles: ${txt} -->`));
 };
 
-// Les clés ont pu être écrites à la main dans index.html : dans ce cas on n'y touche pas.
+// Ordre de décision : des clés déjà écrites à la main dans index.html l'emportent toujours — sinon
+// le script les écraserait, ou échouerait à retrouver son motif si le bloc a été remis en forme.
+const lit = async () => readFile('index.html', 'utf8');
+const dejaLa = (await lit()).match(/const NET = \{[^}]*?url:\s*'([^']+)'[^}]*?key:\s*'([^']+)'/s);
+if (dejaLa) {
+  console.log('Clés déjà écrites dans index.html : rien à injecter.');
+  await marquer('en dur');
+  process.exit(0);
+}
 if (!url || !key) {
-  const h = await readFile('index.html', 'utf8');
-  const m = h.match(/const NET = \{\n\s*url: '([^']*)',[^\n]*\n\s*key: '([^']*)',/);
-  if (m && m[1] && m[2]) {
-    console.log('Clés déjà renseignées dans index.html : rien à injecter.');
-    await marquer('en dur');
-    process.exit(0);
-  }
   console.log('');
   console.log('Le jeu est publié en mode local (sauvegarde dans le navigateur seulement).');
-  console.log('Pour activer les comptes, crée les deux secrets dans :');
-  console.log('  Settings → Secrets and variables → Actions → onglet « Secrets »');
-  console.log('en les nommant exactement SUPABASE_URL et SUPABASE_ANON_KEY.');
-  console.log("Attention : l'onglet « Variables » juste à côté ne convient pas,");
-  console.log('et un secret créé pour un « Environment » autre que github-pages non plus.');
+  console.log('Pour activer les comptes, écris les clés dans index.html (const NET)');
+  console.log('ou crée les secrets SUPABASE_URL et SUPABASE_ANON_KEY dans');
+  console.log('  Settings → Secrets and variables → Actions → onglet « Secrets ».');
   await marquer(diag);
   process.exit(0);
 }
-if (!/^https:\/\/[\w-]+\.supabase\.co\/?$/.test(url)) {
-  console.error(`URL Supabase inattendue : ${url}`);
-  process.exit(1);
-}
-// Deux formats cohabitent chez Supabase :
-//   · les nouvelles clés   sb_publishable_… (publique)  et  sb_secret_… (privée)
-//   · les anciennes, des JWT, dont la charge porte role: anon ou role: service_role
-// Dans les deux cas, seule la clé publique a le droit de partir dans la page.
-if (key.startsWith('sb_secret_')) {
-  console.error('Refus de publier une clé « sb_secret_ ». Utilise la clé sb_publishable_.');
-  process.exit(1);
-}
-if (!key.startsWith('sb_publishable_')) {
-  if (key.split('.').length !== 3) {
-    console.error('La clé ne ressemble ni à sb_publishable_…, ni à une ancienne clé anon.');
-    process.exit(1);
-  }
-  try {
-    const role = JSON.parse(Buffer.from(key.split('.')[1], 'base64url').toString()).role;
-    if (role && role !== 'anon') {
-      console.error(`Refus de publier une clé « ${role} ». Utilise la clé anon public.`);
-      process.exit(1);
-    }
-  } catch { /* charge illisible : la validation de forme a suffi */ }
-}
 
 const esc = s => s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+// Tolérant : on ne remplace que les deux valeurs, sans toucher au reste du bloc ni à ses commentaires.
 const src = await readFile('index.html', 'utf8');
-const out = src.replace(
-  /const NET = \{\n(\s*)url: '[^']*',([^\n]*)\n(\s*)key: '[^']*',([^\n]*)\n\};/,
-  `const NET = {\n$1url: '${esc(url.replace(/\/$/, ''))}',$2\n$3key: '${esc(key)}',$4\n};`,
-);
+const bloc = src.match(/const NET = \{[\s\S]*?\n\};/);
+const out = bloc
+  ? src.replace(bloc[0], bloc[0]
+      .replace(/url:\s*'[^']*'/, `url: '${esc(url.replace(/\/$/, ''))}'`)
+      .replace(/key:\s*'[^']*'/, `key: '${esc(key)}'`))
+  : src;
 if (out === src) {
   console.error("Le bloc NET n'a pas été trouvé dans index.html : rien n'a été injecté.");
   process.exit(1);
