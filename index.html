@@ -1091,7 +1091,8 @@ const xpNeed = l => 80 + l*35;
 
 function computeStats(m, def){
   const lv = def.level || 1, pwr = pwrAt(lv), k = (.55 + .45 * (lv - 1) / (MAX_LVL - 1)) * pwr;
-  const b = { ...m.base }; b.hp *= k; b.atk *= k; b.def *= k;
+  const sk = def.starK || 1;   // étoiles gagnées par évolution
+  const b = { ...m.base }; b.hp *= k * sk; b.atk *= k * sk; b.def *= k * sk;
   if (def.awakened && m.awaken) for (const [s,v] of Object.entries(m.awaken.stats)) b[s] += v;
   if (def.boss){ const bm = def.bossMult || 2.4; b.hp *= bm; b.atk *= 1 + (bm - 1) * .07; }
   if (def.hpMult){ b.hp *= def.hpMult; b.atk *= def.atkMult || 1; }   // monstres des premières vagues
@@ -1382,7 +1383,7 @@ const Eco = (() => {
     save.monsters.push(m); return m;
   }
   function itemsOf(save, mon){ return Object.values(mon.equip).map(id => itemById(save,id)).filter(Boolean); }
-  function monDef(save, mon){ return { key:mon.key, level:mon.level, awakened:mon.awakened, items:itemsOf(save,mon), gear:Object.values(gearOf(save,mon)), sk:mon.sk, mine:true }; }
+  function monDef(save, mon){ return { key:mon.key, level:mon.level, awakened:mon.awakened, stars:starsOf(mon), starK:starK(mon), items:itemsOf(save,mon), gear:Object.values(gearOf(save,mon)), sk:mon.sk, mine:true }; }
 
   function unequip(save, it){
     if (it.owner == null) return;
@@ -1442,13 +1443,29 @@ const Eco = (() => {
     if (mon.level >= MAX_LVL) mon.xp = 0;
     return ups;
   }
-  const awakenCost = mon => { const st = MONSTERS[mon.key].stars;
-    return { ess: st*8, kamas: Math.round(st * 300 * (.2 + (mon.level || 1) * .012)), el: MONSTERS[mon.key].el }; };
+  // Évoluer d'une étoile coûte autant de monstres du même palier que l'étoile de départ :
+  // passer en 6 ★ demande cinq monstres 5 ★. Plus des kamas, qui suivent le niveau du monstre.
+  const awakenCost = mon => { const st = starsOf(mon);
+    return { st, n: st, kamas: Math.round(st * 300 * (.2 + (mon.level || 1) * .012)), el: MONSTERS[mon.key].el }; };
+  // Les monstres mangeables : même nombre d'étoiles, hors équipe, et pas celui qu'on fait évoluer.
+  const fodder = (save, mon) => save.monsters.filter(x => x !== mon && !save.team.includes(x.uid) && starsOf(x) === starsOf(mon));
   function awaken(save, mon){
-    if (mon.awakened) return { err:'Déjà éveillé.' };
-    const c = awakenCost(mon);
-    if (save.ess[c.el] < c.ess || save.kamas < c.kamas) return { err:`Il faut ${c.ess} essences ${ELEM[c.el]} et ${c.kamas} kamas.` };
-    save.ess[c.el] -= c.ess; save.kamas -= c.kamas; mon.awakened = true; return { ok:true };
+    const st = starsOf(mon);
+    if (st >= MAX_STARS) return { err:'Déjà au maximum (6 étoiles).' };
+    const c = awakenCost(mon), dispo = fodder(save, mon);
+    if (dispo.length < c.n) return { err:`Il faut ${c.n} monstre${c.n > 1 ? 's' : ''} ${st} ★ hors équipe (tu en as ${dispo.length}).` };
+    if (save.kamas < c.kamas) return { err:`Il te faut ${c.kamas} kamas.` };
+    save.kamas -= c.kamas;
+    // On sacrifie les plus faibles d'abord, et on libère ce qu'ils portaient
+    const manges = dispo.sort((a, b) => a.level - b.level).slice(0, c.n);
+    for (const f of manges){
+      for (const it of itemsOf(save, f)) unequip(save, it);
+      for (const g of Object.values(gearOf(save, f))) unequipGear(save, g);
+    }
+    save.monsters = save.monsters.filter(m => !manges.includes(m));
+    mon.st = st + 1;
+    if (mon.st >= MAX_STARS) mon.awakened = true;   // la forme éveillée est la récompense du 6 ★
+    return { ok:true, st:mon.st, awakened:mon.awakened };
   }
   function release(save, mon){
     if (save.team.includes(mon.uid)) return { err:'Retire-le d\'abord de l\'équipe.' };
@@ -1511,7 +1528,7 @@ const Eco = (() => {
     return s;
   }
   return { skillUp, dupOf, genItem, itemsOf, monDef, equip, unequip, upgrade, upCost, sell, sellValue, awaken, awakenCost, release, summon, loot, newSave, monByUid, itemById,
-    genGear, gearById, gearOf, equipGear, unequipGear, sellGear, gearValue };
+    genGear, gearById, gearOf, equipGear, unequipGear, sellGear, gearValue, fodder };
 })();
 
 /* =====================================================================
@@ -2031,10 +2048,16 @@ const ARENA_SHOP = [
   { id:'scroll', name:'Parchemin de sort',            desc:'Monte un sort d\'un monstre d\'un niveau.', cost:25, give:s => { s.scrolls++; } },
   { id:'stone',  name:'Pierre d\'âme pleine',         desc:'Une invocation.',                           cost:15, give:s => { s.stones++; } },
   { id:'kamas',  name:'5 000 kamas',                  desc:'Pour forger tes trophées.',                 cost:10, give:s => { s.kamas += 5000; } },
-  { id:'ess',    name:'20 essences de chaque élément', desc:'Pour éveiller tes monstres.',              cost:8,  give:s => { for (const e in s.ess) s.ess[e] += 20; } },
+  { id:'ess',    name:'Bourse de kamas',               desc:'De quoi monter quelques trophées.',         cost:8,  give:s => { s.kamas += 6000; } },
 ];
 const dayKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
 const strHash = t => [...t].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 7);
+// Étoiles : celles de l'espèce au départ, puis celles que le monstre a gagnées en évoluant.
+const starsOf = mon => (mon && mon.st) || (MONSTERS[mon.key] ? MONSTERS[mon.key].stars : 1);
+const MAX_STARS = 6;
+// Chaque étoile gagnée vaut +18 % de stats brutes. Un 5 ★ naturel reste donc au-dessus d'un 1 ★ monté
+// en 6 ★, puisque sa base est bien plus haute : évoluer rapproche, ça ne remplace pas.
+const starK = mon => 1 + .18 * Math.max(0, starsOf(mon) - (MONSTERS[mon.key] ? MONSTERS[mon.key].stars : 1));
 const topMons = (save, n) => save.monsters.slice().sort((a,b) => MONSTERS[b.key].stars * 100 + b.level - (MONSTERS[a.key].stars * 100 + a.level)).slice(0, n);
 // État du jour, recréé à la première visite de la journée ; base = niveau moyen des 3 meilleurs monstres à ce moment-là
 function daily(save){
@@ -2420,7 +2443,7 @@ function dgDetail(i){
 function teamStrip(){
   const team = teamMons();
   return `<section class="win"><div class="wt"><h2>Ton équipe<small>${team.length}/3</small></h2><div class="side" style="right:8px"><button class="btn sm" data-act="nav" data-v="equipe">Modifier</button></div></div>
-    <div class="wb teamstrip"><ul>${team.map(m => `<li>${portrait(m.key,46)}<span><b>${MONSTERS[m.key].name}${m.awakened ? ' ✦' : ''}</b><span class="muted">Niveau ${m.level} </span><span class="stars">${starsTxt(MONSTERS[m.key].stars)}</span></span></li>`).join('') || '<li class="muted">Aucun monstre dans l\'équipe.</li>'}</ul></div></section>`;
+    <div class="wb teamstrip"><ul>${team.map(m => `<li>${portrait(m.key,46)}<span><b>${MONSTERS[m.key].name}${m.awakened ? ' ✦' : ''}</b><span class="muted">Niveau ${m.level} </span><span class="stars">${starsTxt(starsOf(m))}</span></span></li>`).join('') || '<li class="muted">Aucun monstre dans l\'équipe.</li>'}</ul></div></section>`;
 }
 const backToModes = '<div class="row" style="margin-bottom:8px"><button class="btn grey sm" data-act="nav" data-v="jouer">‹ Tous les modes</button></div>';
 
@@ -2487,7 +2510,7 @@ function viewEquipe(){
   const list = save.monsters.slice().sort((a,b) => (save.team.includes(b.uid) - save.team.includes(a.uid)) || MONSTERS[b.key].stars - MONSTERS[a.key].stars || b.level - a.level);
   if (!selMon || !Eco.monByUid(save, selMon)) selMon = list[0] && list[0].uid;
   const cells = list.map(m => `<button class="cell ${m.uid === selMon ? 'on' : ''}" data-act="selMon" data-uid="${m.uid}" title="${MONSTERS[m.key].name}, niveau ${m.level}">
-      ${portrait(m.key,52,{badge:false})}<span class="q">${m.level}</span><span class="st">${starsTxt(MONSTERS[m.key].stars)}</span>${save.team.includes(m.uid) ? '<span class="team" title="Dans l\'équipe">É</span>' : ''}</button>`).join('');
+      ${portrait(m.key,52,{badge:false})}<span class="q">${m.level}</span><span class="st">${starsTxt(starsOf(m))}</span>${save.team.includes(m.uid) ? '<span class="team" title="Dans l\'équipe">É</span>' : ''}</button>`).join('');
   const mon = selMon && Eco.monByUid(save, selMon);
   if (!mon) return eqTabs() + '<section class="win"><div class="wb muted">Invoque un monstre pour commencer.</div></section>';
   return eqTabs() + `<div class="split eqsplit">
@@ -2558,13 +2581,14 @@ function slotCell(mon, n){
 }
 function monDetail(mon){
   const m = MONSTERS[mon.key], inTeam = save.team.includes(mon.uid), ac = Eco.awakenCost(mon);
-  const canAw = !mon.awakened && save.ess[ac.el] >= ac.ess && save.kamas >= ac.kamas;
+  const st = starsOf(mon), nFod = Eco.fodder(save, mon).length;
+  const canAw = st < MAX_STARS && nFod >= ac.n && save.kamas >= ac.kamas;
   const picker = gearPick ? gearPanel(mon) : slotPick ? slotPanel(mon) : '';
   return `<section class="win">
     <div class="wt"><h2>${m.name}</h2></div>
     <div class="wb" style="display:grid; gap:8px">
       <div class="fhead">${portrait(mon.key,52)}<div style="flex:1; min-width:0">
-        <h3>${m.name}${mon.awakened ? ' <span style="color:var(--orange2)">✦</span>' : ''} <span class="stars" style="font-size:13px">${starsTxt(m.stars)}</span></h3>
+        <h3>${m.name}${mon.awakened ? ' <span style="color:var(--orange2)">✦</span>' : ''} <span class="stars" style="font-size:13px">${starsTxt(starsOf(mon))}</span></h3>
         <span class="muted elline">${elIcon(m.el, 24)}${ELEM[m.el]} · ${m.role}, Niveau ${mon.level}</span>
         <div class="row" style="flex-wrap:nowrap; margin-top:3px"><span class="muted" style="font-size:11px; width:72px; flex:none">Expérience</span>${segBar(mon.level < MAX_LVL ? mon.xp/xpNeed(mon.level) : 1)}</div></div></div>
       <div class="panel inv2">
@@ -2574,7 +2598,7 @@ function monDetail(mon){
         <div class="ecol">${['coiffe','cape','anneau2'].map(sl => gearCell(mon, sl)).join('')}</div>
       </div>${picker}
       <div class="row"><button class="btn ${inTeam ? 'grey' : ''}" data-act="team">${inTeam ? 'Retirer de l\'équipe' : 'Ajouter à l\'équipe'}</button>
-        ${mon.awakened ? '<span class="ok">Éveillé</span>' : `<button class="btn" data-act="awaken" ${canAw ? '' : 'disabled'}>Éveiller · ${ac.ess} ess. ${ELEM[ac.el]} <span style="opacity:.75">(tu en as ${save.ess[ac.el]})</span> · ${fmt(ac.kamas)} K</button>`}
+        ${st >= MAX_STARS ? '<span class="ok">6 ★ · éveillé</span>' : `<button class="btn" data-act="awaken" ${canAw ? '' : 'disabled'} title="Sacrifie ${ac.n} monstre${ac.n > 1 ? 's' : ''} de ${st} ★ hors équipe">Évoluer en ${st + 1} ★ · ${ac.n} × ${st} ★ <span style="opacity:.75">(${nFod} dispo)</span> · ${fmt(ac.kamas)} K</button>`}
         ${confirmBtn('rel'+mon.uid, 'Relâcher', 'Confirmer', 'release')}</div>
     </div></section>`;
 }
@@ -2595,7 +2619,7 @@ function monStats(mon){
         return `<li>${spellIcon(id, m.el)}<b>${SKILLS[id].name} <span class="sklv">niv. ${lv}/${SK_MAX}</span>${SKILLS[id].cd ? ` <span class="muted" style="font-weight:normal">· recharge ${SKILLS[id].cd - (max ? 1 : 0)} t</span>` : ''}</b>
           <span>${SKILLS[id].desc}${lv > 1 ? ` <b class="pos">+${Math.round(SK_STEP * (lv - 1) * 100)} % d'effet</b>` : ''}</span>
           ${max ? '' : `<span class="skup"><button class="btn sm" data-act="skUp" data-i="${si}" data-w="scroll" ${save.scrolls > 0 ? '' : 'disabled'}>${resIcon(SCROLL_ICON, 14)} Parchemin (${save.scrolls})</button><button class="btn grey sm" data-act="skUp" data-i="${si}" data-w="dup" ${Eco.dupOf(save, mon) ? '' : 'disabled'}>Doublon</button></span>`}</li>`; }).join('')}</ul>
-      ${!mon.awakened && m.awaken ? `<p class="hint">Éveil : ${Object.entries(m.awaken.stats).map(([s,v]) => fmtStat(s,v)).join(', ')}${Object.keys(swap).length ? `, ${SKILLS[Object.keys(swap)[0]].name} devient ${SKILLS[Object.values(swap)[0]].name}` : ''}. Coût : ${ac.ess} essences ${ELEM[ac.el]} (tu en as ${save.ess[ac.el]}) et ${fmt(ac.kamas)} kamas.</p>` : ''}
+      ${!mon.awakened && m.awaken ? `<p class="hint">Chaque étoile gagnée ajoute 18 % de statistiques brutes. En atteignant 6 ★, le monstre s'éveille : ${Object.entries(m.awaken.stats).map(([s,v]) => fmtStat(s,v)).join(', ')}${Object.keys(swap).length ? `, et ${SKILLS[Object.keys(swap)[0]].name} devient ${SKILLS[Object.values(swap)[0]].name}` : ''}.</p>` : ''}
     </div></section>`;
 }
 function pickRow(it){
@@ -3146,7 +3170,8 @@ const ACT = {
     teamPick = null; persist(); render();
   },
   teamCancel(){ teamPick = null; render(); },
-  awaken(){ const r = Eco.awaken(save, Eco.monByUid(save, selMon)); if (r.err) return toast(r.err); persist(); toast('Éveil réussi.'); render(); },
+  awaken(){ const r = Eco.awaken(save, Eco.monByUid(save, selMon)); if (r.err) return toast(r.err);
+    persist(); toast(r.awakened ? `${r.st} ★ atteintes : le monstre s'éveille !` : `Évolué en ${r.st} ★.`); render(); },
   release(){
     const k = 'rel' + selMon;
     if (confirmKey !== k){ confirmKey = k; return render(); }
