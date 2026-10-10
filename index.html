@@ -601,6 +601,7 @@ body.in-combat .tabs{display:none}
 .cre{display:grid; gap:10px; padding:10px}
 .cre .fld{display:grid; gap:5px}
 .cre label{font-size:12px; color:#cfc8b8}
+.cremsg{font-size:12px; color:#ffb760; background:#00000033; border-left:3px solid var(--orange2); border-radius:0 5px 5px 0; padding:6px 9px}
 .cre input{font:inherit; font-size:16px; padding:8px 10px; border-radius:5px; border:1px solid #16150f; background:#e9e4d6; color:#2a2520; box-shadow:inset 0 1px 3px #0004}
 /* Qualité du jet : la bordure dit d'un coup d'œil si la pièce vaut la peine */
 .j-mediocre{border-color:#8a8578 !important} .j-correct{border-color:#3b8a17aa !important}
@@ -881,6 +882,8 @@ body.in-combat .tabs{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
+<!-- Dos en ligne : comptes, sauvegarde et chat. Sans clés renseignées plus bas, le jeu reste entièrement local. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
 <script>
 (function(){
 'use strict';
@@ -2025,6 +2028,82 @@ const fmtC = n => { const a = Math.abs(n);
 function elVar(el){ return `var(--el-${el})`; }
 const sideVar = s => s === 'A' ? 'var(--ally)' : 'var(--foe)';
 const starsTxt = n => '★'.repeat(n);
+/* =====================================================================
+   RÉSEAU — comptes, sauvegarde en ligne et chat, via Supabase.
+   Tant que NET.url et NET.key sont vides, tout reste strictement local : le jeu
+   fonctionne comme avant, et aucune requête n'est faite.
+   ===================================================================== */
+const NET = {
+  url: '',   // https://xxxxxxxx.supabase.co
+  key: '',   // clé « anon public »
+};
+let sb = null, me = null;           // client Supabase, utilisateur connecté
+let netState = 'off';               // off · anon · on · erreur
+let pushT = null, lastPush = 0;
+const netOn = () => !!(sb && me);
+
+function netInit(){
+  if (!NET.url || !NET.key || !window.supabase) return;
+  try {
+    sb = window.supabase.createClient(NET.url, NET.key, { auth:{ persistSession:true, autoRefreshToken:true } });
+    netState = 'anon';
+  } catch(e){ sb = null; netState = 'erreur'; }
+}
+// Session déjà ouverte dans ce navigateur ?
+async function netResume(){
+  if (!sb) return null;
+  try { const { data } = await sb.auth.getSession(); me = (data && data.session && data.session.user) || null; }
+  catch(e){ me = null; }
+  netState = me ? 'on' : 'anon';
+  return me;
+}
+async function netSignUp(mail, pass){
+  if (!sb) return { err:'Hors ligne.' };
+  const { data, error } = await sb.auth.signUp({ email:mail, password:pass });
+  if (error) return { err:netErr(error) };
+  me = data.user; netState = me ? 'on' : 'anon';
+  // Selon le réglage du projet, Supabase peut demander une confirmation par courriel avant d'ouvrir la session.
+  return { ok:true, confirm: !data.session };
+}
+async function netSignIn(mail, pass){
+  if (!sb) return { err:'Hors ligne.' };
+  const { data, error } = await sb.auth.signInWithPassword({ email:mail, password:pass });
+  if (error) return { err:netErr(error) };
+  me = data.user; netState = 'on';
+  return { ok:true };
+}
+async function netSignOut(){ if (sb) try { await sb.auth.signOut(); } catch(e){} me = null; netState = sb ? 'anon' : 'off'; }
+const netErr = e => {
+  const m = (e && e.message || '').toLowerCase();
+  if (m.includes('invalid login')) return 'Adresse ou mot de passe incorrect.';
+  if (m.includes('already registered')) return 'Cette adresse a déjà un compte.';
+  if (m.includes('password')) return 'Mot de passe trop court (6 caractères minimum).';
+  if (m.includes('email')) return 'Adresse électronique invalide.';
+  return e && e.message || 'Le serveur n\'a pas répondu.';
+};
+
+// ---- Sauvegarde en ligne. La version locale reste la référence pendant la partie ;
+// l'envoi est différé pour ne pas faire une requête à chaque clic.
+async function netPull(){
+  if (!netOn()) return null;
+  try {
+    const { data, error } = await sb.from('saves').select('data, updated_at').eq('user_id', me.id).maybeSingle();
+    if (error || !data) return null;
+    return data;
+  } catch(e){ return null; }
+}
+async function netPush(force){
+  if (!netOn() || !save) return;
+  const now = Date.now();
+  if (!force && now - lastPush < 4000){                       // on regroupe les envois rapprochés
+    clearTimeout(pushT); pushT = setTimeout(() => netPush(true), 4000);
+    return;
+  }
+  lastPush = now; clearTimeout(pushT); pushT = null;
+  try { await sb.from('saves').upsert({ user_id:me.id, data:save, updated_at:new Date().toISOString() }, { onConflict:'user_id' }); }
+  catch(e){}
+}
+
 const SAVE_KEY = 'idd-save-v2';
 const EL_HEX = { terre:'#a0662c', feu:'#d9481f', eau:'#2f7bc8', air:'#4c9b33' };
 const STAT_ICO = { hp:['hp','#d23b2b'], atk:['atk','#8a5a26'], def:['def','#6b7a86'], spd:['spd','#8a44c4'], crit:['crit','#e0a010'], critDmg:['critDmg','#d9481f'], acc:['acc','#2a69b8'], res:['res','#3b8a17'] };
@@ -2055,7 +2134,9 @@ function loadSave(){
     if (s) setTimeout(() => toast('Le catalogue a changé : nouvelle partie.'), 300); } } catch(e){}
   return Eco.newSave();
 }
-function persist(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch(e){} }
+function persist(){ if (save) save.at = Date.now();   // horodatage : arbitre entre la partie locale et celle du compte
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch(e){}
+  if (netOn()) netPush(); }
 let toastT = null;
 function toast(msg){ const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2800); }
 
@@ -3596,6 +3677,7 @@ const classOf = () => { const p = save && save.player; if (!p) return null;
   return CLASSES.find(c => c.id === p.cls) || CLASSES.find(c => clsSlug(c) === String(p.cls)) || null; };   // tolère les sauvegardes d'avant les identifiants DofusDB
 
 let lauPct = 0, lauCap = 0, lauCreep = null, lauTab = 'log', lauLog = [], lauReady = false, creName = '', creCls = null, creSex = 'm';
+let creStep0 = 'compte', creMail = '', creMsg = '', creBusy = false;   // compte → nom → classe
 const lauT0 = Date.now();
 const LAU_MIN = 1400;   // on laisse le launcher respirer : un chargement instantané donnerait un flash désagréable
 
@@ -3631,7 +3713,7 @@ function lauOpen(){
   lauReady = true;
   const e = $('#lauEgg'); if (!e) return;
   e.disabled = false;
-  $('#lauPlay').textContent = save && save.player ? 'Jouer' : 'Commencer';
+  $('#lauPlay').textContent = save && save.player ? 'Jouer' : (me ? 'Créer mon personnage' : 'Commencer');
   $('#lauTxt').textContent = save && save.player ? 'Prêt à jouer.' : 'Prêt — crée ton invocateur.';
   lauPan();
 }
@@ -3639,6 +3721,21 @@ function lauOpen(){
 function creStep(){
   const mid = $('#lauMid'); if (!mid) return;
   $('#lauw').hidden = true; mid.hidden = false;
+  if (creStep0 === 'compte'){
+    mid.innerHTML = `<div class="cre">
+      <div><b style="font-size:15px">Ton compte</b>
+        <p style="margin:3px 0 0; font-size:12px; color:#bdb6a6">Il garde ta partie en ligne : tu la retrouves sur n'importe quel appareil, et il te donne accès au chat et à l'arène contre d'autres joueurs.</p></div>
+      <div class="fld"><label for="creM">Adresse électronique</label><input id="creM" type="email" autocomplete="email" value="${esc(creMail)}"></div>
+      <div class="fld"><label for="creP">Mot de passe</label><input id="creP" type="password" autocomplete="new-password" placeholder="6 caractères minimum"></div>
+      ${creMsg ? `<div class="cremsg">${esc(creMsg)}</div>` : ''}
+      <div class="row" style="justify-content:space-between">
+        <button class="btn grey sm" data-act="creSkip">Jouer sans compte</button>
+        <span class="row" style="gap:6px"><button class="btn grey" data-act="creLogin" ${creBusy ? 'disabled' : ''}>J'ai déjà un compte</button>
+          <button class="btn" data-act="creAccount" ${creBusy ? 'disabled' : ''}>${creBusy ? 'Un instant…' : 'Créer le compte'}</button></span>
+      </div></div>`;
+    const p = $('#creP'); if (p) p.addEventListener('keydown', e => { if (e.key === 'Enter') ACT.creAccount(); });
+    return;
+  }
   if (!creName){
     mid.innerHTML = `<div class="cre" style="grid-column:1/-1">
       <div class="fld"><label for="creN">Le nom de ton invocateur</label>
@@ -3677,7 +3774,37 @@ function lauStart(){
 Object.assign(ACT, {
   lauTab(d){ lauTab = d.v; $('#lauTabs').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === lauTab))); lauPan(); },
   lauCog(){ toast('Les réglages sont dans le bas de page, une fois le jeu lancé.'); },
-  launch(){ if (!lauReady) return; if (save && save.player) return lauStart(); creName = ''; creCls = null; creSex = 'm'; creStep(); },
+  launch(){
+    if (!lauReady) return;
+    if (save && save.player) return lauStart();
+    creName = ''; creCls = null; creSex = 'm'; creMsg = '';
+    creStep0 = sb ? (me ? 'nom' : 'compte') : 'nom';   // sans dos en ligne, on saute l'étape du compte
+    creStep();
+  },
+  async creAccount(){
+    const mail = ($('#creM').value || '').trim(), pass = $('#creP').value || '';
+    if (!mail || !pass) { creMsg = 'Remplis les deux champs.'; return creStep(); }
+    creMail = mail; creBusy = true; creMsg = ''; creStep();
+    const r = await netSignUp(mail, pass);
+    creBusy = false;
+    if (r.err){ creMsg = r.err; return creStep(); }
+    if (r.confirm){ creMsg = 'Compte créé. Confirme ton adresse par courriel, puis reviens te connecter.'; return creStep(); }
+    creStep0 = 'nom'; creStep();
+  },
+  async creLogin(){
+    const mail = ($('#creM').value || '').trim(), pass = $('#creP').value || '';
+    if (!mail || !pass) { creMsg = 'Remplis les deux champs.'; return creStep(); }
+    creMail = mail; creBusy = true; creMsg = ''; creStep();
+    const r = await netSignIn(mail, pass);
+    creBusy = false;
+    if (r.err){ creMsg = r.err; return creStep(); }
+    const remote = await netPull();                       // une partie existe déjà en ligne ?
+    if (remote && remote.data && remote.data.player){
+      save = remote.data; persist(); return lauStart();
+    }
+    creStep0 = 'nom'; creStep();
+  },
+  creSkip(){ creStep0 = 'nom'; creMsg = ''; creStep(); },
   creName(){
     const v = ($('#creN').value || '').trim().slice(0, 18);
     if (!v) return toast('Choisis un nom.');
@@ -3685,7 +3812,7 @@ Object.assign(ACT, {
   },
   creCls(d){ creCls = +d.v; creStep(); },
   creSex(d){ creSex = d.v; creStep(); },
-  creBack(){ creName = ''; creStep(); },
+  creBack(){ if (creName) { creName = ''; return creStep(); } if (sb && !me) creStep0 = 'compte'; creStep(); },
   creGo(){
     save.player = { name: creName, cls: creCls || CLASSES[0].id, sex: creSex, born: Date.now() };
     persist(); lauStart();
@@ -3694,7 +3821,8 @@ Object.assign(ACT, {
 });
 
 // ---- Démarrage : le vrai chargement, raconté par la barre
-lauTo(8, 'Démarrage du client…');
+netInit();
+lauTo(8, NET.url ? 'Démarrage du client…' : 'Démarrage du client (mode local)…');
 lauPan();
 setTimeout(() => lauTo(20, 'Connexion au catalogue DofusDB…'), 160);
 fetch('catalogue.json', { cache:'no-cache' })
@@ -3717,7 +3845,23 @@ fetch('catalogue.json', { cache:'no-cache' })
     }
     persist();
     lauPan();
-    setTimeout(() => lauTo(100, 'Prêt.'), Math.max(0, LAU_MIN - (Date.now() - lauT0)));
+    (async () => {
+      if (sb){
+        lauTo(96, 'Connexion au serveur…');
+        await netResume();
+        if (me){
+          const remote = await netPull();
+          const localAt = (save && save.at) || 0, remoteAt = remote ? Date.parse(remote.updated_at) || 0 : 0;
+          if (remote && remote.data && remoteAt > localAt){     // la partie en ligne est plus récente : elle gagne
+            save = remote.data;
+            try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch(e){}
+            lauTo(98, 'Partie récupérée depuis ton compte.');
+          } else lauTo(98, 'Compte connecté.');
+        } else lauTo(98, 'Prêt à créer un compte.');
+      }
+      lauPan();
+      setTimeout(() => lauTo(100, 'Prêt.'), Math.max(0, LAU_MIN - (Date.now() - lauT0)));
+    })();
   });
 })();
 </script>
