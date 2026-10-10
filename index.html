@@ -471,50 +471,75 @@ body.in-combat .tabs{display:none}
 .spdesc b{display:block; font-size:13px}
 .ctrlrow{display:flex; flex-wrap:wrap; gap:6px; align-items:center; justify-content:flex-end; padding:0 6px 6px}
 
-/* ---------- Launcher : reprend l'updater Dofus 2.0 — fenêtre anthracite, bandeau illustré, barre orange,
-   onglets Nouvelles/Journal, panneau clair en creux, et l'œuf qui sert de bouton de lancement. ---------- */
+/* ---------- Launcher : calqué sur l'updater Dofus 2.0. Cadre brun très sombre, bandeau illustré cerclé
+   d'argent avec la barre de progression DEDANS, onglets décalés posés sur un panneau clair en creux,
+   et la colonne de droite : le gros œuf qui lance le jeu, l'engrenage olive en dessous. ---------- */
 .lau{position:fixed; inset:0; z-index:9000; display:grid; place-items:center; place-items:safe center; overflow:auto;
-  background:#120d08 radial-gradient(ellipse at 50% 0%, #2b2117, #120d08 70%); padding:max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom))}
+  background:#0d0a07 radial-gradient(ellipse at 50% -10%, #241b12, #0d0a07 70%);
+  padding:max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom))}
 .lau[hidden]{display:none}
-.lauw{width:min(580px, 100%); background:linear-gradient(#4a4845, #3a3835); border:1px solid #16150f; border-radius:10px;
-  box-shadow:inset 0 1px 0 #ffffff22, 0 14px 40px #000b; overflow:hidden; color:#e9e4d8}
-.lautt{display:flex; align-items:center; gap:8px; padding:7px 10px; background:linear-gradient(#333230, #262522); border-bottom:1px solid #16150f; font-size:13px}
-.lautt b{font-weight:bold; letter-spacing:.01em}
-.lautt .sp{margin-left:auto; display:flex; gap:6px; align-items:center}
-.lauhero{position:relative; height:118px; margin:8px; border-radius:6px; overflow:hidden; border:1px solid #1d1c16;
-  background:linear-gradient(160deg, #6c9b33, #3c6b22 45%, #244a18); display:grid; place-items:center}
-.lauhero::after{content:""; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 120%, #0000, #0007)}
-.lauhero .lt{position:relative; z-index:1; text-align:center; line-height:1.05}
-.lauhero .lt i{display:block; font-style:normal; font-size:26px; font-weight:bold; color:#ffd98a; text-shadow:0 2px 0 #6b3a06, 0 0 14px #ffb21a88}
-.lauhero .lt small{display:block; font-size:12px; color:#f0e6cd; letter-spacing:.22em; text-transform:uppercase; margin-top:3px}
-.lauhero .mon{position:absolute; bottom:4px; z-index:1; opacity:.96}
-.lauhero .mon.l{left:10px} .lauhero .mon.r{right:10px}
-.laubar{position:relative; height:21px; margin:0 8px; border-radius:4px; overflow:hidden; background:#231f1b; border:1px solid #16150f; box-shadow:inset 0 2px 4px #000a}
-.laubar i{position:absolute; inset:0 auto 0 0; width:0; background:linear-gradient(#ffc061, #e07a12 55%, #c25e0a); box-shadow:inset 0 1px 0 #fff6; transition:width .45s ease-out}
-.laubar span{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:bold; color:#fff; text-shadow:0 1px 2px #000c}
-.laubar em{position:absolute; right:7px; top:50%; translate:0 -50%; font-style:normal; font-size:11.5px; font-weight:bold; color:#fff; text-shadow:0 1px 2px #000c}
-.laumid{display:grid; grid-template-columns:minmax(0,1fr) 92px; gap:8px; padding:8px}
-.lautabs{display:flex; gap:3px; padding-left:2px}
-.lautabs button{background:linear-gradient(#54524e, #403e3a); border:1px solid #16150f; border-bottom:0; border-radius:6px 6px 0 0;
-  padding:4px 14px; font:inherit; font-size:12px; color:#cfc8b8; cursor:pointer}
-.lautabs button[aria-pressed="true"]{background:#cfcabb; color:#2a2520; font-weight:bold}
-.laupan{height:132px; overflow:auto; background:#cfcabb; border:1px solid #16150f; border-radius:0 6px 6px 6px; padding:7px 9px; color:#32302a; font-size:12px}
+.lauw{width:min(620px, 100%); background:linear-gradient(#211a14, #15100c 60%, #1b1510); border:1px solid #000;
+  border-radius:12px; box-shadow:inset 0 1px 0 #ffffff18, inset 0 0 60px #0008, 0 16px 44px #000c; overflow:hidden; color:#e9e4d8}
+/* volutes d'angle, discrètes, comme les ornements du cadre d'origine */
+.lauw::before{content:""; position:absolute; inset:0; pointer-events:none; border-radius:12px;
+  background:radial-gradient(60px 40px at 4% 2%, #ffffff0e, #0000 70%), radial-gradient(60px 40px at 96% 2%, #ffffff0e, #0000 70%)}
+.lauw{position:relative}
+.lautt{display:flex; align-items:center; gap:7px; padding:9px 11px 7px; font-size:14px}
+.lautt .ic{width:17px; height:21px; flex:none}
+.lautt b{font-weight:bold; color:#fff; letter-spacing:.01em}
+.lautt .v{color:#9a927f; font-size:12.5px}
+.lautt .sp{margin-left:auto; display:flex; gap:7px; align-items:center}
+.lautt .x{width:27px; height:24px; border-radius:5px; border:1px solid #000; background:linear-gradient(#4a453d, #2e2a24);
+  color:#ded7c6; font-size:14px; line-height:1; display:grid; place-items:center; cursor:pointer; box-shadow:inset 0 1px 0 #ffffff22}
+
+/* bandeau : cadre argent, scène, logo, et la barre posée dedans en bas */
+.lauhero{position:relative; margin:0 11px; height:clamp(132px, 30vw, 172px); border-radius:13px; overflow:hidden;
+  border:3px solid #9d968a; box-shadow:0 2px 10px #000a, inset 0 0 40px #0006;
+  background:radial-gradient(ellipse at 50% 30%, #8fbf45, #4b7d26 42%, #1f3d16 95%)}
+.lauhero .glow{position:absolute; inset:0; background:radial-gradient(ellipse at 50% 24%, #ffffff30, #0000 55%), radial-gradient(ellipse at 50% 118%, #0000, #000a)}
+.lauhero .lt{position:absolute; left:50%; top:30%; translate:-50% -50%; text-align:center; line-height:1; z-index:2}
+.lauhero .lt i{display:block; font-style:normal; font-weight:bold; font-size:clamp(23px, 5.6vw, 33px); color:#ffd98a;
+  text-shadow:0 2px 0 #7a4406, 0 3px 0 #4a2703, 0 0 18px #ffb21a66; letter-spacing:.01em}
+.lauhero .lt small{display:block; font-size:clamp(10px, 2.2vw, 12.5px); color:#fdf3dc; letter-spacing:.3em; text-transform:uppercase; margin-top:5px; text-shadow:0 1px 2px #0009}
+.lauhero .mon{position:absolute; bottom:38px; z-index:2; filter:drop-shadow(0 3px 5px #0008)}
+.lauhero .mon.l{left:12px} .lauhero .mon.r{right:12px}
+.laubar{position:absolute; left:9px; right:9px; bottom:9px; z-index:3; height:25px; border-radius:13px; overflow:hidden;
+  background:linear-gradient(#1c1a17, #2b2824); border:2px solid #9d968a; box-shadow:0 2px 6px #0009, inset 0 2px 5px #000b}
+.laubar i{position:absolute; inset:0 auto 0 0; width:0; border-radius:11px 3px 3px 11px;
+  background:linear-gradient(#ffc264 0%, #f08a1e 45%, #d2691e 100%); box-shadow:inset 0 1px 0 #fff8, 0 0 10px #f08a1e66; transition:width .4s ease-out}
+.laubar span{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:bold; color:#fff; text-shadow:0 1px 2px #000d; z-index:2}
+.laubar em{position:absolute; right:10px; top:50%; translate:0 -50%; z-index:2; font-style:normal; font-size:12.5px; font-weight:bold; color:#fff; text-shadow:0 1px 2px #000d}
+
+.laumid{display:grid; grid-template-columns:minmax(0,1fr) clamp(104px, 20vw, 132px); gap:10px; padding:12px 11px 4px}
+.lautabs{display:flex; gap:4px; padding-left:clamp(10px, 7vw, 46px)}
+.lautabs button{background:linear-gradient(#6b655b, #4a453d); border:1px solid #000; border-bottom:0; border-radius:8px 8px 0 0;
+  padding:5px 18px; font:inherit; font-size:13px; font-weight:bold; color:#ded7c6; cursor:pointer; box-shadow:inset 0 1px 0 #ffffff26}
+.lautabs button[aria-pressed="true"]{background:linear-gradient(#cbc7bc, #b9b5a9); color:#2a2520; position:relative; z-index:2}
+.laupan{height:clamp(124px, 26vw, 164px); overflow:auto; background:#c9c6bd; border:1px solid #000; border-radius:4px;
+  padding:8px 10px; color:#2f2d27; font-size:12.5px; box-shadow:inset 0 2px 6px #00000055; margin-top:-1px}
 .laupan ul{list-style:none; margin:0; padding:0; display:grid; gap:4px}
 .laupan li{display:flex; gap:7px; align-items:baseline}
-.laupan .d{color:#6f6a5c; font-size:11px; flex:none}
-.lauside{display:grid; justify-items:center; align-content:start; gap:8px; padding-top:18px}
-.lauegg{position:relative; width:82px; height:82px; border:0; background:none; padding:0; cursor:pointer; display:grid; place-items:center}
+.laupan .d{color:#6f6a5c; flex:none}
+
+.lauside{display:grid; justify-items:center; align-content:space-between; gap:10px; padding:2px 0 6px}
+.lauegg{position:relative; width:100%; max-width:106px; aspect-ratio:1/1.22; border:0; background:none; padding:0; cursor:pointer; display:grid; place-items:center}
 .lauegg:disabled{cursor:progress}
-.lauegg svg{width:100%; height:100%; filter:drop-shadow(0 4px 6px #000a); transition:transform .25s}
-.lauegg:not(:disabled):hover svg{transform:scale(1.07) translateY(-2px)}
-.lauegg .play{position:absolute; bottom:-2px; left:50%; translate:-50% 0; font-size:11px; font-weight:bold; letter-spacing:.1em; text-transform:uppercase;
-  color:#ffd98a; text-shadow:0 1px 2px #000c; white-space:nowrap}
-.lauegg:disabled svg{opacity:.5; filter:grayscale(.6)}
-.lauegg:not(:disabled) svg{animation:eggBob 2.4s ease-in-out infinite}
-@keyframes eggBob{50%{transform:translateY(-4px)}}
-.laucog{width:30px; height:30px; border-radius:50%; border:1px solid #16150f; background:linear-gradient(var(--orange), var(--orange2));
-  color:#fff; cursor:pointer; display:grid; place-items:center; font-size:15px; box-shadow:inset 0 1px 0 #ffd19a}
-.lauver{padding:0 10px 8px; font-size:10.5px; color:#9b9484; text-align:right}
+.lauegg svg{width:100%; height:100%; filter:drop-shadow(0 5px 8px #000b); transition:transform .25s}
+.lauegg:not(:disabled):hover svg{transform:scale(1.06) translateY(-3px)}
+.lauegg:disabled svg{opacity:.45; filter:grayscale(.7) drop-shadow(0 4px 6px #0009)}
+.lauegg:not(:disabled) svg{animation:eggBob 2.6s ease-in-out infinite}
+@keyframes eggBob{50%{transform:translateY(-5px)}}
+.lauegg .play{position:absolute; bottom:-14px; left:50%; translate:-50% 0; font-size:11px; font-weight:bold; letter-spacing:.12em;
+  text-transform:uppercase; color:#ffd98a; text-shadow:0 1px 3px #000c; white-space:nowrap}
+.laucog{width:46px; height:46px; border-radius:50%; border:2px solid #0a0a08; background:radial-gradient(circle at 36% 30%, #b6c552, #7d8c2c 60%, #4e5a17);
+  color:#23290c; cursor:pointer; display:grid; place-items:center; box-shadow:0 3px 7px #000a, inset 0 1px 0 #ffffff44}
+.laucog svg{width:26px; height:26px}
+.laucog:hover{filter:brightness(1.12)}
+.lauver{padding:0 13px 10px; font-size:10.5px; color:#6f685c; text-align:right}
+@media (max-width:430px){
+  .laumid{grid-template-columns:minmax(0,1fr) 92px; gap:8px}
+  .lautabs button{padding:5px 12px; font-size:12px}
+}
 
 /* Création : compte puis classe */
 .cre{display:grid; gap:10px; padding:10px}
@@ -734,26 +759,37 @@ body.in-combat .tabs{display:none}
 
 <div class="lau" id="lau">
   <div class="lauw">
-    <div class="lautt"><b>Invocateurs des Douze</b><span class="sp"><span style="color:#9b9484">2.0</span></span></div>
+    <div class="lautt">
+      <svg class="ic" viewBox="0 0 20 25" aria-hidden="true"><defs><radialGradient id="tic" cx="36%" cy="26%" r="78%">
+        <stop offset="0" stop-color="#eaf5c8"/><stop offset="60%" stop-color="#9dc14a"/><stop offset="100%" stop-color="#4e6a1c"/></radialGradient></defs>
+        <path d="M10 1c4.6 0 8.3 6 8.3 12.2 0 6.9-3.7 11.6-8.3 11.6S1.7 20.1 1.7 13.2C1.7 7 5.4 1 10 1z" fill="url(#tic)" stroke="#1d2708" stroke-width="1.6"/></svg>
+      <b>Invocateurs</b><span class="v">des Douze</span>
+      <span class="sp"><button class="x" data-act="lauCog" title="Réglages" aria-label="Réglages">⚙</button></span>
+    </div>
     <div class="lauhero">
+      <span class="glow"></span>
       <span class="mon l" id="lauMonL"></span>
       <span class="lt"><i>Invocateurs</i><small>des Douze</small></span>
       <span class="mon r" id="lauMonR"></span>
+      <div class="laubar"><i id="lauFill"></i><span id="lauTxt">Démarrage…</span><em id="lauPct">0 %</em></div>
     </div>
-    <div class="laubar"><i id="lauFill"></i><span id="lauTxt">Démarrage…</span><em id="lauPct">0 %</em></div>
     <div class="laumid" id="lauMid">
       <div>
-        <div class="lautabs" id="lauTabs"><button data-act="lauTab" data-v="news" aria-pressed="true">Nouvelles</button><button data-act="lauTab" data-v="log" aria-pressed="false">Journal</button></div>
+        <div class="lautabs" id="lauTabs"><button data-act="lauTab" data-v="news" aria-pressed="false">Nouvelles</button><button data-act="lauTab" data-v="log" aria-pressed="true">Journal</button></div>
         <div class="laupan" id="lauPan"></div>
       </div>
       <div class="lauside">
         <button class="lauegg" id="lauEgg" data-act="launch" disabled aria-label="Lancer le jeu">
-          <svg viewBox="0 0 100 120" aria-hidden="true"><defs><radialGradient id="eggg" cx="36%" cy="26%" r="78%">
-            <stop offset="0" stop-color="#f6f3ea"/><stop offset="52%" stop-color="#c3bcab"/><stop offset="100%" stop-color="#6b6658"/></radialGradient></defs>
-            <path d="M50 5c21 0 39 27 39 55 0 32-17 55-39 55s-39-23-39-55C11 32 29 5 50 5z" fill="url(#eggg)" stroke="#2a2621" stroke-width="3.5"/>
-            <path d="M48 22c-8 7-14 20-15 33" fill="none" stroke="#ffffffaa" stroke-width="6" stroke-linecap="round"/></svg>
+          <svg viewBox="0 0 100 122" aria-hidden="true">
+            <defs><radialGradient id="eggg" cx="35%" cy="24%" r="80%">
+              <stop offset="0" stop-color="#fbf8ee"/><stop offset="48%" stop-color="#e4ddc8"/><stop offset="100%" stop-color="#9d9479"/></radialGradient></defs>
+            <path d="M50 4c21.5 0 39.5 27.5 39.5 56.5C89.5 93.5 72 118 50 118S10.5 93.5 10.5 60.5C10.5 31.5 28.5 4 50 4z" fill="url(#eggg)" stroke="#2b2418" stroke-width="3.5"/>
+            <path d="M62 38c-9-7-22-4-25 6-2.6 8.6 4.6 15 12 14 7.4-1 11.6-7.6 9-14-2.4-6-10-8.6-16-5" fill="none" stroke="#b7ad90" stroke-width="5.5" stroke-linecap="round"/>
+            <path d="M44 24c-7 6-12 16-13.5 27" fill="none" stroke="#ffffffbb" stroke-width="6" stroke-linecap="round"/></svg>
           <span class="play" id="lauPlay"></span></button>
-        <button class="laucog" data-act="lauCog" title="Réglages" aria-label="Réglages">⚙</button>
+        <button class="laucog" data-act="lauCog" title="Réglages" aria-label="Réglages">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 0 0 0-7.2zm9 4.6v-2l-2.3-.4a6.9 6.9 0 0 0-.7-1.7l1.4-1.9-1.4-1.4-1.9 1.4a6.9 6.9 0 0 0-1.7-.7L14 4h-2l-.4 2.3a6.9 6.9 0 0 0-1.7.7L8 5.6 6.6 7l1.4 1.9a6.9 6.9 0 0 0-.7 1.7L5 11v2l2.3.4c.16.6.4 1.17.7 1.7L6.6 17 8 18.4l1.9-1.4c.53.3 1.1.54 1.7.7L12 20h2l.4-2.3c.6-.16 1.17-.4 1.7-.7l1.9 1.4 1.4-1.4-1.4-1.9c.3-.53.54-1.1.7-1.7z"/></svg>
+        </button>
       </div>
     </div>
     <div class="lauver" id="lauVer">données et images © Ankama · usage privé</div>
@@ -3226,7 +3262,7 @@ const CLASSES = [
 ];
 const classOf = () => (save && save.player && CLASSES.find(c => c.k === save.player.cls)) || null;
 
-let lauPct = 0, lauCap = 0, lauCreep = null, lauTab = 'news', lauLog = [], lauReady = false, creName = '', creCls = null;
+let lauPct = 0, lauCap = 0, lauCreep = null, lauTab = 'log', lauLog = [], lauReady = false, creName = '', creCls = null;
 const lauT0 = Date.now();
 const LAU_MIN = 1400;   // on laisse le launcher respirer : un chargement instantané donnerait un flash désagréable
 
