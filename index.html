@@ -184,6 +184,54 @@ body.in-combat .tabs{display:none}
 .dcenter .por .pimg{background:none; padding:0}
 .dcenter .ring{position:absolute; bottom:22px; width:96px; height:22px; border-radius:50%; border:3px solid var(--ally); background:#2b7bd633; z-index:0}
 .dcenter .por{z-index:1}
+/* Page d'équipement façon Dofus 2 : la colonne des Dofus et trophées à gauche, deux colonnes
+   d'emplacements autour du monstre, le détail de l'objet en dessous. */
+.inv2{display:grid; grid-template-columns:auto auto minmax(0,1fr) auto; gap:7px; align-items:start; padding:9px; position:relative}
+.ecol{display:grid; gap:6px; align-content:start}
+.ecol.dof{gap:4px; padding-right:4px; border-right:1px solid var(--panel-line)}
+.inv2 .dcenter{min-height:224px}
+.ecell{position:relative; width:52px; height:52px; display:grid; place-items:center; padding:0; cursor:pointer; flex:none;
+  background:linear-gradient(var(--slot-hi), var(--slot)); border:1px solid var(--slot-line); border-radius:8px;
+  box-shadow:inset 0 1px 0 #fff9, inset 0 -2px 4px #0001}
+.ecell img{width:42px; height:42px; object-fit:contain}
+.ecell.on{border:2px solid var(--orange2); box-shadow:0 0 0 1px #fff, inset 0 0 6px #ff9a2e66}
+.ecell .sl{position:absolute; left:0; bottom:0; font-size:8px; letter-spacing:.04em; text-transform:uppercase; color:#6b6657;
+  background:#ffffffc4; border-radius:0 5px 0 6px; padding:0 3px; line-height:11px}
+.ecell .jt{position:absolute; right:2px; top:1px; font-size:9px; font-weight:bold; color:#fff; text-shadow:0 0 2px #000, 0 0 2px #000}
+.ecell.empty{opacity:.55} .ecell.empty .gh{font-size:9px; color:#6b6657; text-align:center; line-height:1.1; padding:0 2px}
+/* détail d'un objet, comme le cartouche bleu du jeu */
+.gdet{margin-top:8px; border:1px solid var(--panel-line); border-radius:8px; overflow:hidden; background:var(--panel)}
+.gdhead{display:flex; align-items:baseline; gap:8px; padding:5px 10px; background:linear-gradient(#4f6f9a, #3b5679); color:#fff}
+.gdhead b{font-size:13.5px} .gdhead .lv{margin-left:auto; font-size:12px; opacity:.9}
+.gdbody{display:grid; grid-template-columns:auto minmax(0,1fr); gap:10px; padding:10px}
+.gdicon{width:78px; display:grid; gap:5px; justify-items:center}
+.gdicon .box{width:78px; height:78px; display:grid; place-items:center; border:1px solid var(--slot-line); border-radius:8px;
+  background:linear-gradient(var(--slot-hi), var(--slot))}
+.gdicon .box img{width:64px; height:64px; object-fit:contain}
+.gdjet{width:100%; font-size:11px; text-align:center; font-weight:bold}
+.gdlines{list-style:none; margin:0; padding:0; border:1px solid var(--panel-line); border-radius:6px; overflow:hidden}
+.gdlines li{display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:8px; align-items:center; padding:3px 9px; background:var(--row); font-size:12.5px}
+.gdlines li:nth-child(even){background:var(--row2)}
+.gdlines li.neg{color:var(--bad)} .gdlines li.pos{color:var(--good)}
+.gdlines .rg{font-size:11px; color:var(--ink2); font-variant-numeric:tabular-nums}
+.gdlines .mini{width:46px; height:6px; border-radius:3px; background:#c6c0ac; overflow:hidden; box-shadow:inset 0 1px 2px #0003}
+.gdlines .mini i{display:block; height:100%; background:linear-gradient(#ffd27a, var(--orange2))}
+.gdfoot{display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:0 10px 10px}
+.gdfoot .muted{margin-right:auto}
+.glist{display:grid; gap:5px; max-height:270px; overflow:auto; padding:2px}
+.grow{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:9px; align-items:center; text-align:left; padding:4px 8px 4px 4px;
+  background:var(--row2); border:1px solid var(--panel-line); border-radius:6px; cursor:pointer; font:inherit; color:var(--ink)}
+.grow:hover{border-color:var(--orange2)}
+.grow .box{width:40px; height:40px; display:grid; place-items:center; border-radius:6px; border:1px solid var(--slot-line); background:linear-gradient(var(--slot-hi), var(--slot))}
+.grow .box img{width:34px; height:34px; object-fit:contain}
+.grow b{font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.grow .sub{font-size:11px; color:var(--ink2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.grow .q{font-size:11px; font-weight:bold; white-space:nowrap}
+@media (max-width:620px){
+  .inv2{grid-template-columns:auto auto minmax(0,1fr); gap:5px; padding:6px}
+  .inv2 .ecol:last-child{grid-column:1 / -1; grid-auto-flow:column; justify-content:start}
+  .ecell{width:46px; height:46px} .ecell img{width:38px; height:38px}
+}
 .picker{margin-top:8px; padding:8px; display:grid; gap:6px}
 .prow{display:grid; grid-template-columns:auto minmax(0,1fr); gap:0 10px; align-items:center; text-align:left; background:var(--row2); border:1px solid var(--panel-line); border-radius:6px; padding:3px 8px 3px 3px; cursor:pointer}
 .prow:hover{border-color:var(--orange2)}
@@ -1972,7 +2020,8 @@ let save = null, selDg = null, dq = '', mode = 'camp', openGrp = null;
 const stages = () => STAGES[mode];
 const TEST = new URLSearchParams(location.search).has('test');   // ?test : ressources pleines et tous les niveaux ouverts
 let view = 'jouer', selMon = null, selItem = null, slotPick = null, filt = { slot:0, rar:'' };
-let swapOpen = false;   // dans la fiche du monstre : la liste « Changer » est dépliée sous l'objet équipé
+let swapOpen = false;
+let gearPick = null;   // emplacement d'équipement ouvert sur la fiche du monstre   // dans la fiche du monstre : la liste « Changer » est dépliée sous l'objet équipé
 let upFx = null;   // sous-effet à animer après une amélioration : { s, added, v }
 let lastSummon = null, upMsg = null, confirmKey = null, inCombat = false, curDg = 0, curStage = null;
 let speed = 1, auto = false;
@@ -2235,7 +2284,7 @@ function monDetail(mon){
   const swap = (m.awaken && m.awaken.swap) || {};
   const skills = m.skills.map(id => mon.awakened && swap[id] ? swap[id] : id);
   const statRow = (k, suf='') => `<li><span class="lb">${sico(k)}${STAT_LONG[k]}</span><b>${fmt(full[k])}${suf}${full[k] !== bare[k] ? `<em> (+${fmt(full[k]-bare[k])})</em>` : ''}</b></li>`;
-  const picker = slotPick ? slotPanel(mon) : '';
+  const picker = gearPick ? gearPanel(mon) : slotPick ? slotPanel(mon) : '';
   return `<section class="win">
     <div class="wt"><h2>${m.name}</h2></div>
     <div class="wb" style="display:grid; gap:8px">
@@ -2243,10 +2292,11 @@ function monDetail(mon){
         <h3>${m.name}${mon.awakened ? ' <span style="color:var(--orange2)">✦</span>' : ''} <span class="stars" style="font-size:13px">${starsTxt(m.stars)}</span></h3>
         <span class="muted elline">${elIcon(m.el, 24)}${ELEM[m.el]} · ${m.role}, Niveau ${mon.level}</span>
         <div class="row" style="flex-wrap:nowrap; margin-top:3px"><span class="muted" style="font-size:11px; width:72px; flex:none">Expérience</span>${segBar(mon.level < MAX_LVL ? mon.xp/xpNeed(mon.level) : 1)}</div></div></div>
-      <div class="panel doll">
-        <div class="dcol">${slotCell(mon,1)}${slotCell(mon,2)}${slotCell(mon,3)}</div>
+      <div class="panel inv2">
+        <div class="ecol dof">${[1,2,3,4,5,6].map(n => slotCell(mon,n)).join('')}</div>
+        <div class="ecol">${['amulette','arme','anneau','ceinture','bottes'].map(sl => gearCell(mon, sl)).join('')}</div>
         <div class="dcenter"><div class="ring"></div>${portrait(mon.key,120,{badge:false})}</div>
-        <div class="dcol">${slotCell(mon,4)}${slotCell(mon,5)}${slotCell(mon,6)}</div>
+        <div class="ecol">${['coiffe','cape','anneau2'].map(sl => gearCell(mon, sl)).join('')}</div>
       </div>${picker}
       <div class="row"><button class="btn ${inTeam ? 'grey' : ''}" data-act="team">${inTeam ? 'Retirer de l\'équipe' : 'Ajouter à l\'équipe'}</button>
         ${mon.awakened ? '<span class="ok">Éveillé</span>' : `<button class="btn" data-act="awaken" ${canAw ? '' : 'disabled'}>Éveiller · ${ac.ess} ess. ${ELEM[ac.el]} <span style="opacity:.75">(tu en as ${save.ess[ac.el]})</span> · ${fmt(ac.kamas)} K</button>`}
@@ -2266,6 +2316,61 @@ function pickRow(it){
   return `<button class="prow" style="--rc:var(--r-${it.rarity})" data-act="equip" data-id="${it.id}"><span class="cell r-${it.rarity}">${itemIcon(it)}<span class="lv">+${it.lvl}</span></span><b>${itemName(it)} +${it.lvl}</b>
     <span>${fmtStat(it.main, itemMainVal(it))}${it.subs.length ? ' · ' + it.subs.map(s => fmtStat(s.s,s.v)).join(' · ') : ''}${owner ? ` · sur ${MONSTERS[owner.key].name}` : ''}</span></button>`;
 }
+// ---------- Équipement : une case par emplacement, autour du monstre
+const GEAR_SHORT = { coiffe:'Coiffe', cape:'Cape', amulette:'Amu', anneau:'Anneau', anneau2:'Anneau', ceinture:'Ceint', bottes:'Bottes', arme:'Arme' };
+function gearCell(mon, sl){
+  const id = mon.g && mon.g[sl], it = id && Eco.gearById(save, id);
+  const on = gearPick === sl ? ' on' : '';
+  if (!it) return `<button class="ecell empty${on}" data-act="gslot" data-v="${sl}" title="${GEAR_LABEL[sl]} · vide">
+    <span class="gh">${GEAR_SHORT[sl]}</span><span class="sl">${GEAR_SHORT[sl]}</span></button>`;
+  return `<button class="ecell${on} ${JET_CLASS(it.jet)}" data-act="gslot" data-v="${sl}" title="${esc(gearName(it))} · niveau ${gearLvl(it)} · jet ${Math.round(it.jet*100)} %">
+    ${gearIcon(it, 42)}<span class="jt">${Math.round(it.jet*100)}</span><span class="sl">${GEAR_SHORT[sl]}</span></button>`;
+}
+// Une ligne d'effet : la valeur tirée, sa fourchette, et où elle se situe dedans
+function gearLineHtml(l){
+  const neg = l.v < 0, span = l.b - l.a, r = span ? (l.v - l.a) / span : 1;
+  return `<li class="${neg ? 'neg' : 'pos'}"><span>${neg ? '' : '+'}${l.v} ${CHAR_NAME[l.c] || ''}</span>
+    <span class="rg">${l.a} à ${l.b}</span><span class="mini"><i style="width:${Math.round(r*100)}%"></i></span></li>`;
+}
+function gearDetail(it, mon, sl){
+  const d = gearDef(it), st = gearStats(it), owner = it.owner != null && Eco.monByUid(save, it.owner);
+  const jp = Math.round(it.jet * 100);
+  const mine = mon && mon.g && mon.g[sl] === it.id;
+  return `<div class="gdet">
+    <div class="gdhead"><b>${esc(gearName(it))}</b><span class="lv">Niv. ${gearLvl(it)}</span></div>
+    <div class="gdbody">
+      <div class="gdicon"><span class="box ${JET_CLASS(it.jet)}">${gearIcon(it, 64)}</span>
+        <span class="gdjet ${JET_CLASS(it.jet)}" style="color:inherit">Jet ${jp} % · ${JET_LABEL(it.jet)}</span></div>
+      <div style="display:grid; gap:7px; min-width:0">
+        <ul class="gdlines">${(it.lines || []).map(gearLineHtml).join('')}</ul>
+        <span class="muted" style="font-size:11.5px">Apport : ${Object.entries(st).map(([k,v]) => `${v > 0 ? '+' : ''}${fmt(v)} ${STAT_LONG[k] || k}`).join(' · ') || 'aucun'}</span>
+        ${owner && !mine ? `<span class="muted" style="font-size:11.5px">Porté par ${esc(MONSTERS[owner.key].name)}</span>` : ''}
+      </div>
+    </div>
+    <div class="gdfoot"><span class="muted" style="font-size:11.5px">${GEAR_LABEL[d ? d.s : sl]} · catégorie ${esc(d ? d.s : '')}</span>
+      ${mine ? `<button class="btn grey sm" data-act="gunequip" data-v="${sl}">Retirer</button>` : ''}
+      ${confirmBtn('gsell' + it.id, `Vendre · ${fmt(Eco.gearValue(it))} K`, 'Confirmer', 'gsell')}</div>
+  </div>`;
+}
+// Panneau d'un emplacement : l'objet porté, puis les pièces compatibles du sac
+function gearPanel(mon){
+  const sl = gearPick, src = GEAR_SRC[sl] || sl;
+  const id = mon.g && mon.g[sl], it = id ? Eco.gearById(save, id) : null;
+  const others = (save.gear || []).filter(g => g.s === src && g.id !== id)
+    .sort((a,b) => (a.owner != null) - (b.owner != null) || gearLvl(b) - gearLvl(a) || b.jet - a.jet);
+  const rows = others.map(g => {
+    const own = g.owner != null && Eco.monByUid(save, g.owner);
+    return `<button class="grow" data-act="gequip" data-v="${sl}" data-id="${g.id}">
+      <span class="box ${JET_CLASS(g.jet)}">${gearIcon(g, 34)}</span>
+      <span style="display:grid; min-width:0"><b>${esc(gearName(g))}</b>
+        <span class="sub">Niv. ${gearLvl(g)} · ${(g.lines || []).slice(0,3).map(l => `${l.v > 0 ? '+' : ''}${l.v} ${CHAR_NAME[l.c] || ''}`).join(' · ')}${own ? ` · sur ${esc(MONSTERS[own.key].name)}` : ''}</span></span>
+      <span class="q ${JET_CLASS(g.jet)}" style="color:inherit">${Math.round(g.jet*100)} %</span></button>`;
+  }).join('');
+  return `${it ? gearDetail(it, mon, sl) : ''}
+    <div class="panel picker"><div class="band"><span>${GEAR_LABEL[sl]}</span><span class="muted" style="color:#d9d4c4">${others.length} en réserve</span></div>
+      <div class="glist">${rows || '<span class="muted">Aucune pièce pour cet emplacement. Va en campagne pour en trouver.</span>'}</div></div>`;
+}
+
 // Emplacement ouvert depuis la fiche du monstre : améliorer, vendre, retirer et changer se font ici,
 // sans détour par l'inventaire (les objets libres d'abord, puis ceux portés par un autre monstre)
 function slotPanel(mon){
@@ -2701,14 +2806,14 @@ const ACT = {
   autoAgain(){ const a = autoRun; if (a && !a.on){ autoRun = null; autoStart(a.dg, a.total); } },
   autoClose(){ autoRun = null; renderAuto(); },
   claim(d){ const n = achClaim(save, ACHS.find(a => a.id === d.id)); if (!n) return; persist(); toast(`+${n} pierre${n > 1 ? 's' : ''} d'âme pleine${n > 1 ? 's' : ''}.`); render(); },
-  nav(d){ if (inCombat){ battleId++; inCombat = false; if (ro) ro.disconnect(); } view = d.v; slotPick = null; swapOpen = false; confirmKey = null; upMsg = null; upFx = null; render(); window.scrollTo(0,0); },
+  nav(d){ if (inCombat){ battleId++; inCombat = false; if (ro) ro.disconnect(); } view = d.v; slotPick = null; gearPick = null; swapOpen = false; confirmKey = null; upMsg = null; upFx = null; render(); window.scrollTo(0,0); },
   fight(d){ startCombat(+d.i); },
   selDg(d){ selDg = +d.i; render(); },
   refight(){ startCombat(curStage); },
   endAll(){ endAll = true; paintEnd(); },
   nextStage(){ if (endData && endData.next != null) startCombat(endData.next); },
   flee(){ ACT.nav({ v:(curStage && curStage.back) || 'donjons' }); toast('Tu as fui le combat.'); },
-  selMon(d){ selMon = +d.uid; slotPick = null; swapOpen = false; confirmKey = null; render(); },
+  selMon(d){ selMon = +d.uid; slotPick = null; gearPick = null; swapOpen = false; confirmKey = null; render(); },
   seeMon(d){ selMon = +d.uid; view = 'equipe'; render(); },
   team(){
     const i = save.team.indexOf(selMon);
@@ -2731,9 +2836,30 @@ const ACT = {
     const n = +d.slot, close = slotPick === n;
     slotPick = close ? null : n;
     if (!close){ const id = (Eco.monByUid(save, selMon) || {}).equip?.[n]; if (id) selItem = id; }
-    swapOpen = false; upMsg = null; upFx = null; confirmKey = null; render();
+    gearPick = null; swapOpen = false; upMsg = null; upFx = null; confirmKey = null; render();
   },
   swap(){ swapOpen = !swapOpen; confirmKey = null; render(); },
+  // --- équipement : ouvrir un emplacement ferme l'autre famille, pour ne jamais afficher deux panneaux
+  gslot(d){ gearPick = gearPick === d.v ? null : d.v; slotPick = null; swapOpen = false; confirmKey = null; render(); },
+  gequip(d){
+    const g = Eco.gearById(save, +d.id); if (!g) return;
+    Eco.equipGear(save, Eco.monByUid(save, selMon), g, d.v);
+    confirmKey = null; persist(); render();
+  },
+  gunequip(d){
+    const mon = Eco.monByUid(save, selMon), id = mon && mon.g && mon.g[d.v];
+    const g = id && Eco.gearById(save, id); if (!g) return;
+    Eco.unequipGear(save, g); confirmKey = null; persist(); render();
+  },
+  gsell(){
+    const mon = Eco.monByUid(save, selMon), id = mon && mon.g && mon.g[gearPick];
+    const g = id && Eco.gearById(save, id); if (!g) return;
+    const k = 'gsell' + g.id;
+    if (confirmKey !== k){ confirmKey = k; return render(); }
+    confirmKey = null;
+    const v = Eco.sellGear(save, g);
+    persist(); toast(`Vendu pour ${fmt(v)} kamas.`); render();
+  },
   equip(d){
     const it = Eco.itemById(save, +d.id);
     Eco.equip(save, Eco.monByUid(save, selMon), it);
@@ -2784,7 +2910,7 @@ const ACT = {
 };
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
-  if (confirmKey && !['release','sell','resetSave','packClear'].includes(b.dataset.act)){ confirmKey = null; $('#resetBtn').textContent = 'Nouvelle partie'; }
+  if (confirmKey && !['release','sell','gsell','resetSave','packClear'].includes(b.dataset.act)){ confirmKey = null; $('#resetBtn').textContent = 'Nouvelle partie'; }
   const fn = ACT[b.dataset.act]; if (fn) fn(b.dataset, b);
 });
 document.addEventListener('change', e => {
