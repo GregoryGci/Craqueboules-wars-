@@ -291,6 +291,17 @@ body.in-combat .tabs{display:none}
 @keyframes upSweep{0%{transform:translateX(-85%) rotate(0deg); opacity:0} 12%{opacity:1} 100%{transform:translateX(85%); opacity:0}}
 @keyframes upShake{0%,100%{transform:translateX(0)} 18%{transform:translateX(-6px)} 36%{transform:translateX(5px)} 56%{transform:translateX(-3px)} 78%{transform:translateX(2px)}}
 @keyframes lvJump{0%{transform:scale(1)} 40%{transform:scale(1.5); color:var(--orange2)} 100%{transform:scale(1)}}
+/* Chat public */
+.chatlist{list-style:none; margin:0; padding:7px 9px; display:grid; gap:4px; align-content:start;
+  height:min(52vh, 420px); overflow:auto; background:var(--panel); border:1px solid var(--panel-line); border-radius:7px; box-shadow:inset 0 1px 3px #0002}
+.chatlist li{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:7px; align-items:baseline; font-size:13px; padding:2px 0}
+.chatlist li:nth-child(even){background:var(--row2)}
+.chatlist .qui{font-weight:bold; color:var(--band); white-space:nowrap; max-width:9em; overflow:hidden; text-overflow:ellipsis}
+.chatlist li.mien .qui{color:var(--orange-dk)}
+.chatlist .txt{word-break:break-word}
+.chatlist .hh{font-size:10.5px; color:var(--ink2); font-variant-numeric:tabular-nums}
+.chatlist .vide{color:var(--ink2); font-style:italic; grid-template-columns:1fr}
+.chatsend{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px}
 .uptiers{gap:4px; margin-top:-2px}
 .uptiers .btn{min-width:38px; padding:3px 8px}
 .upmsg{transition:none}
@@ -2111,6 +2122,43 @@ async function netPush(force){
   catch(e){}
 }
 
+// ---- Chat public. Lecture ouverte à tous, écriture réservée aux comptes.
+let chatMsgs = [], chatSub = null, chatSending = false, chatErr = '';
+async function chatLoad(){
+  if (!sb) return;
+  try {
+    const { data } = await sb.from('chat').select('id,nom,texte,cree_le').order('cree_le', { ascending:false }).limit(60);
+    chatMsgs = (data || []).reverse();
+  } catch(e){ chatErr = 'Impossible de charger le chat.'; }
+}
+// Abonnement permanent : les messages arrivent même quand on est ailleurs dans le jeu.
+function chatWatch(){
+  if (!sb || chatSub) return;
+  chatSub = sb.channel('chat-public')
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'chat' }, p => {
+      if (chatMsgs.some(m => m.id === p.new.id)) return;     // notre propre message, déjà affiché
+      chatMsgs.push(p.new);
+      if (chatMsgs.length > 120) chatMsgs.shift();
+      if (view === 'chat') chatPaint(); else chatUnread++;
+      renderTop();
+    })
+    .subscribe();
+}
+let chatUnread = 0;
+async function chatSend(){
+  const el = $('#chatIn'); if (!el || chatSending) return;
+  const texte = (el.value || '').trim().slice(0, 300);
+  if (!texte) return;
+  if (!netOn()){ chatErr = 'Il faut un compte pour écrire.'; return chatPaint(); }
+  chatSending = true; chatErr = ''; el.value = ''; chatPaint();
+  try {
+    const nom = (save.player && save.player.name) || 'Invocateur';
+    const { error } = await sb.from('chat').insert({ user_id:me.id, nom, texte });
+    if (error) chatErr = 'Message refusé par le serveur.';
+  } catch(e){ chatErr = 'Le serveur n\'a pas répondu.'; }
+  chatSending = false; chatPaint();
+}
+
 const SAVE_KEY = 'idd-save-v2';
 const EL_HEX = { terre:'#a0662c', feu:'#d9481f', eau:'#2f7bc8', air:'#4c9b33' };
 const STAT_ICO = { hp:['hp','#d23b2b'], atk:['atk','#8a5a26'], def:['def','#6b7a86'], spd:['spd','#8a44c4'], crit:['crit','#e0a010'], critDmg:['critDmg','#d9481f'], acc:['acc','#2a69b8'], res:['res','#3b8a17'] };
@@ -2214,7 +2262,9 @@ function renderTop(){
     <li title="Parchemins dorés (arène)">${resIcon(GOLD_ICON,16)}${save.gold}</li>
     <li title="Parchemins de sort">${resIcon(SCROLL_ICON,16)}${save.scrolls}</li>`;
   const ready = ACHS.filter(a => achState(save, a).ready).length;
-  const tabs = [['jouer','Jouer'],['equipe','Équipe'],['trophees','Inventaire'],['invocation','Invocation'],['succes','Succès' + (ready ? ` <b class="tabn">${ready}</b>` : '')]];
+  const tabs = [['jouer','Jouer'],['equipe','Équipe'],['trophees','Inventaire'],['invocation','Invocation'],
+    ['succes','Succès' + (ready ? ` <b class="tabn">${ready}</b>` : '')]];
+  if (sb) tabs.push(['chat', 'Chat' + (chatUnread ? ` <b class="tabn">${chatUnread}</b>` : '')]);
   const cur = ['donjons','arene','boss'].includes(view) ? 'jouer' : view;   // ces vues sont des enfants du hub
   $('#tabs').innerHTML = tabs.map(([v,l]) => `<button data-act="nav" data-v="${v}" ${cur === v ? 'aria-current="page"' : ''}>${l}</button>`).join('');
 }
@@ -2224,7 +2274,8 @@ function render(){
   document.body.classList.toggle('in-combat', inCombat);
   if (inCombat) return;
   const main = $('#main');
-  if (view === 'jouer') main.innerHTML = viewJouer();
+  if (view === 'chat') main.innerHTML = viewChat();
+  else if (view === 'jouer') main.innerHTML = viewJouer();
   else if (view === 'donjons'){ const sc = $('#dlist') ? $('#dlist').scrollTop : null; main.innerHTML = viewDonjons(); drawMinis(); if (sc != null) $('#dlist').scrollTop = sc; else scrollToSel(); }
   else if (view === 'equipe') main.innerHTML = viewEquipe();
   else if (view === 'trophees') main.innerHTML = viewTrophees();
@@ -2380,6 +2431,34 @@ function viewEquipe(){
       </div></section>` + teamModal();
 }
 // Équipe pleine : au lieu de refuser, on demande qui remplacer
+// ---------- Chat public
+function chatPaint(){
+  const box = $('#chatList'); if (!box) return;
+  box.innerHTML = chatMsgs.map(m => {
+    const mien = save.player && m.nom === save.player.name;
+    const h = new Date(m.cree_le);
+    const hh = isNaN(h) ? '' : `${String(h.getHours()).padStart(2,'0')}:${String(h.getMinutes()).padStart(2,'0')}`;
+    return `<li class="${mien ? 'mien' : ''}"><span class="qui">${esc(m.nom)}</span><span class="txt">${esc(m.texte)}</span><span class="hh">${hh}</span></li>`;
+  }).join('') || '<li class="vide">Personne n\'a encore parlé. Lance-toi.</li>';
+  box.scrollTop = box.scrollHeight;
+  const e = $('#chatErr'); if (e) e.textContent = chatErr;
+}
+function viewChat(){
+  chatUnread = 0;
+  const peut = netOn();
+  setTimeout(chatPaint, 0);
+  return `<section class="win"><div class="wt"><h2>Chat<small>${sb ? 'en direct' : 'hors ligne'}</small></h2></div>
+    <div class="wb" style="display:grid; gap:8px">
+      ${!sb ? '<p class="hint" style="margin:0">Le chat demande une connexion au serveur, qui n\'est pas configurée.</p>' : ''}
+      <ul class="chatlist" id="chatList"></ul>
+      <div class="chatsend">
+        <input class="search" id="chatIn" maxlength="300" placeholder="${peut ? 'Ton message…' : 'Crée un compte pour écrire'}" ${peut ? '' : 'disabled'} aria-label="Message">
+        <button class="btn" data-act="chatSend" ${peut ? '' : 'disabled'}>Envoyer</button>
+      </div>
+      <div class="upmsg ko" id="chatErr"></div>
+      ${peut ? '' : '<p class="hint" style="margin:0">Tu lis le chat sans compte, mais il en faut un pour écrire. Crée-le depuis le launcher.</p>'}
+    </div></section>`;
+}
 function teamModal(){
   if (teamPick == null) return '';
   const inc = Eco.monByUid(save, teamPick); if (!inc) return '';
@@ -3344,6 +3423,7 @@ function onUnitClick(id){
   resolvePending(pending.skill, SKILLS[pending.skill].target === 'enemy' ? id : null);
 }
 document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target && e.target.id === 'chatIn'){ e.preventDefault(); return chatSend(); }
   if (!inCombat || !pending || !['1','2','3'].includes(e.key)) return;
   const id = pending.actor.skills[+e.key - 1];
   if (id && !(pending.actor.cds[id] > 0)) onSkillClick(id);
@@ -3799,10 +3879,12 @@ function lauStart(){
   $('#lau').hidden = true;
   $('#wrap').hidden = false;
   render(); window.scrollTo(0,0);
+  if (sb) chatLoad().then(() => { chatWatch(); if (view === 'chat') chatPaint(); });
 }
 
 Object.assign(ACT, {
   lauTab(d){ lauTab = d.v; $('#lauTabs').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === lauTab))); lauPan(); },
+  chatSend(){ chatSend(); },
   lauCog(){ toast('Les réglages sont dans le bas de page, une fois le jeu lancé.'); },
   launch(){
     if (!lauReady) return;
