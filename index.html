@@ -532,15 +532,16 @@ body.in-combat .tabs{display:none}
 .spdesc{font-size:12px; min-width:0}
 .spdesc b{display:block; font-size:13px}
 
-/* ---------- Launcher : la capture de l'updater Dofus 2.0 sert de décor, et on ne superpose que ce qui vit —
-   la barre de progression, le panneau de journal et la zone cliquable de l'œuf. Les repères sont en pourcentage
-   de l'image (565 × 407), relevés au découpage, pour que tout suive quand la fenêtre change de taille. ---------- */
+/* ---------- Launcher : la capture de l'updater sert de décor. L'écran garde toujours les proportions de
+   l'image (565 × 407) pour que les repères en pourcentage tombent juste ; le panneau de journal est un bloc
+   séparé, posé par-dessus l'image sur grand écran, et renvoyé dessous en portrait où il serait illisible. */
 .lau{position:fixed; inset:0; z-index:9000; display:grid; place-items:center; place-items:safe center; overflow:auto;
   background:#0d0a07 radial-gradient(ellipse at 50% -10%, #241b12, #0d0a07 70%);
   padding:max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom))}
 .lau[hidden]{display:none}
-.lauw{position:relative; width:min(640px, 100%); aspect-ratio:565/407; border-radius:10px; overflow:hidden;
-  background:#15100c url("assets/launcher.jpg") center/100% 100% no-repeat; box-shadow:0 16px 44px #000c; color:#e9e4d8}
+.lauw{position:relative; width:min(640px, 100%); border-radius:10px; overflow:hidden; box-shadow:0 16px 44px #000c; color:#e9e4d8; background:#15100c}
+.lauscreen{position:relative; width:100%; aspect-ratio:565/407;
+  background:#15100c url("assets/launcher.jpg") center/100% 100% no-repeat}
 /* la barre, posée exactement sur celle de l'image */
 .laubar{position:absolute; left:4.07%; top:37.35%; width:92.9%; height:6.39%; border-radius:999px; overflow:hidden;
   background:linear-gradient(#17150f, #2a2620); box-shadow:inset 0 2px 5px #000c}
@@ -550,51 +551,51 @@ body.in-combat .tabs{display:none}
   font-size:clamp(9px, 2vw, 12.5px); font-weight:bold; color:#fff; text-shadow:0 1px 2px #000d}
 .laubar em{position:absolute; right:2%; top:50%; translate:0 -50%; z-index:2; font-style:normal;
   font-size:clamp(9px, 2vw, 12.5px); font-weight:bold; color:#fff; text-shadow:0 1px 2px #000d}
-/* onglets et panneau, posés sur ceux de l'image pour en masquer le texte d'origine */
-.lautabs{position:absolute; left:5.3%; top:45.4%; height:8%; display:flex; gap:1.4%; z-index:3}
-.lautabs button{font:inherit; font-size:clamp(9px, 1.9vw, 12.5px); font-weight:bold; padding:0 3%; min-width:13%;
-  border:1px solid #2a2620; border-bottom:0; border-radius:7px 7px 0 0; cursor:pointer;
-  background:linear-gradient(#6b655b, #4a453d); color:#ded7c6}
-.lautabs button[aria-pressed="true"]{background:linear-gradient(#cbc7bc, #b9b5a9); color:#2a2520}
-.laupan{position:absolute; left:5.3%; top:53.4%; width:75.8%; height:42.4%; overflow:auto; z-index:2;
-  background:#c9c6bd; border:1px solid #2a2620; border-radius:3px; padding:2% 2.5%; color:#2f2d27;
-  font-size:clamp(8.5px, 1.85vw, 12.5px); line-height:1.35; box-shadow:inset 0 2px 6px #00000055}
-.laupan ul{list-style:none; margin:0; padding:0; display:grid; gap:2px}
-.laupan li{display:flex; gap:6px; align-items:baseline}
-.laupan .d{color:#6f6a5c; flex:none}
 /* l'œuf de l'image devient la zone cliquable */
 .lauegg{position:absolute; left:83.7%; top:52.3%; width:13.1%; height:22.6%; z-index:3;
   border:0; background:none; padding:0; cursor:pointer; border-radius:50%/42%}
 .lauegg:disabled{cursor:progress}
-.lauegg .halo{position:absolute; inset:-12%; border-radius:50%; opacity:0; transition:opacity .25s;
+.lauegg .halo{position:absolute; inset:-14%; border-radius:50%; opacity:0; transition:opacity .25s;
   background:radial-gradient(circle, #ffd98a55, #0000 70%)}
 .lauegg:not(:disabled) .halo{opacity:1; animation:eggGlow 2.4s ease-in-out infinite}
 .lauegg:not(:disabled):hover .halo{opacity:1; background:radial-gradient(circle, #ffd98a99, #0000 72%)}
-@keyframes eggGlow{50%{opacity:.45}}
-.lauegg .play{position:absolute; left:50%; bottom:-24%; translate:-50% 0; white-space:nowrap;
+@keyframes eggGlow{50%{opacity:.4}}
+.lauegg .play{position:absolute; left:50%; bottom:-26%; translate:-50% 0; white-space:nowrap;
   font-size:clamp(8px, 1.7vw, 11px); font-weight:bold; letter-spacing:.1em; text-transform:uppercase;
   color:#ffd98a; text-shadow:0 1px 3px #000c}
 .laucog{position:absolute; left:86.5%; top:82%; width:7.5%; height:10.4%; z-index:3; border:0; background:none;
   padding:0; cursor:pointer; border-radius:50%}
 .laucog:hover{filter:brightness(1.3)}
+/* onglets + journal : posés sur l'image, à l'emplacement du panneau d'origine */
+.lauside2{position:absolute; left:5.3%; top:45.4%; width:75.8%; z-index:4}
+.lautabs{display:flex; gap:4px; padding-left:4px}
+.lautabs button{font:inherit; font-size:clamp(9px, 1.9vw, 12.5px); font-weight:bold; padding:3px 12px;
+  border:1px solid #2a2620; border-bottom:0; border-radius:7px 7px 0 0; cursor:pointer;
+  background:linear-gradient(#6b655b, #4a453d); color:#ded7c6}
+.lautabs button[aria-pressed="true"]{background:linear-gradient(#cbc7bc, #b9b5a9); color:#2a2520}
+.laupan{height:clamp(96px, 23vw, 150px); overflow:auto; background:#c9c6bd; border:1px solid #2a2620; border-radius:3px;
+  padding:6px 8px; color:#2f2d27; font-size:clamp(8.5px, 1.85vw, 12.5px); line-height:1.35; box-shadow:inset 0 2px 6px #00000055}
+.laupan ul{list-style:none; margin:0; padding:0; display:grid; gap:2px}
+.laupan li{display:flex; gap:6px; align-items:baseline}
+.laupan .d{color:#6f6a5c; flex:none}
 .lauver{position:absolute; left:0; right:0; bottom:1%; text-align:center; font-size:9px; color:#8d8371; z-index:1}
 
-/* Téléphone : l'image garderait un panneau de journal illisible, on la coupe sous la barre
-   et on remet le journal et l'œuf en dessous, à taille lisible. */
-@media (max-width: 540px){
-  .lauw{aspect-ratio:auto; height:auto; background-size:100% auto; background-position:top center; padding-top:46%}
-  .lautabs{position:static; height:auto; padding:0 0 0 8px; margin-top:8px}
-  .lautabs button{min-width:0; padding:5px 14px; font-size:12px}
-  .laupan{position:static; width:auto; height:118px; margin:0 8px; padding:7px 9px; font-size:12px}
-  .lauegg{position:static; width:84px; height:96px; margin:10px auto 22px; display:block}
-  .lauegg::after{content:""; position:absolute; inset:0; background:url("assets/launcher.jpg") -468px -212px no-repeat; border-radius:50%/42%}
-  .laucog{display:none}
-  .lauver{position:static; padding-bottom:6px}
+/* Portrait : l'image garde ses proportions — sinon les repères en pourcentage tombent à côté — mais le
+   journal descend sous elle, où il est lisible. */
+@media (max-width: 560px){
+  /* le panneau d'origine resterait visible dans l'image alors que le nôtre est passé dessous : on le masque */
+  .lauscreen::after{content:""; position:absolute; left:3.5%; top:44%; width:78.5%; height:53%; border-radius:4px;
+    background:#15100c; box-shadow:inset 0 0 14px #0009}
+  .lauside2{position:static; width:auto; padding:8px 8px 0; background:#15100c}
+  .lautabs button{padding:5px 14px; font-size:12px}
+  .laupan{height:112px; font-size:12px; padding:7px 9px}
+  .lauver{position:static; padding:6px 0 8px}
+  .lauegg .play{bottom:-30%; font-size:10px}
 }
 
 /* Création : sa propre fenêtre, sans l'image de fond */
-.crewrap{aspect-ratio:auto !important; background:linear-gradient(#211a14, #15100c 60%, #1b1510) !important;
-  border:1px solid #000; padding:0 !important; height:auto !important; box-shadow:inset 0 1px 0 #ffffff18, 0 16px 44px #000c}
+.crewrap{background:linear-gradient(#211a14, #15100c 60%, #1b1510); border:1px solid #000;
+  box-shadow:inset 0 1px 0 #ffffff18, 0 16px 44px #000c}
 .crewrap[hidden]{display:none}
 /* Création : compte puis classe */
 .cre{display:grid; gap:10px; padding:10px}
@@ -837,11 +838,15 @@ body.in-combat .tabs{display:none}
 
 <div class="lau" id="lau">
   <div class="lauw" id="lauw">
-    <div class="laubar"><i id="lauFill"></i><span id="lauTxt">Démarrage…</span><em id="lauPct">0 %</em></div>
-    <div class="lautabs" id="lauTabs"><button data-act="lauTab" data-v="news" aria-pressed="false">Nouvelles</button><button data-act="lauTab" data-v="log" aria-pressed="true">Journal</button></div>
-    <div class="laupan" id="lauPan"></div>
-    <button class="lauegg" id="lauEgg" data-act="launch" disabled aria-label="Lancer le jeu"><span class="halo"></span><span class="play" id="lauPlay"></span></button>
-    <button class="laucog" data-act="lauCog" title="Réglages" aria-label="Réglages"></button>
+    <div class="lauscreen">
+      <div class="laubar"><i id="lauFill"></i><span id="lauTxt">Démarrage…</span><em id="lauPct">0 %</em></div>
+      <button class="lauegg" id="lauEgg" data-act="launch" disabled aria-label="Lancer le jeu"><span class="halo"></span><span class="play" id="lauPlay"></span></button>
+      <button class="laucog" data-act="lauCog" title="Réglages" aria-label="Réglages"></button>
+    </div>
+    <div class="lauside2">
+      <div class="lautabs" id="lauTabs"><button data-act="lauTab" data-v="news" aria-pressed="false">Nouvelles</button><button data-act="lauTab" data-v="log" aria-pressed="true">Journal</button></div>
+      <div class="laupan" id="lauPan"></div>
+    </div>
     <div class="lauver">données et images © Ankama · usage privé</div>
   </div>
   <div class="lauw crewrap" id="lauMid" hidden></div>
