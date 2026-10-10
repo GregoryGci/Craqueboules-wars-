@@ -1514,7 +1514,7 @@ const Eco = (() => {
     return out;
   }
   function newSave(){
-    const s = { v:2, sc:1, cat:CAT_MODE, kamas:800, stones:3, gold:0, scrolls:0, sum:0, ach:{}, ess:{ terre:0, feu:0, eau:0, air:0 }, nextId:1, monsters:[], items:[], gear:[], team:[], cleared:[], seen:[], wins:0 };
+    const s = { v:SAVE_V, sc:1, cat:CAT_MODE, kamas:800, stones:3, gold:0, scrolls:0, sum:0, ach:{}, ess:{ terre:0, feu:0, eau:0, air:0 }, nextId:1, monsters:[], items:[], gear:[], team:[], cleared:[], seen:[], wins:0 };
     const [k1, k2, k3] = starterKeys();
     const a = addMonster(s,k1,6), b = addMonster(s,k2,6), c = addMonster(s,k3,6);
     s.team = [a.uid, b.uid, c.uid]; s.seen = [k1, k2, k3];
@@ -2226,7 +2226,7 @@ async function chatSend(){
   chatSending = false; chatPaint();
 }
 
-const SAVE_KEY = 'idd-save-v2';
+const SAVE_KEY = 'idd-save-v3';
 const EL_HEX = { terre:'#a0662c', feu:'#d9481f', eau:'#2f7bc8', air:'#4c9b33' };
 const STAT_ICO = { hp:['hp','#d23b2b'], atk:['atk','#8a5a26'], def:['def','#6b7a86'], spd:['spd','#8a44c4'], crit:['crit','#e0a010'], critDmg:['critDmg','#d9481f'], acc:['acc','#2a69b8'], res:['res','#3b8a17'] };
 const STAT_LONG = { hp:'Points de vie', atk:'Attaque', def:'Défense', spd:'Vitesse', crit:'Taux critique', critDmg:'Dégâts critiques', acc:'Précision', res:'Résistance' };
@@ -2244,20 +2244,25 @@ let lastSummon = null, upMsg = null, confirmKey = null, inCombat = false, curDg 
 let speed = 1, auto = false;
 try { speed = Number(localStorage.getItem('idd-speed')) || 1; auto = localStorage.getItem('idd-auto') === '1'; } catch(e){}
 
+// Version de la sauvegarde. La porter à 3 met tout le monde à neuf : le passage à deux cents niveaux,
+// la courbe de puissance et la campagne réordonnée rendent les anciennes parties incohérentes.
+// Les migrations des versions précédentes ont donc été retirées : elles ne peuvent plus se déclencher.
+const SAVE_V = 3;
 function loadSave(){
-  try { const raw = localStorage.getItem(SAVE_KEY); if (raw){ const s = JSON.parse(raw); if (s && s.v === 2 && s.cat === CAT_MODE){
-      if (!s.sc){ for (const it of s.items) for (const st of it.subs) if (st.s === 'hp' || st.s === 'atk' || st.s === 'def') st.v = Math.max(1, Math.round(st.v/10)); s.sc = 1; }   // PV/ATK/DEF divisés par 10
-      if (s.perfect != null){ s.stones += s.perfect; delete s.perfect; }   // une seule pierre d'âme désormais
-      s.ach = s.ach || {}; s.sum = s.sum || 0; s.gold = s.gold || 0; s.scrolls = s.scrolls || 0;
-      s.gear = s.gear || [];                                  // sauvegardes d'avant l'équipement
-      for (const it of s.items) if (!it.il) it.il = 20;        // trophées d'avant le niveau d'objet
-      for (const m of s.monsters) m.g = m.g || {};
-      // anciens formats : « d12 » (donjon terminé) et « camp:d12:5 » (salle du boss terminée) valent le donjon ; les salles 1 à 4 seules ne comptent pas
-      s.cleared = [...new Set(s.cleared.flatMap(id => !id.includes(':') ? ['camp:' + id] : /^camp:[^:]+:\d+$/.test(id) ? (id.endsWith(':' + ROOMS) ? [id.slice(0, id.lastIndexOf(':'))] : []) : [id]))];
-      return s; }
-    if (s) setTimeout(() => toast('Le catalogue a changé : nouvelle partie.'), 300); } } catch(e){}
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw){
+      const s = JSON.parse(raw);
+      if (saveOk(s)) return s;
+      if (s) setTimeout(() => toast('Nouvelle version du jeu : la partie repart à zéro.'), 300);
+    }
+  } catch(e){}
   return Eco.newSave();
 }
+// Une sauvegarde n'est reprise que si elle vient de cette version du jeu et du même catalogue.
+// Vaut aussi pour celle du compte en ligne, sinon une vieille partie reviendrait par le serveur.
+const saveOk = s => !!(s && s.v === SAVE_V && s.cat === CAT_MODE && Array.isArray(s.monsters));
+
 function persist(){ if (save) save.at = Date.now();   // horodatage : arbitre entre la partie locale et celle du compte
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch(e){}
   if (netOn()) netPush(); }
@@ -4036,8 +4041,8 @@ Object.assign(ACT, {
     const r = await netSignIn(mail, pass);
     creBusy = false;
     if (r.err){ creMsg = r.err; return creStep(); }
-    const remote = await netPull();                       // une partie existe déjà en ligne ?
-    if (remote && remote.data && remote.data.player){
+    const remote = await netPull();                       // une partie à jour existe déjà en ligne ?
+    if (remote && saveOk(remote.data) && remote.data.player){
       save = remote.data; persist(); return lauStart();
     }
     creStep0 = 'nom'; creStep();
@@ -4090,7 +4095,7 @@ fetch('catalogue.json', { cache:'no-cache' })
         if (me){
           const remote = await netPull();
           const localAt = (save && save.at) || 0, remoteAt = remote ? Date.parse(remote.updated_at) || 0 : 0;
-          if (remote && remote.data && remoteAt > localAt){     // la partie en ligne est plus récente : elle gagne
+          if (remote && saveOk(remote.data) && remoteAt > localAt){   // plus récente ET de cette version
             save = remote.data;
             try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch(e){}
             lauTo(98, 'Partie récupérée depuis ton compte.');
