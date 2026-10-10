@@ -1193,7 +1193,13 @@ function gemSvg(kind, sz){
     <path d="M8 12h24M20 2l-5 10 5 26 5-26z" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1.2"/>
     ${kind === 'perfect' ? '<circle cx="20" cy="17" r="3" fill="#fff" opacity=".8"/>' : ''}</svg>`;
 }
-const kamaIcon = sz => `<svg viewBox="0 0 20 20" width="${sz}" height="${sz}" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="#f2b83a" stroke="${OL}" stroke-width="1.6"/><circle cx="10" cy="10" r="5.4" fill="none" stroke="#a8640c" stroke-width="1.2"/><path d="M8 6.5v7M8 10l3.3-3.5M8.8 9.6l2.7 3.9" stroke="#7a4506" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>`;
+// Les kamas sont une monnaie, pas un objet : la table DofusDB n'a pas de pièce, on prend la Bourse de Kamas officielle.
+// La pièce dessinée reste dessous et réapparaît si les images DofusDB ne répondent pas.
+const KAMA_ICON = 100056;
+const kamaSvg = sz => `<svg viewBox="0 0 20 20" width="${sz}" height="${sz}" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="#f2b83a" stroke="${OL}" stroke-width="1.6"/><circle cx="10" cy="10" r="5.4" fill="none" stroke="#a8640c" stroke-width="1.2"/><path d="M8 6.5v7M8 10l3.3-3.5M8.8 9.6l2.7 3.9" stroke="#7a4506" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>`;
+const kamaIcon = sz => IMG_OK
+  ? `<span class="gemw" style="width:${sz}px;height:${sz}px">${kamaSvg(sz)}<img src="${IMG_BASE}/items/${KAMA_ICON}.png" alt="" data-fb></span>`
+  : kamaSvg(sz);
 
 /* ---- Cartes isométriques dessinées (cases 86×43 comme Dofus 2) ---- */
 function mulberry(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
