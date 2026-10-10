@@ -1868,6 +1868,13 @@ function buildCatalog(cat){
     dgs.push({ id:'d' + d.id, map:themeFor(d.n, d.id), mapId:d.mp || 0, maps:d.mps || [], pool:normals, name:d.n, lvl:L, dofusLvl:d.l,
       desc: bossK ? `Boss : ${MONSTERS[bossK].name}. Niveau Dofus conseillé : ${d.l}.` : `Niveau Dofus conseillé : ${d.l}.`, enemies, ...rewardsFor(L) });
   }
+  // La campagne est une chaîne : chaque donjon exige le précédent. L'ordre du catalogue étant celui de
+  // DofusDB, elle partait dans tous les sens — le deuxième donjon pouvait être niveau 110 pour un joueur
+  // niveau 10. On trie par niveau, puis par robustesse du boss pour que les nombreux donjons de niveau 200
+  // forment eux aussi une progression au lieu d'un plateau.
+  const bossHp = d => { const b = (d.enemies || []).find(e => e.boss) || (d.enemies || [])[0];
+    return (b && MONSTERS[b.key] && MONSTERS[b.key].base.hp) || 0; };
+  dgs.sort((a, b) => a.lvl - b.lvl || bossHp(a) - bossHp(b) || a.name.localeCompare(b.name, 'fr'));
   if (dgs.length){ DUNGEONS.length = 0; DUNGEONS.push(...dgs); }
   ITEM_SKINS = { normal:(cat.items || []).filter(i => i.t === 151), legend:(cat.items || []).filter(i => i.t === 23 || i.t === 217) };
   indexGear(cat.gear || []);
