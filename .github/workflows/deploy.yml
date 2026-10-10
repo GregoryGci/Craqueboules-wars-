@@ -31,6 +31,11 @@ jobs:
           node-version: 20
       - name: Construire le catalogue
         run: node construire-catalogue.mjs
+      - name: Injecter les clés du serveur
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: node injecter-cles.mjs
       - name: Préparer le site
         run: |
           mkdir _site

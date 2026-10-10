@@ -51,19 +51,34 @@ alter publication supabase_realtime add table public.chat;
 create index chat_recent on public.chat (cree_le desc);
 ```
 
-## 3. Coller les clés dans le jeu
+## 3. Déposer les clés dans les secrets GitHub
 
-Dans `index.html`, cherche `const NET = {` (vers le début du script) et remplis :
+Le jeu est une page statique : il n'y a pas de serveur, donc pas de `.env` au
+sens habituel — tout ce que le navigateur utilise finit forcément dans le
+fichier livré. En revanche la publication passe par GitHub Actions, et c'est
+là qu'on injecte les clés, pour qu'elles ne soient jamais dans le dépôt.
 
-```js
-const NET = {
-  url: 'https://xxxxxxxxxxxx.supabase.co',
-  key: 'eyJhbGciOi…',   // la clé anon public
-};
-```
+Sur GitHub : **Settings → Secrets and variables → Actions → New repository
+secret**, et crée les deux :
 
-Commite, pousse : le launcher proposera alors un écran de compte avant la
+| Nom | Valeur |
+| --- | --- |
+| `SUPABASE_URL` | `https://xxxxxxxxxxxx.supabase.co` |
+| `SUPABASE_ANON_KEY` | la clé **anon public** |
+
+Relance ensuite la publication (n'importe quel push, ou **Actions → Publier le
+jeu → Run workflow**). Le launcher proposera alors un écran de compte avant la
 création du personnage.
+
+Le script `injecter-cles.mjs` vérifie la forme de l'URL et **refuse de publier
+une clé `service_role`** si elle est collée par erreur : celle-là contourne
+toutes les règles d'accès et ne doit jamais partir dans la page.
+
+Sans secrets, la publication se fait normalement en mode local.
+
+### Pour essayer sur ta machine
+
+Remplis `const NET = {` dans `index.html` à la main, sans le commiter.
 
 ## Bon à savoir
 
