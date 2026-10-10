@@ -546,14 +546,30 @@ body.in-combat .tabs{display:none}
 .cre .fld{display:grid; gap:5px}
 .cre label{font-size:12px; color:#cfc8b8}
 .cre input{font:inherit; font-size:16px; padding:8px 10px; border-radius:5px; border:1px solid #16150f; background:#e9e4d6; color:#2a2520; box-shadow:inset 0 1px 3px #0004}
-.clsgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(146px, 1fr)); gap:7px; max-height:252px; overflow:auto; padding:2px}
-.clscard{display:grid; gap:2px; text-align:left; padding:7px 9px; border-radius:7px; cursor:pointer; font:inherit;
+.pbadge{display:flex; align-items:center; gap:8px}
+.pbadge:empty{display:none}
+.pbadge .pb-t{display:grid; line-height:1.15; min-width:0}
+.pbadge .pb-t b{font-size:13px; color:var(--ink)}
+.pbadge .pb-t span{font-size:11px; color:var(--ink2)}
+.crehead{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:11px; align-items:center;
+  background:#00000038; border:1px solid #00000066; border-radius:9px; padding:9px 11px}
+.sexseg{display:flex; gap:3px; flex:none}
+.sexseg button{font:inherit; font-size:11.5px; padding:5px 10px; cursor:pointer; color:#ded7c6; border:1px solid #000;
+  background:linear-gradient(#5a564e, #403e3a); border-radius:5px}
+.sexseg button[aria-pressed="true"]{background:linear-gradient(#f0a94a, var(--orange2)); color:#fff; border-color:var(--orange-dk)}
+/* avatar : l'emblème de classe en fond, le portrait par-dessus (il manque pour une classe ou deux côté DofusDB) */
+.cls-av{position:relative; width:var(--av); height:var(--av); flex:none; display:grid; place-items:center; border-radius:50%;
+  background:radial-gradient(circle at 50% 32%, #6d6760, #332f2a 72%); border:1px solid #00000088; box-shadow:inset 0 1px 0 #ffffff1f, 0 1px 3px #0006; overflow:hidden}
+.cls-av .csym{position:absolute; opacity:.3; filter:grayscale(.3)}
+.cls-av .chd{position:relative; z-index:1; image-rendering:auto; filter:drop-shadow(0 1px 2px #0008)}
+.clsgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(92px, 1fr)); gap:7px; max-height:min(230px, 34vh); overflow:auto; padding:3px}
+.clscard{display:grid; justify-items:center; gap:2px; text-align:center; padding:8px 5px 6px; border-radius:8px; cursor:pointer; font:inherit;
   background:linear-gradient(#54524e, #403e3a); border:1px solid #16150f; color:#e9e4d8}
-.clscard b{font-size:13.5px}
-.clscard span{font-size:11px; color:#bdb6a6; line-height:1.3}
-.clscard .tag{font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:#ffb760}
-.clscard[aria-pressed="true"]{background:linear-gradient(#f0a94a, var(--orange2)); border-color:var(--orange-dk); color:#fff}
-.clscard[aria-pressed="true"] span{color:#fff2dc} .clscard[aria-pressed="true"] .tag{color:#ffe9c4}
+.clscard b{font-size:12.5px; line-height:1.1}
+.clscard .tag{font-size:9px; letter-spacing:.07em; text-transform:uppercase; color:#ffb760}
+.clscard[aria-pressed="true"]{background:linear-gradient(#f0a94a, var(--orange2)); border-color:var(--orange-dk); color:#fff; box-shadow:0 0 0 1px #fff4, 0 2px 8px #f0a94a55}
+.clscard[aria-pressed="true"] .tag{color:#ffe9c4}
+.clscard[aria-pressed="true"] .cls-av{border-color:#ffffff66}
 
 /* Jouer : le hub des modes. Une carte par mode, avec son boss, sa couleur et son avancement. */
 .mgrid2{display:grid; grid-template-columns:repeat(auto-fit, minmax(278px, 1fr)); gap:10px}
@@ -799,6 +815,7 @@ body.in-combat .tabs{display:none}
 <div class="wrap" id="wrap" hidden>
   <header class="top">
     <div class="brand"><h1>Invocateurs <span>des Douze</span></h1><p>Fan game Dofus · données et images © Ankama, usage privé</p></div>
+    <div class="pbadge" id="pbadge"></div>
     <ul class="res" id="res" aria-label="Ressources"></ul>
   </header>
   <nav class="tabs" id="tabs" aria-label="Menu"></nav>
@@ -1898,7 +1915,39 @@ const teamMons = () => save.team.map(uid => Eco.monByUid(save, uid)).filter(Bool
 const confirmBtn = (key, label, labelSure, act) => `<button class="btn grey" data-act="${act}">${confirmKey === key ? labelSure : label}</button>`;
 const segBar = (r, n = 12, red) => `<div class="seg-bar ${red ? 'red' : ''}" aria-hidden="true">${Array.from({length:n}, (_,i) => `<i class="${i < Math.round(r*n) ? 'on' : ''}"></i>`).join('')}</div>`;
 
+const CLASSES = [
+  // id = identifiant DofusDB : il donne l'emblème (symbol_ID) et les deux avatars (SmallHead_ID0 mâle, ID1 femelle)
+  { id:1,  n:'Féca',       r:'Protecteur',              g:'Combat',      b:'−10 % de dégâts subis' },
+  { id:2,  n:'Osamodas',   r:'Invocateur de créatures', g:'Invocation',  b:"+10 % de chance d'invoquer 4 ★ ou plus" },
+  { id:3,  n:'Enutrof',    r:'Chasseur de trésors',     g:'Butin',       b:'+10 % de chance de butin' },
+  { id:4,  n:'Sram',       r:'Assassin',                g:'Combat',      b:'+8 % de chance critique' },
+  { id:5,  n:'Xélor',      r:'Maître du temps',         g:'Combat',      b:'+10 % de jauge de tour au départ' },
+  { id:6,  n:'Ecaflip',    r:'Combattant imprévisible', g:'Butin',       b:'+10 % de kamas' },
+  { id:7,  n:'Eniripsa',   r:'Guérisseur',              g:'Soutien',     b:'+15 % de soin entre les vagues' },
+  { id:8,  n:'Iop',        r:'Guerrier téméraire',      g:'Combat',      b:'+10 % de dégâts sur cible unique' },
+  { id:9,  n:'Crâ',        r:'Archer',                  g:'Combat',      b:'+10 % de précision' },
+  { id:10, n:'Sadida',     r:'Sorcier sylvestre',       g:'Progression', b:"+10 % d'expérience" },
+  { id:11, n:'Sacrieur',   r:'Berserker',               g:'Combat',      b:'+10 % de points de vie' },
+  { id:12, n:'Pandawa',    r:'Bagarreur assoiffé',      g:'Combat',      b:'+10 % de résistance aux malus' },
+  { id:13, n:'Roublard',   r:'Expert en explosifs',     g:'Combat',      b:'+10 % de dégâts de zone' },
+  { id:14, n:'Zobal',      r:'Guerrier lunatique',      g:'Butin',       b:"+10 % de jet sur l'équipement" },
+  { id:15, n:'Steamer',    r:'Technomage',              g:'Combat',      b:'+10 % de dégâts contre les boss' },
+  { id:16, n:'Eliotrope',  r:'Créateur de portails',    g:'Combat',      b:'+10 % de vitesse' },
+  { id:17, n:'Huppermage', r:'Mage élémentaliste',      g:'Combat',      b:'Avantage élémentaire renforcé' },
+  { id:18, n:'Ouginak',    r:'Barbare',                 g:'Combat',      b:'+15 % de dégâts sous 50 % de PV' },
+  { id:20, n:'Forgelance', r:'Champion immortel',       g:'Combat',      b:'+6 % de points de vie et de dégâts' },
+];
+const clsSlug = c => c.n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+// L'avatar manque côté DofusDB pour une classe ou deux : l'emblème posé dessous prend alors le relais
+const clsHead = (c, sex, sz) => `<img class="chd" src="${IMG_BASE}/heads/SmallHead_${c.id}${sex === 'f' ? 1 : 0}.png" alt="" width="${sz}" height="${sz}" data-fb>`;
+const clsSym = (c, sz) => `<img class="csym" src="${IMG_BASE}/breeds/symbol_${c.id}.png" alt="" width="${sz}" height="${sz}" data-fb>`;
+const clsAvatar = (c, sex, sz = 52) => `<span class="cls-av" style="--av:${sz}px">${clsSym(c, Math.round(sz*.62))}${clsHead(c, sex, Math.round(sz*.86))}</span>`;
+
 function renderTop(){
+  const pc = classOf(), pb = $('#pbadge');
+  if (pb) pb.innerHTML = pc && save.player
+    ? `${clsAvatar(pc, save.player.sex, 38)}<span class="pb-t"><b>${esc(save.player.name)}</b><span>${pc.n}</span></span>`
+    : '';
   $('#res').innerHTML = `
     <li title="Kamas">${kamaIcon(16)}${fmt(save.kamas)}</li>
     <li title="Pierres d'âme pleines">${gemIcon('perfect',16)}${save.stones}</li>
@@ -3244,25 +3293,10 @@ async function loop(my){
    elle suit le vrai chargement du catalogue (444 ko plus les images DofusDB) et le couvre,
    au lieu de laisser un écran vide. L'œuf lance le jeu, et ouvre la création au premier démarrage.
    ===================================================================== */
-const CLASSES = [
-  { k:'iop',      n:'Iop',      g:'Combat',     b:'+10 % de dégâts sur cible unique' },
-  { k:'cra',      n:'Crâ',      g:'Combat',     b:'+10 % de précision' },
-  { k:'feca',     n:'Féca',     g:'Combat',     b:'−10 % de dégâts subis' },
-  { k:'sram',     n:'Sram',     g:'Combat',     b:'+8 % de chance critique' },
-  { k:'sacrieur', n:'Sacrieur', g:'Combat',     b:'+10 % de points de vie' },
-  { k:'pandawa',  n:'Pandawa',  g:'Combat',     b:'+10 % de résistance aux malus' },
-  { k:'xelor',    n:'Xélor',    g:'Combat',     b:'+10 % de jauge de tour au départ' },
-  { k:'roublard', n:'Roublard', g:'Combat',     b:'+10 % de dégâts de zone' },
-  { k:'eniripsa', n:'Eniripsa', g:'Soutien',    b:'+15 % de soin entre les vagues' },
-  { k:'enutrof',  n:'Enutrof',  g:'Butin',      b:'+10 % de chance de butin' },
-  { k:'ecaflip',  n:'Ecaflip',  g:'Butin',      b:'+10 % de kamas' },
-  { k:'zobal',    n:'Zobal',    g:'Butin',      b:'+10 % de jet sur l\'équipement' },
-  { k:'sadida',   n:'Sadida',   g:'Progression',b:'+10 % d\'expérience' },
-  { k:'osamodas', n:'Osamodas', g:'Invocation', b:'+10 % de chance d\'invoquer 4 ★ ou plus' },
-];
-const classOf = () => (save && save.player && CLASSES.find(c => c.k === save.player.cls)) || null;
+const classOf = () => { const p = save && save.player; if (!p) return null;
+  return CLASSES.find(c => c.id === p.cls) || CLASSES.find(c => clsSlug(c) === String(p.cls)) || null; };   // tolère les sauvegardes d'avant les identifiants DofusDB
 
-let lauPct = 0, lauCap = 0, lauCreep = null, lauTab = 'log', lauLog = [], lauReady = false, creName = '', creCls = null;
+let lauPct = 0, lauCap = 0, lauCreep = null, lauTab = 'log', lauLog = [], lauReady = false, creName = '', creCls = null, creSex = 'm';
 const lauT0 = Date.now();
 const LAU_MIN = 1400;   // on laisse le launcher respirer : un chargement instantané donnerait un flash désagréable
 
@@ -3324,12 +3358,23 @@ function creStep(){
     const i = $('#creN'); if (i){ i.focus(); i.addEventListener('keydown', e => { if (e.key === 'Enter') ACT.creName(); }); }
     return;
   }
-  const sel = creCls || CLASSES[0].k;
+  const sel = creCls || CLASSES[0].id;
+  const cur = CLASSES.find(c => c.id === sel) || CLASSES[0];
   mid.innerHTML = `<div class="cre" style="grid-column:1/-1">
-    <div><b style="font-size:14px">Choisis ton dieu, ${esc(creName)}</b>
-      <p style="margin:3px 0 0; font-size:12px; color:#bdb6a6">Chaque classe donne un avantage net mais modeste. Tu pourras en changer plus tard contre des kamas.</p></div>
-    <div class="clsgrid">${CLASSES.map(c => `<button class="clscard" data-act="creCls" data-v="${c.k}" aria-pressed="${sel === c.k}">
-      <b>${c.n}</b><span class="tag">${c.g}</span><span>${c.b}</span></button>`).join('')}</div>
+    <div class="crehead">
+      ${clsAvatar(cur, creSex, 74)}
+      <div style="min-width:0">
+        <b style="font-size:15px">${cur.n}</b>
+        <div style="font-size:11.5px; color:#bdb6a6">${cur.r}</div>
+        <div style="font-size:12.5px; color:#ffc87a; margin-top:3px">${cur.b}</div>
+      </div>
+      <div class="sexseg" role="group" aria-label="Apparence">
+        <button data-act="creSex" data-v="m" aria-pressed="${creSex === 'm'}">Mâle</button>
+        <button data-act="creSex" data-v="f" aria-pressed="${creSex === 'f'}">Femelle</button>
+      </div>
+    </div>
+    <div class="clsgrid">${CLASSES.map(c => `<button class="clscard" data-act="creCls" data-v="${c.id}" aria-pressed="${sel === c.id}" title="${c.n} · ${c.r}">
+      ${clsAvatar(c, creSex, 46)}<b>${c.n}</b><span class="tag">${c.g}</span></button>`).join('')}</div>
     <div class="row" style="justify-content:space-between"><button class="btn grey sm" data-act="creBack">‹ Retour</button>
       <button class="btn" data-act="creGo">Entrer dans le monde</button></div></div>`;
 }
@@ -3348,10 +3393,11 @@ Object.assign(ACT, {
     if (!v) return toast('Choisis un nom.');
     creName = v; creStep();
   },
-  creCls(d){ creCls = d.v; creStep(); },
+  creCls(d){ creCls = +d.v; creStep(); },
+  creSex(d){ creSex = d.v; creStep(); },
   creBack(){ creName = ''; creStep(); },
   creGo(){
-    save.player = { name: creName, cls: creCls || CLASSES[0].k, born: Date.now() };
+    save.player = { name: creName, cls: creCls || CLASSES[0].id, sex: creSex, born: Date.now() };
     persist(); lauStart();
     toast(`Bienvenue, ${save.player.name} — ${(classOf() || {}).n}.`);
   },
