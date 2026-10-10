@@ -1580,6 +1580,7 @@ let save = null, selDg = null, dq = '', mode = 'camp', openGrp = null;
 const stages = () => STAGES[mode];
 const TEST = new URLSearchParams(location.search).has('test');   // ?test : ressources pleines et tous les niveaux ouverts
 let view = 'donjons', selMon = null, selItem = null, slotPick = null, filt = { slot:0, rar:'' };
+let swapOpen = false;   // dans la fiche du monstre : la liste « Changer » est dépliée sous l'objet équipé
 let upFx = null;   // sous-effet à animer après une amélioration : { s, added, v }
 let lastSummon = null, upMsg = null, confirmKey = null, inCombat = false, curDg = 0, curStage = null;
 let speed = 1, auto = false;
@@ -1757,13 +1758,7 @@ function monDetail(mon){
   const swap = (m.awaken && m.awaken.swap) || {};
   const skills = m.skills.map(id => mon.awakened && swap[id] ? swap[id] : id);
   const statRow = (k, suf='') => `<li><span class="lb">${sico(k)}${STAT_LONG[k]}</span><b>${fmt(full[k])}${suf}${full[k] !== bare[k] ? `<em> (+${fmt(full[k]-bare[k])})</em>` : ''}</b></li>`;
-  let picker = '';
-  if (slotPick){
-    const cands = save.items.filter(i => i.slot === slotPick && i.id !== mon.equip[slotPick])
-      .sort((a,b) => (a.owner != null) - (b.owner != null) || RARITIES.indexOf(b.rarity) - RARITIES.indexOf(a.rarity) || b.lvl - a.lvl);
-    picker = `<div class="panel picker"><div class="band"><span>Emplacement ${slotPick}</span>${mon.equip[slotPick] ? `<button class="btn grey sm" data-act="unequip" data-id="${mon.equip[slotPick]}">Retirer</button>` : ''}</div>
-      ${cands.map(i => pickRow(i)).join('') || '<span class="muted">Aucun objet pour cet emplacement. Va en donjon pour en trouver.</span>'}</div>`;
-  }
+  const picker = slotPick ? slotPanel(mon) : '';
   return `<section class="win">
     <div class="wt"><h2>${m.name}</h2></div>
     <div class="wb" style="display:grid; gap:8px">
@@ -1794,6 +1789,27 @@ function pickRow(it){
   return `<button class="prow" style="--rc:var(--r-${it.rarity})" data-act="equip" data-id="${it.id}"><span class="cell r-${it.rarity}">${itemIcon(it)}<span class="lv">+${it.lvl}</span></span><b>${itemName(it)} +${it.lvl}</b>
     <span>${fmtStat(it.main, itemMainVal(it))}${it.subs.length ? ' · ' + it.subs.map(s => fmtStat(s.s,s.v)).join(' · ') : ''}${owner ? ` · sur ${MONSTERS[owner.key].name}` : ''}</span></button>`;
 }
+// Emplacement ouvert depuis la fiche du monstre : améliorer, vendre, retirer et changer se font ici,
+// sans détour par l'inventaire (les objets libres d'abord, puis ceux portés par un autre monstre)
+function slotPanel(mon){
+  const n = slotPick, id = mon.equip[n], it = id ? Eco.itemById(save, id) : null;
+  const others = () => save.items.filter(i => i.slot === n && i.id !== id)
+    .sort((a,b) => (a.owner != null) - (b.owner != null) || RARITIES.indexOf(b.rarity) - RARITIES.indexOf(a.rarity) || b.lvl - a.lvl);
+  const rows = msg => { const l = others(); return l.length ? l.map(pickRow).join('') : `<span class="muted">${msg}</span>`; };
+  if (!it) return `<div class="panel picker"><div class="band"><span>Emplacement ${n}</span><span class="muted">vide</span></div>
+    ${rows('Aucun objet pour cet emplacement. Va en donjon pour en trouver.')}</div>`;
+  return `<div class="panel picker">
+    <div class="band slate"><span>${itemKind(it)} · emplacement ${n}</span><span>${RAR_LABEL[it.rarity]}</span></div>
+    ${itemFace(it)}
+    <div class="panel" style="overflow:hidden">${itemEffects(it)}</div>
+    ${upgradeBtn(it)}
+    <div class="row">
+      <button class="btn grey" data-act="swap" aria-pressed="${swapOpen}">${swapOpen ? 'Annuler' : 'Changer'}</button>
+      <button class="btn grey" data-act="unequip" data-id="${it.id}">Retirer</button>
+      ${confirmBtn('sell'+it.id, `Vendre · ${fmt(Eco.sellValue(it))} K`, 'Confirmer la vente', 'sell')}
+    </div>
+    ${swapOpen ? `<div class="band"><span>Remplacer par</span></div>${rows('Aucun autre objet pour cet emplacement.')}` : ''}</div>`;
+}
 
 // ---------- Inventaire
 function viewTrophees(){
@@ -1814,26 +1830,41 @@ function viewTrophees(){
       <div class="invfoot"><span class="muted" style="font-weight:normal; margin-right:auto">Point bleu : objet équipé</span>${kamaIcon(16)} ${fmt(save.kamas)} K</div>
     </div></section></div>`;
 }
+// ---------- Briques d'affichage d'un objet, partagées par l'inventaire et la fiche du monstre
+const itemKind = it => it.rarity === 'legendaire' ? 'Dofus' : 'Trophée';
+// Paliers d'amélioration : un sous-effet apparaît ou grandit tous les 3 niveaux jusqu'à +12
+function itemSteps(it){
+  const next = it.lvl < 12 ? (Math.floor(it.lvl/3)+1)*3 : null, empty = 4 - it.subs.length;
+  return { next, empty, locked: Math.max(0, Math.min(empty, next ? 4 - Math.floor(it.lvl/3) : 0)) };
+}
+function itemFace(it){
+  const owner = it.owner != null && Eco.monByUid(save, it.owner), { next, empty } = itemSteps(it);
+  return `<div class="itemhead"><div class="cell bigslot r-${it.rarity}">${itemIcon(it)}</div>
+    <div style="display:grid; gap:4px; align-content:start">
+      <b style="font-size:15px; color:var(--r-${it.rarity})">${fmtStat(it.main, itemMainVal(it))}</b>
+      <span class="muted">Emplacement ${it.slot} · ${owner ? `équipé sur ${MONSTERS[owner.key].name}` : 'libre'}</span>
+      ${segBar(it.lvl/15, 15)}
+      <span class="muted" style="font-size:11px">${next ? `Au +${next} : ${empty ? 'nouvel effet' : 'un effet augmente'}` : it.lvl >= 15 ? 'Niveau maximum' : 'Plus de nouvel effet'}</span>
+    </div></div>`;
+}
+function itemEffects(it){
+  const { locked } = itemSteps(it);
+  return `<ul class="effects"><li class="pos"><b>${fmtStat(it.main, itemMainVal(it))}</b></li>${it.subs.map(s => { const fx = upFx && upFx.s === s.s ? upFx : null; return `<li class="pos ${fx ? (fx.added ? 'subnew' : 'subproc') : ''}">${fmtStat(s.s, s.v)}${fx && !fx.added ? `<b class="procv">+${fx.v}</b>` : fx ? '<b class="procv">Nouveau</b>' : ''}</li>`; }).join('')}${'<li class="empty">Effet à débloquer</li>'.repeat(locked)}</ul>`;
+}
+function upgradeBtn(it){
+  const cost = Eco.upCost(it);
+  return `<button class="btn" data-act="upgrade" ${it.lvl >= 15 || save.kamas < cost ? 'disabled' : ''}>${it.lvl >= 15 ? 'Niveau maximum' : `Améliorer vers +${it.lvl+1} · ${fmt(cost)} K · ${UP_RATE[it.lvl]} %`}</button>
+    <div class="upmsg ${upMsg ? (upMsg.ok ? 'ok' : 'ko') : ''}">${upMsg ? upMsg.text : ''}</div>`;
+}
 function itemDetail(it){
-  const owner = it.owner != null && Eco.monByUid(save, it.owner);
-  const cost = Eco.upCost(it), next = it.lvl < 12 ? (Math.floor(it.lvl/3)+1)*3 : null;
-  const empty = 4 - it.subs.length, locked = Math.max(0, Math.min(empty, next ? 4 - Math.floor(it.lvl/3) : 0));
-  return `<section class="win"><div class="wt"><h2>${it.rarity === 'legendaire' ? 'Dofus' : 'Trophée'}</h2></div>
+  return `<section class="win"><div class="wt"><h2>${itemKind(it)}</h2></div>
     <div class="wb" style="padding:6px">
       <div class="band slate"><span>${itemName(it)} (+${it.lvl})</span><span>${RAR_LABEL[it.rarity]}</span></div>
-      <div class="itemhead"><div class="cell bigslot r-${it.rarity}">${itemIcon(it)}</div>
-        <div style="display:grid; gap:4px; align-content:start">
-          <b style="font-size:15px; color:var(--r-${it.rarity})">${fmtStat(it.main, itemMainVal(it))}</b>
-          <span class="muted">Emplacement ${it.slot} · ${owner ? `équipé sur ${MONSTERS[owner.key].name}` : 'libre'}</span>
-          ${segBar(it.lvl/15, 15)}
-          <span class="muted" style="font-size:11px">${next ? `Au +${next} : ${empty ? 'nouvel effet' : 'un effet augmente'}` : it.lvl >= 15 ? 'Niveau maximum' : 'Plus de nouvel effet'}</span>
-        </div></div>
+      ${itemFace(it)}
       <div class="ftabs"><span class="on">Effets</span></div>
-      <div class="panel" style="border-top-left-radius:0; overflow:hidden">
-        <ul class="effects"><li class="pos"><b>${fmtStat(it.main, itemMainVal(it))}</b></li>${it.subs.map(s => { const fx = upFx && upFx.s === s.s ? upFx : null; return `<li class="pos ${fx ? (fx.added ? 'subnew' : 'subproc') : ''}">${fmtStat(s.s, s.v)}${fx && !fx.added ? `<b class="procv">+${fx.v}</b>` : fx ? '<b class="procv">Nouveau</b>' : ''}</li>`; }).join('')}${'<li class="empty">Effet à débloquer</li>'.repeat(locked)}</ul></div>
+      <div class="panel" style="border-top-left-radius:0; overflow:hidden">${itemEffects(it)}</div>
       <div style="display:grid; gap:6px; padding:8px 4px 4px">
-        <button class="btn" data-act="upgrade" ${it.lvl >= 15 || save.kamas < cost ? 'disabled' : ''}>${it.lvl >= 15 ? 'Niveau maximum' : `Améliorer vers +${it.lvl+1} · ${fmt(cost)} K · ${UP_RATE[it.lvl]} %`}</button>
-        <div class="upmsg ${upMsg ? (upMsg.ok ? 'ok' : 'ko') : ''}">${upMsg ? upMsg.text : ''}</div>
+        ${upgradeBtn(it)}
         <div class="row">${confirmBtn('sell'+it.id, `Vendre · ${fmt(Eco.sellValue(it))} K`, 'Confirmer la vente', 'sell')}</div>
       </div></div></section>`;
 }
@@ -2191,12 +2222,12 @@ const ACT = {
   autoAgain(){ const a = autoRun; if (a && !a.on){ autoRun = null; autoStart(a.dg, a.total); } },
   autoClose(){ autoRun = null; renderAuto(); },
   claim(d){ const n = achClaim(save, ACHS.find(a => a.id === d.id)); if (!n) return; persist(); toast(`+${n} pierre${n > 1 ? 's' : ''} d'âme pleine${n > 1 ? 's' : ''}.`); render(); },
-  nav(d){ if (inCombat){ battleId++; inCombat = false; if (ro) ro.disconnect(); } view = d.v; slotPick = null; confirmKey = null; upMsg = null; upFx = null; render(); window.scrollTo(0,0); },
+  nav(d){ if (inCombat){ battleId++; inCombat = false; if (ro) ro.disconnect(); } view = d.v; slotPick = null; swapOpen = false; confirmKey = null; upMsg = null; upFx = null; render(); window.scrollTo(0,0); },
   fight(d){ startCombat(+d.i); },
   selDg(d){ selDg = +d.i; render(); },
   refight(){ startCombat(curStage); },
   flee(){ ACT.nav({ v:(curStage && curStage.back) || 'donjons' }); toast('Tu as fui le combat.'); },
-  selMon(d){ selMon = +d.uid; slotPick = null; confirmKey = null; render(); },
+  selMon(d){ selMon = +d.uid; slotPick = null; swapOpen = false; confirmKey = null; render(); },
   seeMon(d){ selMon = +d.uid; view = 'equipe'; render(); },
   team(){
     const i = save.team.indexOf(selMon);
@@ -2214,9 +2245,21 @@ const ACT = {
     if (r.err){ toast(r.err); return render(); }
     persist(); toast(`Relâché : +${r.kamas} kamas, +${r.ess} essences.`); selMon = null; render();
   },
-  slot(d){ slotPick = slotPick === +d.slot ? null : +d.slot; render(); },
-  equip(d){ Eco.equip(save, Eco.monByUid(save, selMon), Eco.itemById(save, +d.id)); slotPick = null; persist(); render(); },
-  unequip(d){ Eco.unequip(save, Eco.itemById(save, +d.id)); slotPick = null; persist(); render(); },
+  // Ouvrir un emplacement vise aussi son objet : « Améliorer » et « Vendre » agissent dessus sans passer par l'inventaire
+  slot(d){
+    const n = +d.slot, close = slotPick === n;
+    slotPick = close ? null : n;
+    if (!close){ const id = (Eco.monByUid(save, selMon) || {}).equip?.[n]; if (id) selItem = id; }
+    swapOpen = false; upMsg = null; upFx = null; confirmKey = null; render();
+  },
+  swap(){ swapOpen = !swapOpen; confirmKey = null; render(); },
+  equip(d){
+    const it = Eco.itemById(save, +d.id);
+    Eco.equip(save, Eco.monByUid(save, selMon), it);
+    selItem = it.id; swapOpen = false; upMsg = null; upFx = null;   // l'emplacement reste ouvert sur le nouvel objet
+    persist(); render();
+  },
+  unequip(d){ Eco.unequip(save, Eco.itemById(save, +d.id)); slotPick = null; swapOpen = false; persist(); render(); },
   selItem(d){ selItem = +d.id; upFx = null; upMsg = null; confirmKey = null; render(); },
   upgrade(){
     const it = Eco.itemById(save, selItem), r = Eco.upgrade(save, it);
@@ -2230,7 +2273,7 @@ const ACT = {
     const k = 'sell' + selItem;
     if (confirmKey !== k){ confirmKey = k; return render(); }
     confirmKey = null; const it = Eco.itemById(save, selItem), v = Eco.sellValue(it);
-    Eco.sell(save, it); persist(); toast(`Vendu pour ${v} kamas.`); selItem = null; upMsg = null; render();
+    Eco.sell(save, it); persist(); toast(`Vendu pour ${v} kamas.`); selItem = null; upMsg = null; slotPick = null; swapOpen = false; render();
   },
   summon10(){
     if (sumBusy) return;
