@@ -887,7 +887,7 @@ const ATB_RATE = 0.07;
 const DMG_K = 0.45;   // calibré pour un coup d'environ 15 au niveau 1, et le même rythme de combat qu'avant
 const BEATS = { feu:'air', air:'terre', terre:'eau', eau:'feu' };
 const ELEM = { terre:'Terre', feu:'Feu', eau:'Eau', air:'Air' };
-const MAX_LVL = 40;
+const MAX_LVL = 200;   // aligné sur les niveaux d'objets de Dofus : un donjon niveau 60 lâche de l'équipement niveau 60
 // Courbe de puissance : tout ce qui est brut — PV, ATK, DEF, apports d'objets — est multiplié par ce facteur.
 // Au niveau 1 il vaut 1, au niveau 40 environ 333 000, ce qui porte les coups de ~15 à ~5 millions.
 // Le rapport entre les forces ne bouge pas : il faut toujours le même nombre de coups pour abattre une cible.
@@ -1415,7 +1415,7 @@ const Eco = (() => {
     for (const uid of team || save.team){ const m = monByUid(save, uid); if (m){ const ups = addXp(m, dg.xp); out.xp.push({ key:m.key, name:MONSTERS[m.key].name, ups, level:m.level }); } }
     // Chaque mode a son butin, et un seul : la campagne l'équipement, les raids les trophées,
     // les dragons leur Dofus (rare) accompagné de quelques pièces d'équipement.
-    const n = 1 + (R() < (dg.mode === 'camp' ? .4 : .5) ? 1 : 0), ilvl = dg.dofusLvl || dg.lvl * 5;
+    const n = 1 + (R() < (dg.mode === 'camp' ? .4 : .5) ? 1 : 0), ilvl = dg.dofusLvl || dg.lvl;
     out.gear = [];
     const dropGear = () => { const g = genGear(save, dg.lvl); if (g){ save.gear = save.gear || []; save.gear.push(g); out.gear.push(g); } };
     for (let i = 0; i < n; i++){
@@ -1740,9 +1740,9 @@ function themeFor(name, id){
   return ['prairie','fleurs','champs','prairie','grotte'][hashN(id) % 5];
 }
 function rewardsFor(L){
-  const rarity = L < 8 ? { normal:60, magique:30, rare:10 } : L < 16 ? { normal:35, magique:40, rare:20, heroique:5 } : L < 24 ? { normal:15, magique:40, rare:35, heroique:10 }
-    : L < 30 ? { magique:35, rare:40, heroique:25 } : L < 36 ? { rare:45, heroique:55 } : { rare:30, heroique:70 };
-  return { kamas:[100 + L*28, 160 + L*40], xp:50 + L*9, ess:2 + Math.floor(L/5), stone:Math.min(.75, .3 + L/90), perfect:L >= 15 ? Math.min(.3, (L-12)/120) : 0, rarity };
+  const rarity = L < 40 ? { normal:60, magique:30, rare:10 } : L < 80 ? { normal:35, magique:40, rare:20, heroique:5 } : L < 120 ? { normal:15, magique:40, rare:35, heroique:10 }
+    : L < 150 ? { magique:35, rare:40, heroique:25 } : L < 180 ? { rare:45, heroique:55 } : { rare:30, heroique:70 };
+  return { kamas:[100 + L*6, 160 + L*8], xp:50 + L*9, ess:2 + Math.floor(L/25), stone:Math.min(.75, .3 + L/450), perfect:L >= 75 ? Math.min(.3, (L-60)/600) : 0, rarity };
 }
 function buildCatalog(cat){
   const hand = {};
@@ -1796,10 +1796,10 @@ function buildCatalog(cat){
     const bossK = (d.b || []).map(id => 'm' + id).find(k => MONSTERS[k]);
     const normals = [...new Set(ms.filter(k => k !== bossK && MONSTERS[k].role !== 'Boss'))];
     if (!bossK && !normals.length) continue;
-    const L = Math.max(2, Math.min(MAX_LVL, Math.round(d.l / 5)));
+    const L = Math.max(2, Math.min(MAX_LVL, d.l));   // le niveau du donjon est celui du vrai jeu
     const pickN = i => normals.length ? normals[i % normals.length] : bossK;
     const enemies = bossK
-      ? [{ key:pickN(0), level:Math.max(1, L-1) }, { key:bossK, level:Math.min(MAX_LVL, L+1), boss:true, bossMult:Math.min(2.4, 1.3 + L/30) }, { key:pickN(1), level:L }]
+      ? [{ key:pickN(0), level:Math.max(1, L-1) }, { key:bossK, level:Math.min(MAX_LVL, L+1), boss:true, bossMult:Math.min(2.4, 1.3 + L/150) }, { key:pickN(1), level:L }]
       : [{ key:pickN(0), level:Math.max(1, L-1) }, { key:pickN(1), level:L }, { key:pickN(2), level:L }];
     dgs.push({ id:'d' + d.id, map:themeFor(d.n, d.id), mapId:d.mp || 0, maps:d.mps || [], pool:normals, name:d.n, lvl:L, dofusLvl:d.l,
       desc: bossK ? `Boss : ${MONSTERS[bossK].name}. Niveau Dofus conseillé : ${d.l}.` : `Niveau Dofus conseillé : ${d.l}.`, enemies, ...rewardsFor(L) });
@@ -1921,8 +1921,8 @@ function finalizeStages(){
     prev = id;
   }
   STAGES.camp = camp;
-  STAGES.raid = bossStages(RAID_DEFS, 'raid', 10, 2, 1.25, .12, 5);   // 1er étage au niveau 7 : hors de portée d'une équipe nue, passable avec un peu d'équipement
-  STAGES.dragon = bossStages(DRAGON_DEFS, 'dragon', 5, 8, 1.1, .22);
+  STAGES.raid = bossStages(RAID_DEFS, 'raid', 10, 19, 1.25, .12, 10);   // 1er étage au niveau 29 : il faut avoir fait un bout de campagne et s'être équipé
+  STAGES.dragon = bossStages(DRAGON_DEFS, 'dragon', 5, 40, 1.1, .22);
 }
 
 // ---------- Succès : chaque palier atteint se réclame contre des pierres d'âme pleines (palier n → n pierres)
