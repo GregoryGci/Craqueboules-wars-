@@ -7,8 +7,19 @@ import { readFile, writeFile } from 'node:fs/promises';
 const url = (process.env.SUPABASE_URL || '').trim();
 const key = (process.env.SUPABASE_ANON_KEY || '').trim();
 
+// Diagnostic : on dit ce qu'on a reçu, sans jamais afficher les valeurs.
+const vu = (n, v) => `${n} : ${v ? `présent (${v.length} caractères)` : 'ABSENT'}`;
+console.log(vu('SUPABASE_URL', url));
+console.log(vu('SUPABASE_ANON_KEY', key));
+
 if (!url || !key) {
-  console.log('Pas de clés fournies : le jeu est publié en mode local.');
+  console.log('');
+  console.log('Le jeu est publié en mode local (sauvegarde dans le navigateur seulement).');
+  console.log('Pour activer les comptes, crée les deux secrets dans :');
+  console.log('  Settings → Secrets and variables → Actions → onglet « Secrets »');
+  console.log('en les nommant exactement SUPABASE_URL et SUPABASE_ANON_KEY.');
+  console.log("Attention : l'onglet « Variables » juste à côté ne convient pas,");
+  console.log('et un secret créé pour un « Environment » autre que github-pages non plus.');
   process.exit(0);
 }
 if (!/^https:\/\/[\w-]+\.supabase\.co\/?$/.test(url)) {
