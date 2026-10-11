@@ -16,7 +16,7 @@ const sim = src.slice(src.indexOf('function simulate(dg, team, seed){'), src.ind
 const stub = new Proxy(function(){}, { get:(t,k) => k === Symbol.toPrimitive ? () => '' : stub, apply:() => stub, construct:() => stub });
 const ctx = { console, Math, JSON, setTimeout, clearTimeout, document:stub, window:stub, localStorage:stub, navigator:stub, Image:stub, location:{ search:'', hash:'' }, performance };
 ctx.globalThis = ctx;
-const code = src.slice(a, cut) + '\nlet save = null; const clsFx = () => ({}); const SAVE_V = 3; const STAT_LONG = new Proxy({}, { get:() => "" });\n' + sim +
+const code = src.slice(a, cut) + '\nlet save = null; let CLS = {}; const clsFx = () => CLS; const SAVE_V = 3; const STAT_LONG = new Proxy({}, { get:() => "" });\n' + sim +
   '\nbuildCatalog(JSON.parse(CATJSON)); finalizeStages();\n' + tests.map(t => readFileSync(t, 'utf8')).join('\n') + '\n})();';
 ctx.CATJSON = readFileSync(catPath, 'utf8');
 vm.runInNewContext(code, ctx, { filename:'jeu.js' });

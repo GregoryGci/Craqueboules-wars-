@@ -11,7 +11,8 @@
   une équipe de 3 ★ (0 à 40 % de victoires mesurées). À trancher : contenu de fin de jeu assumé, ou à adoucir.
 - **Fin de campagne** : le palier 200 compte 75 donjons et le bot à trois 3 ★ s'arrête vers le 45ᵉ. À rejouer
   avec une équipe de 5 ★ pour vérifier que la fin est atteignable.
-- **Classes** : les dix-neuf bonus de classe n'ont pas été mesurés entre eux.
+- **Classes** : les bonus de combat ont été resserrés sur une mesure bruitée (± 2 points de victoire). Les
+  cinq bonus hors combat (Osamodas, Enutrof, Ecaflip, Sadida, Zobal) sont réglés à l'estime, pas mesurés.
 
 ## Idées à creuser
 

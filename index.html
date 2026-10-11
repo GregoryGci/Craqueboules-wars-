@@ -28,6 +28,57 @@
   --font: Tahoma, Verdana, 'Segoe UI', Geneva, sans-serif;
   --tok:62px;
 }
+/* Thème sombre, d'après DarkStone, le thème par défaut de Dofus 2 : fenêtres anthracite, titres en capitales,
+   cases presque noires, texte clair. Les boutons orange restent. Tout passe par les variables ci-dessus ;
+   le reste du bloc rattrape les quelques couleurs claires écrites en dur. */
+html[data-theme="sombre"]{
+  color-scheme: dark;
+  --bg:#141312; --bg2:#23211e;
+  --win:#2c2b28; --win-hi:#3c3a36; --win-out:#0b0b0a;
+  --panel:#1f1e1c; --panel-line:#45423c;
+  --row:#262523; --row2:#2f2e2b;
+  --slot:#191817; --slot-hi:#2a2927; --slot-line:#4a4741;
+  --bar:#1c1b19; --bar2:#0f0e0d; --bar-ink:#f3efe4;
+  --band:#3a4a52; --band2:#2c3a41;
+  --ink:#e6e1d4; --ink2:#a39d8e;
+  --good:#9ccc3a; --bad:#ff6a52;
+  --r-normal:#a39d8e; --r-magique:#8fd14f; --r-rare:#5aa7ff; --r-heroique:#c183ff; --r-legendaire:#ffa733;
+}
+html[data-theme="sombre"] .wt h2{text-transform:uppercase; font-weight:bold; font-size:14px; letter-spacing:.06em}
+html[data-theme="sombre"] .wt h2 small{text-transform:none; font-weight:normal; letter-spacing:0}
+html[data-theme="sombre"] .win{box-shadow:inset 0 0 0 1px var(--win-hi), 0 4px 16px #000a}
+html[data-theme="sombre"] .panel{box-shadow:inset 0 1px 0 #ffffff0d}
+html[data-theme="sombre"] .band{background:linear-gradient(#34322e, #24231f)}
+html[data-theme="sombre"] .band.slate{background:linear-gradient(var(--band), var(--band2))}
+html[data-theme="sombre"] .tabs button{background:linear-gradient(#34322e, #24231f); color:#bdb7a8; border-color:#0b0b0a; box-shadow:inset 0 1px 0 #ffffff12}
+html[data-theme="sombre"] .tabs button:hover:not([aria-current]){background:linear-gradient(#403e39, #2c2b27)}
+html[data-theme="sombre"] .tabs button[aria-current="page"]{background:linear-gradient(var(--orange), var(--orange2)); color:#fff}
+html[data-theme="sombre"] .btn.grey{background:linear-gradient(#4a4842, #33312d); border-color:#0b0b0a}
+html[data-theme="sombre"] .btn.grey:hover:not(:disabled){background:linear-gradient(#5a5750, #3d3b36)}
+html[data-theme="sombre"] .btn[aria-pressed="true"].grey{background:linear-gradient(var(--orange), var(--orange2)); border-color:var(--orange-dk)}
+html[data-theme="sombre"] .dgboss .por .pimg, html[data-theme="sombre"] .sumcard .por .pimg, html[data-theme="sombre"] .dcenter .por .pimg, html[data-theme="sombre"] .reveal .por .pimg{background:none}
+html[data-theme="sombre"] .search, html[data-theme="sombre"] .sel, html[data-theme="sombre"] .pan textarea{background-color:#161514; color:var(--ink); border-color:var(--slot-line)}
+html[data-theme="sombre"] .search::placeholder{color:#7d786c}
+html[data-theme="sombre"] .obtn{color:#d8d2c3; box-shadow:inset 0 1px 0 #ffffff14, 0 1px 2px #0008}
+html[data-theme="sombre"] .res{box-shadow:inset 0 0 0 1px var(--win-hi)}
+html[data-theme="sombre"] .pbadge .pb-t b{color:#f1ecdf}
+html[data-theme="sombre"] .por .pimg{background:radial-gradient(circle at 50% 40%, #4b4841, #23211e 78%)}
+html[data-theme="sombre"] .drow.on, html[data-theme="sombre"] .grow:hover{background:#4a3414; border-color:var(--orange2)}
+html[data-theme="sombre"] .chatlist .qui{color:#8fb9d6}
+html[data-theme="sombre"] .hdvnom u, html[data-theme="sombre"] .chatlist li.mien .qui{color:var(--orange)}
+html[data-theme="sombre"] .reveal .stage{background:radial-gradient(ellipse at 50% 70%, #5a5446, transparent 65%)}
+html[data-theme="sombre"] .fx .good{background:#2f4a1a; color:#c9f08a} html[data-theme="sombre"] .fx .bad{background:#5a2218; color:#ffc2b5}
+html[data-theme="sombre"] .unit.targetable.adv .tag{background:#2f4a1a; color:#c9f08a} html[data-theme="sombre"] .unit.targetable.dis .tag{background:#5a2218; color:#ffc2b5}
+html[data-theme="sombre"] .chat li{color:#b9d79a} html[data-theme="sombre"] .chat li.sk{color:#9cc4ea} html[data-theme="sombre"] .chat li.dmg{color:#ff9a86}
+html[data-theme="sombre"] .chat li.kill{color:#ff6a52} html[data-theme="sombre"] .chat li.sys{color:#a39d8e} html[data-theme="sombre"] .chat{background:#161514; border-color:#45423c}
+html[data-theme="sombre"] .dcenter{background:radial-gradient(circle at 50% 55%, #3a3833, #1b1a18 75%)}
+html[data-theme="sombre"] .ecell .sl{background:#0009; color:#b9b3a4}
+html[data-theme="sombre"] .ecell.empty .gh{color:#8b8678}
+html[data-theme="sombre"] .gdlines .mini{background:#4a4741}
+html[data-theme="sombre"] .ach.ready{background:#4a3414}
+html[data-theme="sombre"] .hrow .por, html[data-theme="sombre"] .drow .por{background:#161514}
+html[data-theme="sombre"] .plate{background:#1c1b19ee; border-color:#000; color:var(--ink)}
+html[data-theme="sombre"] .unit.active .plate{background:#4a3414}
 html,body{min-height:100%}
 body{background:var(--bg); background-image:radial-gradient(ellipse at 50% 0%, var(--bg2), var(--bg) 65%); color:var(--ink); font-family:var(--font); font-size:13px; line-height:1.4}
 .wrap{max-width:1180px; margin:0 auto; padding-inline:16px; padding-block:12px 28px; display:grid; gap:10px}
@@ -172,6 +223,14 @@ body.in-combat .tabs{display:none}
 .dcard.locked .mini, .dcard.locked .foes{filter:grayscale(1); opacity:.5}
 
 .dsplit{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}
+.dgart{position:relative; border-radius:7px; overflow:hidden; background:#0d0b08}
+.dgart canvas{display:block; width:100%}
+.dgboss{position:absolute; left:0; right:0; bottom:0; display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; column-gap:8px; align-items:end; padding:22px 10px 8px;
+  background:linear-gradient(#0000, #000c 60%); color:#fff; text-shadow:0 1px 2px #000}
+.dgboss .por{grid-row:1 / 3; width:84px; height:84px; background:none; border:0; box-shadow:none; margin-bottom:-6px}
+.dgboss .por .pimg{background:none; padding:0; filter:drop-shadow(0 3px 4px #000a)}
+.dgboss b{font-size:16px; align-self:end}
+.dgboss small{font-size:11.5px; color:#e9e4d8; align-self:start}
 .dgo{justify-content:flex-end; gap:6px}
 .dgo .btn{flex:1 1 130px}
 .dlist{max-height:540px; overflow:auto; display:grid; gap:2px; padding:4px; align-content:start}
@@ -770,7 +829,8 @@ body.fs .cwin .hudbar{display:none}
     background:url("assets/launcher.jpg") no-repeat; background-size:763% 442%; background-position:96.3% 67.6%}
   .laufoot .laucog{position:relative; display:block; width:42px; height:42px; inset:auto;
     background:url("assets/launcher.jpg") no-repeat; background-size:1333% 962%; background-position:93.5% 91.5%}
-  .laufoot .lauegg .play{bottom:-15px}
+  /* le libellé passait sous l'œuf, centré : trop long, il sortait de l'écran et recouvrait la mention légale */
+  .laufoot .lauegg .play{left:calc(100% + 12px); bottom:50%; translate:0 50%; font-size:13px; text-align:left}
   .lauver{position:static; padding:4px 0 9px}
 }
 /* Création : sa propre fenêtre, sans l'image de fond */
@@ -806,7 +866,7 @@ body.fs .cwin .hudbar{display:none}
   background:radial-gradient(circle at 50% 32%, #6d6760, #332f2a 72%); border:1px solid #00000088; box-shadow:inset 0 1px 0 #ffffff1f, 0 1px 3px #0006; overflow:hidden}
 .cls-av .csym{position:absolute; opacity:.3; filter:grayscale(.3)}
 .cls-av .chd{position:relative; z-index:1; image-rendering:auto; filter:drop-shadow(0 1px 2px #0008)}
-.clsgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(92px, 1fr)); gap:7px; max-height:min(230px, 34vh); overflow:auto; padding:3px}
+.clsgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(92px, 1fr)); gap:7px; max-height:min(440px, 50vh); max-height:min(440px, 50dvh); overflow:auto; padding:3px}
 .clscard{display:grid; justify-items:center; gap:2px; text-align:center; padding:8px 5px 6px; border-radius:8px; cursor:pointer; font:inherit;
   background:linear-gradient(#54524e, #403e3a); border:1px solid #16150f; color:#e9e4d8}
 .clscard b{font-size:12.5px; line-height:1.1}
@@ -979,6 +1039,16 @@ body.fs .cwin .hudbar{display:none}
   .doll .cell{width:46px; height:46px} .doll .cell svg, .doll .cell img{width:38px; height:38px}
   .dcenter{min-height:160px}
   .dlist{max-height:300px}
+  /* inventaire : filtres en grille régulière, cases plus grandes, vente collée en bas de l'écran */
+  .invfiltres{display:grid; grid-template-columns:1fr 1fr; gap:6px}
+  .invfiltres .selwrap, .invfiltres .sel{width:100%; box-sizing:border-box}
+  .invfiltres .search, .invfiltres .seuil{grid-column:1 / -1}
+  .invfiltres .seuil input{flex:1; width:auto}
+  .invfiltres .btn{width:100%}
+  .invfoot{position:sticky; bottom:0; z-index:5; margin:0 -8px -8px; padding:8px; background:var(--win); border-top:1px solid var(--panel-line); justify-content:space-between}
+  .invfoot .btn{flex:1 1 100%}
+  .invfoot .muted{margin-left:0 !important; font-size:10.5px}
+  .gdfoot{flex-wrap:wrap} .gdfoot .btn{flex:1 1 auto}
   .bigslot{width:76px; height:76px} .bigslot svg, .bigslot img{width:62px; height:62px}
   .restab{font-size:12.5px}
   .restab .c-sec{display:none}        /* bilan : on garde le nom, les dégâts et l'XP */
@@ -1889,7 +1959,7 @@ const Eco = (() => {
     if (save.stones < 1) return { err:'Plus de pierre d\'âme pleine.' };
     save.stones--; save.sum = (save.sum || 0) + 1;
     const boost = clsFx().summon4, rates = { ...SUMMON.rates };
-    if (boost) for (const k of [4, 5]) if (rates[k]) rates[k] *= 1 + (boost - 1) * 10;   // Osamodas
+    if (boost) for (const k of [4, 5]) if (rates[k]) rates[k] *= boost;   // Osamodas
     const stars = +weighted(rates);
     let pool = [];
     for (let d = 0; !pool.length && d < 5; d++) pool = Object.keys(MONSTERS).filter(k => (!ROSTER || ROSTER.has(k)) && Math.abs(MONSTERS[k].stars - stars) === d);
@@ -3239,6 +3309,10 @@ let volPick = null;    // objet porté par un autre monstre, en attente de confi
 let selKind = 'i';     // inventaire : « i » trophée ou Dofus, « g » équipement   // dans la fiche du monstre : la liste « Changer » est dépliée sous l'objet équipé
 let upFx = null;   // sous-effet à animer après une amélioration : { s, added, v }
 let lastSummon = null, upMsg = null, confirmKey = null, inCombat = false, curDg = 0, curStage = null;
+let theme = 'clair';
+try { theme = localStorage.getItem('idd-theme') === 'sombre' ? 'sombre' : 'clair'; } catch(e){}
+const themeOn = () => { document.documentElement.dataset.theme = theme; };
+themeOn();
 let speed = 1, auto = false, plein = false;
 try { speed = Number(localStorage.getItem('idd-speed')) || 1; auto = localStorage.getItem('idd-auto') === '1'; plein = localStorage.getItem('idd-fs') === '1'; } catch(e){}
 
@@ -3311,48 +3385,50 @@ const segBar = (r, n = 12, red) => `<div class="seg-bar ${red ? 'red' : ''}" ari
 
 const CLASSES = [
   // id = identifiant DofusDB : il donne l'emblème (symbol_ID) et les deux avatars (SmallHead_ID0 mâle, ID1 femelle)
-  { id:1,  n:'Féca',       r:'Protecteur',              g:'Combat',      b:'−10 % de dégâts subis' },
-  { id:2,  n:'Osamodas',   r:'Invocateur de créatures', g:'Invocation',  b:"+10 % de chance d'invoquer 4 ★ ou plus" },
-  { id:3,  n:'Enutrof',    r:'Chasseur de trésors',     g:'Butin',       b:'+10 % de chance de butin' },
+  { id:1,  n:'Féca',       r:'Protecteur',              g:'Combat',      b:'+15 % de défense' },
+  { id:2,  n:'Osamodas',   r:'Invocateur de créatures', g:'Invocation',  b:"+30 % de chance d'invoquer 4 ★ ou plus" },
+  { id:3,  n:'Enutrof',    r:'Chasseur de trésors',     g:'Butin',       b:'Deuxième objet de butin bien plus fréquent' },
   { id:4,  n:'Sram',       r:'Assassin',                g:'Combat',      b:'+8 % de chance critique' },
-  { id:5,  n:'Xélor',      r:'Maître du temps',         g:'Combat',      b:'+10 % de jauge de tour au départ' },
-  { id:6,  n:'Ecaflip',    r:'Combattant imprévisible', g:'Butin',       b:'+10 % de kamas' },
-  { id:7,  n:'Eniripsa',   r:'Guérisseur',              g:'Soutien',     b:'+15 % de soin entre les vagues' },
-  { id:8,  n:'Iop',        r:'Guerrier téméraire',      g:'Combat',      b:'+10 % de dégâts sur cible unique' },
-  { id:9,  n:'Crâ',        r:'Archer',                  g:'Combat',      b:'+10 % de précision' },
-  { id:10, n:'Sadida',     r:'Sorcier sylvestre',       g:'Progression', b:"+10 % d'expérience" },
-  { id:11, n:'Sacrieur',   r:'Berserker',               g:'Combat',      b:'+10 % de points de vie' },
-  { id:12, n:'Pandawa',    r:'Bagarreur assoiffé',      g:'Combat',      b:'+10 % de résistance aux malus' },
-  { id:13, n:'Roublard',   r:'Expert en explosifs',     g:'Combat',      b:'+10 % de dégâts de zone' },
-  { id:14, n:'Zobal',      r:'Guerrier lunatique',      g:'Butin',       b:"+10 % de jet sur l'équipement" },
-  { id:15, n:'Steamer',    r:'Technomage',              g:'Combat',      b:'+10 % de dégâts contre les boss' },
-  { id:16, n:'Eliotrope',  r:'Créateur de portails',    g:'Combat',      b:'+10 % de vitesse' },
-  { id:17, n:'Huppermage', r:'Mage élémentaliste',      g:'Combat',      b:'Avantage élémentaire renforcé' },
-  { id:18, n:'Ouginak',    r:'Barbare',                 g:'Combat',      b:'+15 % de dégâts sous 50 % de PV' },
-  { id:20, n:'Forgelance', r:'Champion immortel',       g:'Combat',      b:'+6 % de points de vie et de dégâts' },
+  { id:5,  n:'Xélor',      r:'Maître du temps',         g:'Combat',      b:'+30 % de jauge de tour au départ, +3 % de vitesse' },
+  { id:6,  n:'Ecaflip',    r:'Combattant imprévisible', g:'Butin',       b:'+25 % de kamas' },
+  { id:7,  n:'Eniripsa',   r:'Guérisseur',              g:'Soutien',     b:'+60 % de soin entre les salles' },
+  { id:8,  n:'Iop',        r:'Guerrier téméraire',      g:'Combat',      b:'+7 % de dégâts sur cible unique' },
+  { id:9,  n:'Crâ',        r:'Archer',                  g:'Combat',      b:'+30 % de précision, +4 % de critique' },
+  { id:10, n:'Sadida',     r:'Sorcier sylvestre',       g:'Progression', b:"+20 % d'expérience" },
+  { id:11, n:'Sacrieur',   r:'Berserker',               g:'Combat',      b:'+9 % de points de vie' },
+  { id:12, n:'Pandawa',    r:'Bagarreur assoiffé',      g:'Combat',      b:'+20 % de résistance aux malus, +5 % de points de vie' },
+  { id:13, n:'Roublard',   r:'Expert en explosifs',     g:'Combat',      b:'+25 % de dégâts de zone' },
+  { id:14, n:'Zobal',      r:'Guerrier lunatique',      g:'Butin',       b:"Jets d'équipement nettement meilleurs" },
+  { id:15, n:'Steamer',    r:'Technomage',              g:'Combat',      b:'+40 % de dégâts contre les boss' },
+  { id:16, n:'Eliotrope',  r:'Créateur de portails',    g:'Combat',      b:'+5 % de vitesse' },
+  { id:17, n:'Huppermage', r:'Mage élémentaliste',      g:'Combat',      b:'Avantage élémentaire doublé' },
+  { id:18, n:'Ouginak',    r:'Barbare',                 g:'Combat',      b:'+28 % de dégâts sous 50 % de PV' },
+  { id:20, n:'Forgelance', r:'Champion immortel',       g:'Combat',      b:'+4 % de points de vie et de dégâts' },
 ];
 // Effets des classes. Volontairement modestes côté combat (8 à 10 % au plus) et plus généreux hors combat :
 // un bonus de butin accélère la progression sans jamais gagner un combat à la place du joueur.
 const CLASS_FX = {
-  1:  { def:1.11 },                 // Féca — encaisse 10 % de moins
-  2:  { summon4:1.10 },             // Osamodas — invocations 4 ★ et plus
-  3:  { drop:1.10 },                // Enutrof — chance de butin
-  4:  { critFlat:8 },               // Sram — +8 points de critique
-  5:  { atb0:.10 },                 // Xélor — jauge de tour au départ
-  6:  { kamas:1.10 },               // Ecaflip
-  7:  { waveHeal:1.15 },            // Eniripsa — soin entre les vagues
-  8:  { solo:1.10 },                // Iop — dégâts sur cible unique
-  9:  { accFlat:10 },               // Crâ — précision
-  10: { xp:1.10 },                  // Sadida
-  11: { hp:1.10 },                  // Sacrieur
-  12: { resFlat:10 },               // Pandawa
-  13: { aoe:1.10 },                 // Roublard — dégâts de zone
-  14: { jet:.10 },                  // Zobal — qualité des jets trouvés
-  15: { boss:1.10 },                // Steamer — dégâts contre les boss
-  16: { spd:1.10 },                 // Eliotrope
-  17: { elem:1.5 },                 // Huppermage — avantage élémentaire renforcé
-  18: { lowHp:1.15 },               // Ouginak — sous la moitié des points de vie
-  20: { hp:1.06, atk:1.06 },        // Forgelance
+  // Combat : chaque bonus vaut à peu près la même chose en victoires (mesuré sur des combats rejoués, voir outils/).
+  1:  { def:1.15 },                 // Féca
+  4:  { critFlat:8 },               // Sram
+  5:  { atb0:.30, spd:1.03 },       // Xélor — la jauge au départ ne sert qu'au premier tour, d'où un peu de vitesse en plus
+  7:  { waveHeal:1.6 },             // Eniripsa — soin entre les salles
+  8:  { solo:1.07 },                // Iop
+  9:  { accFlat:30, critFlat:4 },   // Crâ — la précision seule ne pesait rien
+  11: { hp:1.09 },                  // Sacrieur
+  12: { resFlat:20, hp:1.05 },      // Pandawa — la résistance seule ne pesait rien
+  13: { aoe:1.25 },                 // Roublard
+  15: { boss:1.40 },                // Steamer
+  16: { spd:1.05 },                 // Eliotrope — +10 % de vitesse valait deux fois les autres bonus
+  17: { elem:2 },                   // Huppermage
+  18: { lowHp:1.28 },               // Ouginak
+  20: { hp:1.04, atk:1.04 },        // Forgelance
+  // Hors combat : ils accélèrent la progression sans gagner un combat à la place du joueur.
+  2:  { summon4:1.30 },             // Osamodas — le code doublait les 4 ★ et 5 ★ pour un bonus annoncé de 10 %
+  3:  { drop:1.50 },                // Enutrof
+  6:  { kamas:1.25 },               // Ecaflip
+  10: { xp:1.20 },                  // Sadida
+  14: { jet:.20 },                  // Zobal
 };
 const clsFx = () => { const c = classOf(); return (c && CLASS_FX[c.id]) || {}; };
 const clsSlug = c => c.n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -3488,17 +3564,17 @@ function dgDetail(i){
   const tot = Object.values(d.rarity).reduce((a,b) => a+b, 0);
   return `<section class="win"><div class="wt"><h2>${d.name}<small>niv. ${d.lvl}</small></h2></div>
     <div class="wb" style="display:grid; gap:8px">
-      <canvas class="mini big" data-map data-i="${i}" aria-hidden="true"></canvas>
-      <div class="row dgo"><button class="btn grey" data-act="auto" data-i="${i}" ${un && team.length && !(autoRun && autoRun.on) ? '' : 'disabled'} title="Ton équipe enchaîne ${AUTO_N} combats en arrière-plan pendant que tu fais autre chose">Auto ×${AUTO_N}</button>
-        <button class="btn" data-act="fight" data-i="${i}" ${un && team.length ? '' : 'disabled'}>Combattre</button></div>
+      <div class="dgart"><canvas class="mini big" data-map data-i="${i}" aria-hidden="true"></canvas>
+        ${(() => { const b = d.enemies.find(e => e.boss) || d.enemies[0], m = b && MONSTERS[b.key]; return m ? `<span class="dgboss">${portrait(b.key, 96, { badge:false })}<b>${esc(m.name)}</b><small>${b.boss ? 'Boss · ' : ''}niv. ${b.level} · ${ELEM[m.el]}</small></span>` : ''; })()}</div>
       <p style="margin:0">${d.desc}</p>
-      ${d.waves.map((w, wi) => `<div class="band">${waveWord(d)} ${wi + 1} / ${d.waves.length}${w.some(e => e.boss) ? ' · boss' : ''}</div>
-      <ul class="foes">${w.map(e => `<li>${portrait(e.key,44)}<span><b>${MONSTERS[e.key].name}</b>${e.boss ? ' <b class="bossb">Boss</b>' : ''}<br><span class="muted">niv. ${e.level} · ${ELEM[MONSTERS[e.key].el]} · <span class="stars">${starsTxt(MONSTERS[e.key].stars)}</span></span></span></li>`).join('')}</ul>`).join('')}
       <div class="band">Butin possible</div>
       ${dropsHtml(d)}${apercuModal()}
-      <footer class="row" style="justify-content:space-between">${done ? '<span class="ok">Terminé</span>' : un ? '<span class="new">1er passage : +1 pierre d\'âme pleine</span>' : '<span class="muted">Termine le niveau précédent pour l\'ouvrir</span>'}
-        <span class="row" style="gap:6px"><button class="btn grey" data-act="auto" data-i="${i}" ${un && team.length && !(autoRun && autoRun.on) ? '' : 'disabled'} title="Ton équipe enchaîne ${AUTO_N} combats en arrière-plan pendant que tu fais autre chose">Auto ×${AUTO_N}</button>
-        <button class="btn" data-act="fight" data-i="${i}" ${un && team.length ? '' : 'disabled'}>Combattre</button></span></footer>
+      <div class="row" style="justify-content:space-between">${done ? '<span class="ok">Terminé</span>' : un ? '<span class="new">1er passage : +1 pierre d\'âme pleine</span>' : '<span class="muted">Termine le niveau précédent pour l\'ouvrir</span>'}</div>
+      <div class="row dgo"><button class="btn grey" data-act="auto" data-i="${i}" ${un && team.length && !(autoRun && autoRun.on) ? '' : 'disabled'} title="Ton équipe enchaîne ${AUTO_N} combats en arrière-plan pendant que tu fais autre chose">Auto ×${AUTO_N}</button>
+        <button class="btn" data-act="fight" data-i="${i}" ${un && team.length ? '' : 'disabled'}>Combattre</button></div>
+      <div class="band slate"><span>Détail des salles</span></div>
+      ${d.waves.map((w, wi) => `<div class="band">${waveWord(d)} ${wi + 1} / ${d.waves.length}${w.some(e => e.boss) ? ' · boss' : ''}</div>
+      <ul class="foes">${w.map(e => `<li>${portrait(e.key,44)}<span><b>${MONSTERS[e.key].name}</b>${e.boss ? ' <b class="bossb">Boss</b>' : ''}<br><span class="muted">niv. ${e.level} · ${ELEM[MONSTERS[e.key].el]} · <span class="stars">${starsTxt(MONSTERS[e.key].stars)}</span></span></span></li>`).join('')}</ul>`).join('')}
     </div></section>`;
 }
 // Bandeau d'équipe, partagé par le hub et la liste des donjons
@@ -3562,10 +3638,16 @@ function viewDonjons(){
 
 // ---------- Équipe
 const eqTabs = () => '';   // l'encyclopédie a quitté cet onglet : elle s'ouvre depuis le bandeau
+const cFilt = { stars:0, el:'', role:'', tri:'etoiles', q:'' };   // filtres de la collection de monstres
 function viewEquipe(){
   const list = save.monsters.slice().sort((a,b) => (save.team.includes(b.uid) - save.team.includes(a.uid)) || MONSTERS[b.key].stars - MONSTERS[a.key].stars || b.level - a.level);
   if (!selMon || !Eco.monByUid(save, selMon)) selMon = list[0] && list[0].uid;
-  const cells = list.map(m => `<button class="cell ${m.uid === selMon ? 'on' : ''}" data-act="selMon" data-uid="${m.uid}" title="${MONSTERS[m.key].name}, niveau ${m.level}">
+  const cq = plain(cFilt.q.trim());
+  const vus = list.filter(m => { const mm = MONSTERS[m.key]; return (!cFilt.stars || starsOf(m) === cFilt.stars) && (!cFilt.el || mm.el === cFilt.el) && (!cFilt.role || mm.role === cFilt.role) && (!cq || plain(mm.name).includes(cq)); })
+    .sort(cFilt.tri === 'niveau' ? (a, b) => b.level - a.level || starsOf(b) - starsOf(a) : cFilt.tri === 'nom' ? (a, b) => MONSTERS[a.key].name.localeCompare(MONSTERS[b.key].name, 'fr') : () => 0);
+  const cRoles = [...new Set(save.monsters.map(m => MONSTERS[m.key].role))].sort((a, b) => a.localeCompare(b, 'fr'));
+  const cOpt = (v, l, cur) => `<option value="${v}" ${String(cur) === String(v) ? 'selected' : ''}>${l}</option>`;
+  const cells = vus.map(m => `<button class="cell ${m.uid === selMon ? 'on' : ''}" data-act="selMon" data-uid="${m.uid}" title="${MONSTERS[m.key].name}, niveau ${m.level}">
       ${portrait(m.key,52,{badge:false})}<span class="q">${m.level}</span><span class="st">${starsTxt(starsOf(m))}</span>${save.team.includes(m.uid) ? '<span class="team" title="Dans l\'équipe">É</span>' : ''}</button>`).join('');
   const mon = selMon && Eco.monByUid(save, selMon);
   if (!mon) return eqTabs() + '<section class="win"><div class="wb muted">Invoque un monstre pour commencer.</div></section>';
@@ -3581,8 +3663,15 @@ function viewEquipe(){
     </div>
     <section class="win"><div class="wt"><h2>Collection<small>${save.monsters.length} monstres · équipe ${save.team.length}/3</small></h2></div>
       <div class="wb" style="display:grid; gap:8px">
-      <div class="panel" style="padding:8px"><div class="mgrid">${cells}</div></div>
-      <span class="muted" style="font-size:11.5px">« É » : dans l'équipe. Clique un monstre pour l'ouvrir, puis « Mettre dans l'équipe » pour l'échanger.</span>
+      <div class="invfiltres">
+        <input class="search" id="cQ" type="search" placeholder="Rechercher un monstre" value="${esc(cFilt.q)}" aria-label="Rechercher un monstre" style="flex:1 1 150px; width:auto">
+        <span class="selwrap"><select class="sel" id="cStars" aria-label="Étoiles">${cOpt(0, 'Toutes étoiles', cFilt.stars)}${[6,5,4,3,2,1].map(n => cOpt(n, starsTxt(n), cFilt.stars)).join('')}</select></span>
+        <span class="selwrap"><select class="sel" id="cEl" aria-label="Élément">${cOpt('', 'Tous éléments', cFilt.el)}${Object.keys(ELEM).map(e => cOpt(e, ELEM[e], cFilt.el)).join('')}</select></span>
+        <span class="selwrap"><select class="sel" id="cRole" aria-label="Rôle">${cOpt('', 'Tous rôles', cFilt.role)}${cRoles.map(r => cOpt(r, r, cFilt.role)).join('')}</select></span>
+        <span class="selwrap"><select class="sel" id="cTri" aria-label="Tri">${[['etoiles','Par étoiles'],['niveau','Par niveau'],['nom','Par nom']].map(([v, l]) => cOpt(v, l, cFilt.tri)).join('')}</select></span>
+      </div>
+      <div class="panel" style="padding:8px"><div class="mgrid" id="cGrid">${cells || '<span class="muted" style="grid-column:1/-1">Aucun monstre pour ces filtres.</span>'}</div></div>
+      <span class="muted" style="font-size:11.5px">${vus.length} sur ${save.monsters.length} · « É » : dans l'équipe. Clique un monstre pour l'ouvrir, puis « Mettre dans l'équipe » pour l'échanger.</span>
       </div></section>` + teamModal();
 }
 // Objet déjà porté : on dit à qui on le prend avant de le faire, plutôt que de le déplacer en silence.
@@ -3641,6 +3730,7 @@ function optCorps(){
   const bascule = (act, on) => `<button class="btn grey sm" data-act="${act}" aria-pressed="${on}">${on ? 'Activé' : 'Désactivé'}</button>`;
   return `<div class="band">Compte</div>${compte}<div class="upmsg ko">${esc(optMsg)}</div>
     <div class="band">Jeu</div>
+    <div class="optl"><span>Thème de l'interface</span><span class="seg" role="group" aria-label="Thème">${[['clair', 'Clair'], ['sombre', 'Sombre']].map(([v, l]) => `<button data-act="optTheme" data-v="${v}" aria-pressed="${theme === v}">${l}</button>`).join('')}</span></div>
     <div class="optl"><span>Sons</span>${bascule('optSon', sonOn)}</div>
     <div class="optl"><span>Combats en plein écran</span>${bascule('optPlein', plein)}</div>
     <div class="optl"><span>Combats en automatique</span>${bascule('optAuto', auto)}</div>
@@ -3908,21 +3998,34 @@ function gearDetail(it, mon, sl){
   </div>`;
 }
 // Panneau d'un emplacement : l'objet porté, puis les pièces compatibles du sac
+const gFilt = { tri:'force', stat:'', libre:false, niv:false };   // filtres de la liste d'équipement d'un emplacement
 function gearPanel(mon){
   const sl = gearPick, src = GEAR_SRC[sl] || sl;
   const id = mon.g && mon.g[sl], it = id ? Eco.gearById(save, id) : null;
-  const others = (save.gear || []).filter(g => g.s === src && g.id !== id)
-    .sort((a,b) => (a.owner != null) - (b.owner != null) || gearLvl(b) - gearLvl(a) || b.jet - a.jet);
+  // Force d'une pièce pour CE monstre : ce qu'elle lui apporte vraiment (bridage compris), ramené à sa carrure.
+  const base = computeStats(MONSTERS[mon.key], { key:mon.key, level:mon.level, starK:starK(mon) });
+  const force = g => { const st = gearStats(g, mon.level); return (st.hp || 0) / base.hp + (st.atk || 0) / base.atk + (st.def || 0) / base.def + (st.spd || 0) / 60 + (st.crit || 0) / 80 + (st.acc || 0) / 200; };
+  const veut = st => !gFilt.stat || (st[gFilt.stat] || 0) > 0;
+  const tous = (save.gear || []).filter(g => g.s === src && g.id !== id);
+  const others = tous.filter(g => (!gFilt.libre || g.owner == null) && (!gFilt.niv || gearLvl(g) <= mon.level) && veut(gearStats(g, mon.level)))
+    .sort(gFilt.tri === 'niveau' ? (a, b) => gearLvl(b) - gearLvl(a) || b.jet - a.jet : gFilt.tri === 'jet' ? (a, b) => b.jet - a.jet || gearLvl(b) - gearLvl(a) : (a, b) => force(b) - force(a));
+  const actuelle = it ? force(it) : 0;
   const rows = others.map(g => {
     const own = g.owner != null && Eco.monByUid(save, g.owner);
     return `<button class="grow" data-act="gequip" data-v="${sl}" data-id="${g.id}">
       <span class="box ${JET_CLASS(g.jet)}">${gearIcon(g, 34)}</span>
       <span style="display:grid; min-width:0"><b>${esc(gearName(g))}</b>
-        <span class="sub">Niv. ${gearLvl(g)} · ${(g.lines || []).slice(0,3).map(l => `${l.v > 0 ? '+' : ''}${l.v} ${CHAR_NAME[l.c] || ''}`).join(' · ')}${own ? ` · sur ${esc(MONSTERS[own.key].name)}` : ''}</span></span>
-      <span class="q ${JET_CLASS(g.jet)}" style="color:inherit">${Math.round(g.jet*100)} %</span></button>`;
+        <span class="sub">Niv. ${gearLvl(g)}${gearLvl(g) > mon.level ? ' (bridé)' : ''} · ${Object.entries(gearStats(g, mon.level)).map(([k, v]) => `+${fmt(v)} ${STAT[k]}`).join(' · ') || 'aucun apport'}${own ? ` · sur ${esc(MONSTERS[own.key].name)}` : ''}</span></span>
+      <span class="q" style="color:inherit; display:grid; justify-items:end; line-height:1.15">${it ? `<b class="${force(g) > actuelle * 1.02 ? 'pos' : force(g) < actuelle * .98 ? 'neg' : 'muted'}">${force(g) > actuelle * 1.02 ? '▲ mieux' : force(g) < actuelle * .98 ? '▼ moins bien' : '= pareil'}</b>` : ''}<span class="${JET_CLASS(g.jet)}" style="color:inherit; font-weight:normal">jet ${Math.round(g.jet*100)} %</span></span></button>`;
   }).join('');
   return `${it ? gearDetail(it, mon, sl) : ''}
-    <div class="panel picker"><div class="band"><span>${GEAR_LABEL[sl]}</span><span class="muted" style="color:#d9d4c4">${others.length} en réserve</span></div>
+    <div class="panel picker"><div class="band"><span>${GEAR_LABEL[sl]}</span><span class="muted" style="color:#d9d4c4">${others.length} sur ${tous.length} en réserve</span></div>
+      <div class="invfiltres">
+        <span class="selwrap"><select class="sel" id="gTri" aria-label="Tri">${[['force','Plus forts'],['niveau','Par niveau'],['jet','Meilleur jet']].map(([v, l]) => `<option value="${v}" ${gFilt.tri === v ? 'selected' : ''}>${l}</option>`).join('')}</select></span>
+        <span class="selwrap"><select class="sel" id="gStat" aria-label="Caractéristique">${[['','Toutes les stats'],['hp','Donne des PV'],['atk','Donne de l\'ATK'],['spd','Donne de la VIT'],['crit','Donne du critique'],['acc','Donne de la précision']].map(([v, l]) => `<option value="${v}" ${gFilt.stat === v ? 'selected' : ''}>${l}</option>`).join('')}</select></span>
+        <button class="btn grey sm" data-act="gFiltre" data-v="libre" aria-pressed="${!!gFilt.libre}">Libres</button>
+        <button class="btn grey sm" data-act="gFiltre" data-v="niv" aria-pressed="${!!gFilt.niv}" title="Seulement les pièces qui ne sont pas bridées par le niveau du monstre">À son niveau</button>
+      </div>
       <div class="glist">${rows || '<span class="muted">Aucune pièce pour cet emplacement. Va en campagne pour en trouver.</span>'}</div></div>`;
 }
 
@@ -4737,6 +4840,7 @@ const ACT = {
     confirmKey = null; persist(); render();
   },
   volNon(){ volPick = null; render(); },
+  gFiltre(d){ gFilt[d.v] = !gFilt[d.v]; render(); },
   gfuse(d){
     const g = Eco.gearById(save, +d.id); if (!g) return;
     const k = 'gfuse' + g.id;
@@ -4865,6 +4969,7 @@ document.addEventListener('input', e => {
   if (e.target.id === 'fSeuil'){ filt.seuil = +e.target.value; render(); }
   if (e.target.id === 'hdvQ'){ hdvQ = e.target.value; clearTimeout(hdvT); hdvT = setTimeout(() => hdvCharger().then(render), 350); }
   if (e.target.id === 'mpQ'){ mpQ = e.target.value; clearTimeout(mpT); mpT = setTimeout(() => mpChercher().then(() => chatPaint()), 300); }
+  if (e.target.id === 'cQ'){ cFilt.q = e.target.value; clearTimeout(cFilt.t); cFilt.t = setTimeout(() => { render(); const i = $('#cQ'); if (i){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 350); }
   if (e.target.id === 'dq'){ dq = e.target.value; $('#dlist').innerHTML = dgListHtml(); }
   if (e.target.id === 'eq'){
     ency.q = e.target.value; ency.n = 60;
@@ -4877,6 +4982,12 @@ document.addEventListener('change', e => {
   if (t.id === 'estars'){ ency.stars = +t.value; ency.n = 60; encyPaint(); }
   else if (t.id === 'eel'){ ency.el = t.value; ency.n = 60; encyPaint(); }
   else if (t.id === 'einv'){ ency.inv = +t.value; ency.n = 60; encyPaint(); }
+  else if (t.id === 'gTri'){ gFilt.tri = t.value; render(); }
+  else if (t.id === 'gStat'){ gFilt.stat = t.value; render(); }
+  else if (t.id === 'cStars'){ cFilt.stars = +t.value; render(); }
+  else if (t.id === 'cEl'){ cFilt.el = t.value; render(); }
+  else if (t.id === 'cRole'){ cFilt.role = t.value; render(); }
+  else if (t.id === 'cTri'){ cFilt.tri = t.value; render(); }
   else if (t.id === 'etype'){ ency.type = t.value; ency.n = 60; encyPaint(); }
 });
 let resizeT = null;
@@ -5755,6 +5866,7 @@ Object.assign(ACT, {
   tauxOn(){ tauxOn = true; render(); }, tauxOff(){ tauxOn = false; render(); },
   pan(d){ panneau = d.v; optMsg = ''; optBusy = false; popPaint(); renderTop(); },
   panOff(){ if (optBusy) return; panneau = null; popPaint(); renderTop(); },
+  optTheme(d){ theme = d.v; try { localStorage.setItem('idd-theme', theme); } catch(e){} themeOn(); popPaint(); },
   optSon(){ sonOn = !sonOn; try { localStorage.setItem('idd-son', sonOn ? '1' : '0'); } catch(e){} if (sonOn) SON.clic(); popPaint(); },
   optPlein(){ plein = !plein; try { localStorage.setItem('idd-fs', plein ? '1' : '0'); } catch(e){} popPaint(); },
   optAuto(){ auto = !auto; try { localStorage.setItem('idd-auto', auto ? '1' : '0'); } catch(e){} popPaint(); },
