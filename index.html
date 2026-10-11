@@ -313,6 +313,12 @@ body.in-combat .tabs{display:none}
 .rtawait{display:flex; align-items:center; gap:9px; padding:10px 12px; background:var(--row2); border:1px solid var(--panel-line); border-radius:7px; font-size:13px}
 .rtawait .sp{width:16px; height:16px; flex:none; border-radius:50%; border:2px solid var(--panel-line); border-top-color:var(--orange2); animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* Inventaire : filtres compacts et marqueurs */
+.invfiltres{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+.invfiltres .seuil{display:flex; align-items:center; gap:6px; font-size:11.5px}
+.invfiltres .seuil input{width:110px; accent-color:var(--orange2)}
+.cell .verrou{position:absolute; left:2px; top:1px; font-size:9px; z-index:3; filter:drop-shadow(0 0 2px #000)}
+.invfoot{flex-wrap:wrap; gap:8px}
 /* Équipes enregistrées par mode */
 .teambar{display:flex; flex-wrap:wrap; gap:5px; align-items:center; margin-bottom:8px}
 .teambar .tn{display:inline-grid; place-items:center; min-width:15px; height:15px; padding:0 3px; border-radius:8px;
@@ -1577,7 +1583,7 @@ const Eco = (() => {
     return out;
   }
   function newSave(){
-    const s = { v:SAVE_V, sc:1, cat:CAT_MODE, kamas:800, stones:3, gold:0, scrolls:0, sum:0, ach:{}, nextId:1, monsters:[], items:[], gear:[], team:[], teams:{}, cleared:[], seen:[], wins:0 };
+    const s = { v:SAVE_V, sc:1, cat:CAT_MODE, kamas:800, stones:3, gold:0, scrolls:0, sum:0, ach:{}, nextId:1, monsters:[], items:[], gear:[], lock:[], team:[], teams:{}, cleared:[], seen:[], wins:0 };
     const [k1, k2, k3] = starterKeys();
     const a = addMonster(s,k1,10), b = addMonster(s,k2,10), c = addMonster(s,k3,10);   // au niveau du premier donjon
     s.team = [a.uid, b.uid, c.uid]; s.seen = [k1, k2, k3];
@@ -2965,50 +2971,99 @@ function slotPanel(mon){
 }
 
 // ---------- Inventaire
+// Tri de l'inventaire : l'équipement s'accumule vite, il faut pouvoir retrouver et nettoyer.
+const INV_TRIS = [['qualite','Meilleur jet'],['niveau','Niveau'],['recent','Plus récents'],['rarete','Rareté']];
+const estVerrou = o => !!(save.lock || []).includes((o.lines ? 'g' : 'i') + o.id);
+const bascVerrou = o => { save.lock = save.lock || []; const k = (o.lines ? 'g' : 'i') + o.id;
+  const i = save.lock.indexOf(k); if (i >= 0) save.lock.splice(i, 1); else save.lock.push(k); };
+// Reprend exactement les filtres de la vue, pour que « vendre les affichés » vende bien ceux-là et pas d'autres
+function invMontre(o){
+  const kind = filt.kind || 'tous', slotKind = GEAR_SLOTS.includes(kind), porte = filt.porte || 'tous';
+  const est = o.lines ? 'g' : 'i';
+  if (est === 'g'){
+    if (!(kind === 'tous' || kind === 'gear' || slotKind)) return false;
+    if (slotKind && o.s !== (GEAR_SRC[kind] || kind)) return false;
+  } else {
+    if (!(kind === 'tous' || kind === 'trophee' || kind === 'dofus')) return false;
+    if (kind === 'dofus' && o.rarity !== 'legendaire') return false;
+    if (kind === 'trophee' && o.rarity === 'legendaire') return false;
+    if (filt.rar && o.rarity !== filt.rar) return false;
+  }
+  if (porte === 'libres' && o.owner != null) return false;
+  if (porte === 'portes' && o.owner == null) return false;
+  return qualiteDe(o) * 100 >= +(filt.seuil || 0);
+}
+const qualiteDe = o => o.lines ? o.jet : (RARITIES.indexOf(o.rarity) + o.lvl / 15) / RARITIES.length;
+
 function viewTrophees(){
-  // Deux familles cohabitent : trophées et Dofus (améliorables) d'un côté, équipement (jet figé) de l'autre.
-  // Le même onglet les montre, avec un filtre par type comme l'inventaire du jeu.
-  const kind = filt.kind || 'tous';
+  const kind = filt.kind || 'tous', tri = filt.tri || 'qualite';
   const slotKind = GEAR_SLOTS.includes(kind);
   const voirTro = kind === 'tous' || kind === 'trophee' || kind === 'dofus';
   const voirGear = kind === 'tous' || kind === 'gear' || slotKind;
-  const tros = !voirTro ? [] : save.items
-    .filter(i => (kind !== 'dofus' || i.rarity === 'legendaire') && (kind !== 'trophee' || i.rarity !== 'legendaire')
-      && (!filt.rar || i.rarity === filt.rar))
-    .sort((a, b) => RARITIES.indexOf(b.rarity) - RARITIES.indexOf(a.rarity) || b.lvl - a.lvl || a.slot - b.slot);
-  const gears = !voirGear ? [] : (save.gear || [])
-    .filter(g => !slotKind || g.s === (GEAR_SRC[kind] || kind))
-    .sort((a, b) => gearLvl(b) - gearLvl(a) || b.jet - a.jet);
+  const porte = filt.porte || 'tous';        // tous · libres · portés
+  const seuil = +(filt.seuil || 0);          // qualité minimale, en pourcentage
 
-  const tout = [...tros.map(o => ({ t:'i', o })), ...gears.map(o => ({ t:'g', o }))];
+  const garde = o => {
+    if (porte === 'libres' && o.owner != null) return false;
+    if (porte === 'portes' && o.owner == null) return false;
+    return qualiteDe(o) * 100 >= seuil;
+  };
+  const tros = !voirTro ? [] : save.items.filter(i =>
+    (kind !== 'dofus' || i.rarity === 'legendaire') && (kind !== 'trophee' || i.rarity !== 'legendaire')
+    && (!filt.rar || i.rarity === filt.rar) && garde(i));
+  const gears = !voirGear ? [] : (save.gear || []).filter(g => (!slotKind || g.s === (GEAR_SRC[kind] || kind)) && garde(g));
+
+  const niv = o => o.lines ? gearLvl(o) : (o.il || 20);
+  const cmp = {
+    qualite: (a, b) => qualiteDe(b) - qualiteDe(a) || niv(b) - niv(a),
+    niveau:  (a, b) => niv(b) - niv(a) || qualiteDe(b) - qualiteDe(a),
+    recent:  (a, b) => b.id - a.id,
+    rarete:  (a, b) => (b.lines ? 2 : RARITIES.indexOf(b.rarity)) - (a.lines ? 2 : RARITIES.indexOf(a.rarity)) || qualiteDe(b) - qualiteDe(a),
+  }[tri];
+  const tout = [...tros.map(o => ({ t:'i', o })), ...gears.map(o => ({ t:'g', o }))].sort((x, y) => cmp(x.o, y.o));
+
   if (!tout.some(x => x.t === selKind && x.o.id === selItem)){
     const p = tout[0];
     if (p){ selKind = p.t; selItem = p.o.id; } else selItem = null;
   }
-  const cells = tout.map(x => x.t === 'i'
-    ? `<button class="cell r-${x.o.rarity} ${selKind === 'i' && selItem === x.o.id ? 'on' : ''}" data-act="selItem" data-id="${x.o.id}" title="${esc(itemName(x.o))} +${x.o.lvl}">
-        ${itemIcon(x.o)}<span class="lv">+${x.o.lvl}</span>${x.o.owner != null ? '<span class="own"></span>' : ''}</button>`
-    : `<button class="cell ${JET_CLASS(x.o.jet)} ${selKind === 'g' && selItem === x.o.id ? 'on' : ''}" data-act="selGear" data-id="${x.o.id}" title="${esc(gearName(x.o))} · niveau ${gearLvl(x.o)} · jet ${Math.round(x.o.jet * 100)} %">
-        ${gearIcon(x.o, 42)}<span class="lv">${Math.round(x.o.jet * 100)}</span>${x.o.owner != null ? '<span class="own"></span>' : ''}</button>`).join('');
+  const cells = tout.map(x => {
+    const v = estVerrou(x.o) ? '<span class="verrou" title="Protégé de la vente groupée">🔒</span>' : '';
+    return x.t === 'i'
+      ? `<button class="cell r-${x.o.rarity} ${selKind === 'i' && selItem === x.o.id ? 'on' : ''}" data-act="selItem" data-id="${x.o.id}" title="${esc(itemName(x.o))} +${x.o.lvl}">
+          ${itemIcon(x.o)}<span class="lv">+${x.o.lvl}</span>${x.o.owner != null ? '<span class="own"></span>' : ''}${v}</button>`
+      : `<button class="cell ${JET_CLASS(x.o.jet)} ${selKind === 'g' && selItem === x.o.id ? 'on' : ''}" data-act="selGear" data-id="${x.o.id}" title="${esc(gearName(x.o))} · niveau ${gearLvl(x.o)} · jet ${Math.round(x.o.jet * 100)} %">
+          ${gearIcon(x.o, 42)}<span class="lv">${Math.round(x.o.jet * 100)}</span>${x.o.owner != null ? '<span class="own"></span>' : ''}${v}</button>`;
+  }).join('');
 
   const sel = selItem && (selKind === 'g' ? Eco.gearById(save, selItem) : Eco.itemById(save, selItem));
   const detail = !sel
     ? '<section class="win"><div class="wt"><h2>Objet</h2></div><div class="wb muted">Sélectionne un objet.</div></section>'
     : selKind === 'g'
-      ? `<section class="win"><div class="wt"><h2>Équipement</h2></div><div class="wb" style="padding:6px">${gearDetail(sel, null, sel.s)}</div></section>`
+      ? `<section class="win"><div class="wt"><h2>Équipement</h2></div><div class="wb" style="padding:6px">${gearDetail(sel, null, sel.s)}
+          <div class="row" style="padding:0 10px 10px"><button class="btn grey sm" data-act="verrou">${estVerrou(sel) ? 'Déprotéger' : 'Protéger de la vente'}</button></div></div></section>`
       : itemDetail(sel);
+
+  // Vente groupée : tout ce qui est affiché, libre et non protégé
+  const aVendre = tout.filter(x => x.o.owner == null && !estVerrou(x.o));
+  const valeur = aVendre.reduce((t, x) => t + (x.t === 'g' ? Eco.gearValue(x.o) : Eco.sellValue(x.o)), 0);
 
   const TYPES = [['tous', 'Tous types'], ['trophee', 'Trophées'], ['dofus', 'Dofus'], ['gear', "Tout l'équipement"],
     ...GEAR_SLOTS.filter(sl => sl !== 'anneau2').map(sl => [sl, GEAR_LABEL[sl]])];
   return `<div class="split">
     ${detail}
-    <section class="win"><div class="wt"><h2>Inventaire<small>${tout.length} objets</small></h2></div><div class="wb" style="display:grid; gap:8px">
-      <div class="row">
+    <section class="win"><div class="wt"><h2>Inventaire<small>${tout.length} sur ${save.items.length + (save.gear || []).length}</small></h2></div>
+      <div class="wb" style="display:grid; gap:8px">
+      <div class="invfiltres">
         <span class="selwrap"><select class="sel" id="fKind" aria-label="Type">${TYPES.map(([v, l]) => `<option value="${v}" ${kind === v ? 'selected' : ''}>${l}</option>`).join('')}</select></span>
+        <span class="selwrap"><select class="sel" id="fTri" aria-label="Tri">${INV_TRIS.map(([v, l]) => `<option value="${v}" ${tri === v ? 'selected' : ''}>${l}</option>`).join('')}</select></span>
+        <span class="selwrap"><select class="sel" id="fPorte" aria-label="Port">${[['tous','Portés ou non'],['libres','Libres seulement'],['portes','Portés seulement']].map(([v, l]) => `<option value="${v}" ${porte === v ? 'selected' : ''}>${l}</option>`).join('')}</select></span>
         ${voirTro && !slotKind && kind !== 'gear' ? `<span class="selwrap"><select class="sel" id="fRar" aria-label="Rareté"><option value="">Toutes raretés</option>${RARITIES.map(r => `<option value="${r}" ${filt.rar === r ? 'selected' : ''}>${RAR_LABEL[r]}</option>`).join('')}</select></span>` : ''}
+        <label class="seuil"><span class="muted">Jet ≥ ${seuil} %</span><input type="range" id="fSeuil" min="0" max="95" step="5" value="${seuil}"></label>
       </div>
-      <div class="panel" style="padding:8px; max-height:460px; overflow:auto"><div class="grid">${cells || '<span class="muted" style="grid-column:1/-1">Rien ici pour ces filtres.</span>'}</div></div>
-      <div class="invfoot"><span class="muted" style="font-weight:normal; margin-right:auto">Point bleu : porté par un monstre</span>${kamaIcon(16)} ${fmt(save.kamas)} K</div>
+      <div class="panel" style="padding:8px; max-height:420px; overflow:auto"><div class="grid">${cells || '<span class="muted" style="grid-column:1/-1">Rien ici pour ces filtres.</span>'}</div></div>
+      <div class="invfoot">
+        ${aVendre.length ? confirmBtn('vendreTout', `Vendre les ${aVendre.length} affichés · ${fmt(valeur)} K`, 'Confirmer la vente', 'vendreTout') : '<span class="muted" style="font-weight:normal">Rien à vendre ici</span>'}
+        <span class="muted" style="font-weight:normal; margin-left:auto">Point bleu : porté · cadenas : protégé</span>${kamaIcon(16)} ${fmt(save.kamas)} K</div>
     </div></section></div>`;
 }
 const itemKind = it => it.rarity === 'legendaire' ? 'Dofus' : 'Trophée';
@@ -3635,6 +3690,23 @@ const ACT = {
   unequip(d){ Eco.unequip(save, Eco.itemById(save, +d.id)); slotPick = null; swapOpen = false; persist(); render(); },
   selItem(d){ selKind = 'i'; selItem = +d.id; upFx = null; upMsg = null; confirmKey = null; render(); },
   selGear(d){ selKind = 'g'; selItem = +d.id; upFx = null; upMsg = null; confirmKey = null; render(); },
+  verrou(){
+    const o = selKind === 'g' ? Eco.gearById(save, selItem) : Eco.itemById(save, selItem);
+    if (o){ bascVerrou(o); persist(); render(); }
+  },
+  // Vend tout ce que les filtres montrent, sauf ce qui est porté ou protégé : le seul moyen de tenir
+  // un inventaire qui grossit d'une à deux pièces par victoire.
+  vendreTout(){
+    if (confirmKey !== 'vendreTout'){ confirmKey = 'vendreTout'; return render(); }
+    confirmKey = null;
+    const avant = save.kamas;
+    let n = 0;
+    for (const g of (save.gear || []).slice()) if (g.owner == null && !estVerrou(g) && invMontre(g)){ Eco.sellGear(save, g); n++; }
+    for (const i of save.items.slice()) if (i.owner == null && !estVerrou(i) && invMontre(i)){ Eco.sell(save, i); n++; }
+    selItem = null; persist();
+    toast(n ? `${n} objet${n > 1 ? 's' : ''} vendu${n > 1 ? 's' : ''} pour ${fmt(save.kamas - avant)} kamas.` : 'Rien à vendre.');
+    render();
+  },
   upgrade(){
     const it = Eco.itemById(save, selItem), r = Eco.upgrade(save, it);
     upFx = r.ok && r.sub ? r.sub : null;
@@ -3703,10 +3775,13 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   const t = e.target;
   if (t.id === 'fKind'){ filt.kind = t.value; render(); }
+  else if (t.id === 'fTri'){ filt.tri = t.value; render(); }
+  else if (t.id === 'fPorte'){ filt.porte = t.value; render(); }
   else if (t.id === 'fSlot'){ filt.slot = +t.value; render(); }
   else if (t.id === 'fRar'){ filt.rar = t.value; render(); }
 });
 document.addEventListener('input', e => {
+  if (e.target.id === 'fSeuil'){ filt.seuil = +e.target.value; render(); }
   if (e.target.id === 'dq'){ dq = e.target.value; $('#dlist').innerHTML = dgListHtml(); }
   if (e.target.id === 'eq'){
     ency.q = e.target.value; ency.n = 60;
