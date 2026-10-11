@@ -317,6 +317,10 @@ body.in-combat .tabs{display:none}
 .hdvlist{display:grid; gap:5px; max-height:420px; overflow:auto; padding:2px}
 .hdvrow{display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; gap:9px; align-items:center;
   padding:5px 8px 5px 5px; background:var(--row2); border:1px solid var(--panel-line); border-radius:6px}
+.hdvrow button.box{padding:0; cursor:pointer}
+.hdvnom{display:grid; min-width:0; text-align:left; background:none; border:0; padding:0; font:inherit; color:inherit; cursor:pointer}
+.hdvnom u{color:var(--orange-dk)}
+.hdvjets{grid-column:1 / -1; display:grid; gap:4px; padding:6px 4px 2px; border-top:1px dashed var(--panel-line)}
 .hdvrow .box{width:40px; height:40px; display:grid; place-items:center; border-radius:6px;
   border:1px solid var(--slot-line); background:linear-gradient(var(--slot-hi), var(--slot))}
 .hdvrow .box img, .hdvrow .box svg{width:34px; height:34px; object-fit:contain}
@@ -333,6 +337,11 @@ body.in-combat .tabs{display:none}
 .teambar{display:flex; flex-wrap:wrap; gap:5px; align-items:center; margin-bottom:8px}
 .teambar .tn{display:inline-grid; place-items:center; min-width:15px; height:15px; padding:0 3px; border-radius:8px;
   background:#ffffff40; font-size:10px; line-height:1}
+/* Nourrir */
+.feedgrid{max-height:min(46vh, 340px); overflow:auto; grid-template-columns:repeat(auto-fill, minmax(54px, 1fr)); gap:5px}
+.feedgrid .cell{aspect-ratio:1; width:auto; height:auto}
+.feedgrid .cell .por{width:100%; height:100%; border:0; background:none}
+.feedgrid .cell.on{outline:3px solid var(--orange2); outline-offset:-2px}
 /* Chat : monde et messages privés */
 .chatlist{list-style:none; margin:0; padding:7px 9px; display:grid; gap:4px; align-content:start;
   height:min(52vh, 420px); overflow:auto; background:var(--panel); border:1px solid var(--panel-line); border-radius:7px; box-shadow:inset 0 1px 3px #0002}
@@ -368,7 +377,16 @@ body.in-combat .tabs{display:none}
 /* ---------- Invocation ---------- */
 .altars{display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap:12px}
 .altar .wb{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; align-items:center}
-.altar .gem{grid-row:span 3}
+/* Portail : l'illustration, la pierre et les deux boutons ; les taux sont derrière le « ? » */
+.portail{position:relative; grid-column:1 / -1; margin:-10px -10px 2px; height:clamp(130px, 38vw, 230px); overflow:hidden; background:#2a2118 62% 40% / cover no-repeat}
+.portail::after{content:''; position:absolute; inset:0; background:linear-gradient(#0000 60%, var(--win))}
+.portail .aide{position:absolute; right:10px; top:10px; z-index:1; width:30px; height:30px; border-radius:50%; border:1px solid #fff9; background:#14100acc; color:#fff; font-weight:bold; font-size:16px; cursor:pointer}
+.altar .row{grid-column:1 / -1}
+.tauxl{display:grid; gap:8px; max-height:min(64vh, 520px); overflow:auto}
+.tauxl .tr{display:grid; gap:4px; padding:6px 8px; background:var(--row2); border:1px solid var(--panel-line); border-radius:6px}
+.tauxl .th{display:flex; justify-content:space-between; align-items:baseline; font-weight:bold}
+.tauxl .tm{display:flex; flex-wrap:wrap; gap:3px}
+.tauxl .tm .por{width:34px; height:34px}
 .altar .count{font-size:34px; font-weight:bold; line-height:1; font-variant-numeric:tabular-nums}
 .rates{display:flex; flex-wrap:wrap; gap:4px; list-style:none; margin:0; padding:0; font-size:11px}
 .rates li{background:var(--row2); border:1px solid var(--panel-line); padding:1px 7px; border-radius:9px; font-variant-numeric:tabular-nums}
@@ -405,14 +423,16 @@ body.in-combat .tabs{display:none}
 .sumcard{position:relative; display:grid; justify-items:center; gap:1px; padding:6px 4px 5px; border-radius:9px; border:2px solid var(--c); min-width:0;
   background:linear-gradient(color-mix(in srgb, var(--c) 30%, #1a1208), #120c06); box-shadow:0 0 12px -2px var(--c); animation:sumCard .35s cubic-bezier(.2,1.6,.4,1) both}
 .sumcard.hot{box-shadow:0 0 22px 2px var(--c); animation:sumCard .35s cubic-bezier(.2,1.6,.4,1) both, sumGlow 1.1s ease-in-out .35s infinite}
-.sumcard .por{--sz:70px; animation:none; filter:none}
-.sumcard .por:not(:has(.pimg)){--sz:56px; font-size:18px}
+/* la taille du portrait est posée en ligne par portrait() : on fixe la boîte ici, sinon il déborde de la carte */
+.sumcard .por{width:100%; height:auto; aspect-ratio:1; max-width:76px; animation:none; filter:none; background:none; border:0; box-shadow:none}
+.sumcard .por .pimg{background:none; padding:0}
+.sumcard .por:not(:has(.pimg)){max-width:56px; font-size:18px; border-radius:50%}
 .sumcard b{color:#ffc531; font-size:11px; letter-spacing:-1px; text-shadow:0 1px 0 #000}
 .sumcard small{font-size:10px; line-height:1.15; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .sumcard i{position:absolute; top:-7px; right:-5px; padding:0 5px; border-radius:8px; background:var(--orange2); font-size:9px; font-style:normal; font-weight:bold; line-height:14px}
 @keyframes sumCard{from{transform:scale(.2) translateY(-40px); opacity:0}}
 @keyframes sumGlow{50%{box-shadow:0 0 34px 8px var(--c)}}
-@media (max-width: 560px){ .sumgrid{gap:5px} .sumcard .por{--sz:52px} }
+@media (max-width: 560px){ .sumgrid{gap:6px; grid-template-columns:repeat(5, minmax(0, 1fr)); width:100%} .sumcard{padding:5px 2px 4px} }
 .sumstars{display:flex; gap:4px; min-height:40px; align-items:center}
 .sumstars span{font-size:36px; line-height:1; color:#ffc531; text-shadow:0 0 12px #ffb21a, 0 2px 0 #7a4a00; animation:sumStar .4s cubic-bezier(.2,1.8,.4,1) both}
 .sumres h3{margin:0; font-size:clamp(24px, 6vw, 38px); color:#fff; text-shadow:0 0 18px var(--c), 0 2px 0 #000; animation:sumUp .4s ease-out both}
@@ -577,6 +597,26 @@ body.in-combat .tabs{display:none}
 .fctrl{flex:none; display:flex; gap:5px; align-items:center; padding-right:6px}
 /* Plein écran : la fenêtre de combat recouvre la page. Fait en CSS, car Safari sur iPhone n'ouvre pas
    le vrai plein écran du navigateur pour autre chose qu'une vidéo. */
+/* Boss mondial : le combat se joue seul, l'ordre des tours et les sorts laissent la place à sa barre de vie */
+.field.wb .timeline > *, .field.wb .spellbar, .field.wb #autoBtn{display:none}
+.field.wb .timeline{min-height:0; padding:0}
+.field.wb .ftop{left:auto; background:none; border-color:transparent; backdrop-filter:none; z-index:61}
+.field.wb .fctrl{padding:4px 6px}
+.field.wb .unit.sideA .fx, .field.wb .unit.sideB .plate .bar{display:none}   /* dix monstres serrés : on allège les plaques, la vie du boss est en haut */
+.wbbar{position:absolute; left:6px; top:6px; z-index:60; display:grid; gap:3px; padding:5px 8px 6px; width:calc(100% - 12px); box-sizing:border-box;
+  background:#14100acc; border:1px solid #0007; border-radius:8px; backdrop-filter:blur(3px); color:#fff; --c:#e0452b; --n:#f08a1d}
+.wbbar .wbh{display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-weight:bold; font-size:13px; padding-right:var(--ctl, 0px); min-height:var(--ctlh, 0px)}
+.wbbar .wbh span{font-size:11.5px; font-weight:normal; color:#e9e4d8; white-space:nowrap}
+.wbbar .wbh b{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.wbbar .wbt{position:relative; height:22px; border-radius:5px; overflow:hidden; background:var(--n); border:1px solid #000a; box-shadow:inset 0 2px 3px #0008}
+.wbbar .wbt i{position:absolute; inset:0 auto 0 0; width:var(--w, 100%); background:linear-gradient(color-mix(in srgb, var(--c) 70%, #fff), var(--c) 55%, color-mix(in srgb, var(--c) 75%, #000));
+  transition:width .35s ease-out; box-shadow:2px 0 4px #0008}
+.wbbar .wbt em{position:absolute; inset:0; display:grid; place-items:center; font-style:normal; font-size:11.5px; font-weight:bold; text-shadow:0 0 3px #000, 0 1px 1px #000; font-variant-numeric:tabular-nums}
+.wbbar .wbp{display:flex; gap:3px}
+.wbbar .wbp i{flex:1; height:5px; border-radius:2px; background:var(--pc); opacity:.95; box-shadow:inset 0 1px 0 #fff5}
+.wbbar .wbp i.off{background:#3d3c38; opacity:.7; box-shadow:none}
+.wbbar.flash .wbt{animation:wbFlash .5s}
+@keyframes wbFlash{0%{filter:brightness(3)} 100%{filter:none}}
 body.fs{overflow:hidden}
 body.fs .cwin{position:fixed; inset:0; z-index:1000; margin:0; border-radius:0; display:flex; flex-direction:column;
   height:100vh; height:100dvh; padding-top:env(safe-area-inset-top, 0px)}
@@ -1206,6 +1246,20 @@ const UP_RATE = [100,100,95,90,80,70,60,50,40,35,30,25,20,15,10];   // chance de
 const TROPHY_NAMES = { atk:'Trophée Puissant', def:'Trophée Robuste', hp:'Trophée Vital', spd:'Trophée Agile', crit:'Trophée Critique', critDmg:'Trophée Brutal', acc:'Trophée Sage', res:'Trophée Tenace' };
 const DOFUS_NAMES  = { atk:'Dofus Ébène', def:'Dofus Ivoire', hp:'Dofus Émeraude', spd:'Dofus Ocre', crit:'Dofus Turquoise', critDmg:'Dofus Pourpre', acc:'Dofus Abyssal', res:'Dofus Cacao' };
 
+// ---- Nourrir : un monstre en mange d'autres pour gagner de l'expérience.
+// Les gelées sont faites pour ça : elles ne s'invoquent pas, on les gagne dans la Gelaxième Dimension, et une
+// seule vaut des dizaines de monstres ordinaires. Un monstre ordinaire rapporte selon ses étoiles et son niveau ;
+// de la même espèce que celui qui mange, il rapporte le double et lui monte un sort d'un niveau.
+const GELEES = ['gelée bleuet', 'gelée menthe', 'gelée fraise', 'gelée citron', 'gelée royale citron'];   // de 1 ★ à 5 ★
+const GEL_XP = { 1:1800, 2:4500, 3:9000, 4:16000, 5:30000 };
+const gelKeys = () => GELEES.map(n => Object.keys(MONSTERS).find(k => MONSTERS[k].name.toLowerCase() === n));
+function foodXp(f, mon){
+  const fm = MONSTERS[f.key];
+  if (fm.food) return GEL_XP[fm.food];
+  const st = (f.st || fm.stars || 1);
+  return Math.round((40 * st * st + 25 * ((f.level || 1) - 1)) * (mon && f.key === mon.key ? 2 : 1));
+}
+
 // ---- Invocation
 const SUMMON = { label:'Pierre d\'âme pleine', rates:{1:22, 2:38, 3:27, 4:10, 5:3} };
 
@@ -1604,6 +1658,28 @@ const Eco = (() => {
     if (mon.st >= MAX_STARS) mon.awakened = true;   // la forme éveillée est la récompense du 6 ★
     return { ok:true, st:mon.st, awakened:mon.awakened };
   }
+  // Un monstre engagé dans une équipe, quel que soit le mode, ne se mange pas.
+  const engage = (save, m) => save.team.includes(m.uid) || Object.values(save.teams || {}).some(t => t.includes(m.uid));
+  const mangeables = (save, mon) => save.monsters.filter(x => x !== mon && !engage(save, x));
+  function feed(save, mon, uids){
+    const plats = mangeables(save, mon).filter(x => uids.includes(x.uid));
+    if (!plats.length) return { err:'Choisis au moins un monstre à donner.' };
+    if (mon.level >= MAX_LVL && !plats.some(f => f.key === mon.key)) return { err:'Niveau maximum atteint : seul un monstre de la même espèce lui servirait encore.' };
+    let xp = 0, sorts = 0;
+    for (const f of plats){
+      xp += foodXp(f, mon);
+      if (f.key === mon.key && !MONSTERS[f.key].food){            // même espèce : un sort monte d'un niveau
+        mon.sk = mon.sk || [];
+        const n = MONSTERS[mon.key].skills.length, i = [...Array(n).keys()].filter(k => (mon.sk[k] || 1) < SK_MAX).sort((a, b) => (mon.sk[a] || 1) - (mon.sk[b] || 1))[0];
+        if (i != null){ mon.sk[i] = (mon.sk[i] || 1) + 1; sorts++; }
+      }
+      for (const it of itemsOf(save, f)) unequip(save, it);
+      for (const g of Object.values(gearOf(save, f))) unequipGear(save, g);
+    }
+    save.monsters = save.monsters.filter(m => !plats.includes(m));
+    const avant = mon.level, ups = addXp(mon, xp);
+    return { ok:true, xp, ups, sorts, n:plats.length, avant };
+  }
   function release(save, mon){
     if (save.team.includes(mon.uid)) return { err:'Retire-le d\'abord de l\'équipe.' };
     for (const it of itemsOf(save, mon)) unequip(save, it);
@@ -1634,7 +1710,7 @@ const Eco = (() => {
     for (const uid of team || save.team){ const m = monByUid(save, uid); if (m){ const ups = addXp(m, Math.round(dg.xp * (C.xp || 1))); out.xp.push({ key:m.key, name:MONSTERS[m.key].name, ups, level:m.level }); } }
     // Chaque mode a son butin, et un seul : la campagne l'équipement, les raids les trophées,
     // les dragons leur Dofus (rare) accompagné de quelques pièces d'équipement.
-    const n = dg.mode === 'xp' ? 0 : 1 + (R() < (dg.mode === 'camp' ? .4 : .5) * (C.drop || 1) ? 1 : 0), ilvl = dg.dofusLvl || dg.lvl;
+    const n = dg.mode === 'xp' || dg.mode === 'gel' ? 0 : 1 + (R() < (dg.mode === 'camp' ? .4 : .5) * (C.drop || 1) ? 1 : 0), ilvl = dg.dofusLvl || dg.lvl;
     out.gear = [];
     const dropGear = () => { const g = genGear(save, dg.lvl); if (g){ save.gear = save.gear || []; save.gear.push(g); out.gear.push(g); } };
     for (let i = 0; i < n; i++){
@@ -1646,6 +1722,14 @@ const Eco = (() => {
       if (dg.mode === 'dragon'){ dropGear(); continue; }
       const it = genItem(save, weighted(dg.rarity), 0, ilvl, dg.mains);   // raids : trophées
       save.items.push(it); out.items.push(it);
+    }
+    out.mons = [];
+    if (dg.gel){                                                   // Gelaxième Dimension : une gelée par victoire, parfois deux
+      const ks = gelKeys();
+      for (let i = 0, nb = 1 + (R() < .3 * (C.drop || 1) ? 1 : 0); i < nb; i++){
+        const k = ks[+weighted(dg.gel) - 1]; if (!k) continue;
+        out.mons.push(addMonster(save, k, 1)); if (!save.seen.includes(k)) save.seen.push(k);
+      }
     }
     if (!save.cleared.includes(dg.id)){ save.cleared.push(dg.id); save.stones++; out.stones++; out.first = true; }
     save.wins = (save.wins||0) + 1;
@@ -1666,7 +1750,7 @@ const Eco = (() => {
     return s;
   }
   return { skillUp, dupOf, genItem, itemsOf, monDef, equip, unequip, upgrade, upCost, sell, sellValue, awaken, awakenCost, release, summon, loot, newSave, monByUid, itemById,
-    genGear, gearById, gearOf, equipGear, unequipGear, sellGear, gearValue, fodder };
+    genGear, gearById, gearOf, equipGear, unequipGear, sellGear, gearValue, fodder, feed, mangeables };
 })();
 
 /* =====================================================================
@@ -1920,6 +2004,30 @@ const KIT = {
   Soigneur: [['enemy',0,[{op:'dmg',mult:3.1}]],['allAllies',3,[{op:'heal',pct:15},{op:'cleanse',n:1}]],['allAllies',4,[{op:'buff',type:'defUp',turns:2},{op:'heal',pct:10}]]],
   Boss:     [['enemy',0,[{op:'dmg',mult:3.6},{op:'debuff',type:'stun',turns:1,chance:25}]],['allEnemies',3,[{op:'dmg',mult:2.6},{op:'debuff',type:'defBreak',turns:2,chance:50}]],['allAllies',4,[{op:'buff',type:'defUp',turns:2},{op:'heal',pct:12}]]],
 };
+// Les 5 ★ partageaient tous le kit générique des boss. Chacun compose désormais le sien : une attaque de
+// base, un sort de recharge 3 et un ultime de recharge 4, tirés de trois listes d'après son identifiant.
+// 216 combinaisons pour une vingtaine de monstres ; la puissance reste celle du kit d'origine.
+const KIT5 = [
+  [ ['enemy',0,[{op:'dmg',mult:3.6},{op:'debuff',type:'stun',turns:1,chance:25}]],
+    ['enemy',0,[{op:'dmg',mult:3.4},{op:'debuff',type:'defBreak',turns:2,chance:40}]],
+    ['enemy',0,[{op:'dmg',mult:1.9,hits:2},{op:'debuff',type:'slow',turns:2,chance:35}]],
+    ['enemy',0,[{op:'dmg',mult:3.8,critBonus:20}]],
+    ['enemy',0,[{op:'dmg',mult:3.2},{op:'atb',amount:-20}]],
+    ['enemy',0,[{op:'dmg',mult:3.5},{op:'debuff',type:'slow',turns:2,chance:45}]] ],
+  [ ['allEnemies',3,[{op:'dmg',mult:2.6},{op:'debuff',type:'defBreak',turns:2,chance:50}]],
+    ['allEnemies',3,[{op:'dmg',mult:2.4},{op:'debuff',type:'slow',turns:2,chance:55}]],
+    ['enemy',3,[{op:'dmg',mult:5},{op:'debuff',type:'stun',turns:1,chance:60}]],
+    ['allAllies',3,[{op:'buff',type:'atkUp',turns:2},{op:'atb',amount:20}]],
+    ['allEnemies',3,[{op:'dmg',mult:2.2},{op:'atb',amount:-25}]],
+    ['enemy',3,[{op:'dmg',mult:4.6},{op:'debuff',type:'defBreak',turns:2,chance:80}]] ],
+  [ ['allAllies',4,[{op:'buff',type:'defUp',turns:2},{op:'heal',pct:12}]],
+    ['enemy',4,[{op:'dmg',mult:6.5,critBonus:30}]],
+    ['allEnemies',4,[{op:'dmg',mult:3.2},{op:'debuff',type:'stun',turns:1,chance:25}]],
+    ['allAllies',4,[{op:'heal',pct:20},{op:'cleanse',n:1}]],
+    ['allAllies',4,[{op:'buff',type:'spdUp',turns:2},{op:'atb',amount:30}]],
+    ['enemy',4,[{op:'dmg',mult:2.4,hits:3}]] ],
+];
+const kit5 = h => KIT5.map((L, i) => L[(h >>> (4 + i * 5)) % L.length]);
 const GEN_NAMES = {
   Attaquant:['Frappe','Assaut','Coup fatal'], Bagarreur:['Cogne','Cri de guerre','Charge'], Entraveur:['Morsure collante','Nuée','Croc-en-jambe'],
   Tank:['Coup sourd','Carapace','Onde de choc'], Soutien:['Piqûre','Élan','Rafale'], Soigneur:['Gifle','Soin collectif','Bouclier'], Boss:['Écrasement','Ravage','Rempart'],
@@ -2006,7 +2114,7 @@ function buildCatalog(cat){
     const base = { hp:Math.round((560 + 110*s) * R.hp), atk:Math.round((60 + 5.5*s) * R.atk), def:Math.round((38 + 6*s) * R.def),
       spd:96 + (h0 >>> 8) % 12 + R.spd, crit:15 + R.crit, critDmg:50 + 5*s, acc:10 + R.acc, res:15 + R.res };
     const n = (s >= 3 || role === 'Boss') ? 3 : 2;
-    const skills = KIT[role].slice(0, n).map(([target, cd, ops], i) => {
+    const skills = (s >= 5 ? kit5(h0) : KIT[role].slice(0, n)).map(([target, cd, ops], i) => {
       const id = key + '_' + i, sp = c.sp && c.sp[i];
       SKILLS[id] = { name:(cat.spells && sp && cat.spells[sp]) || GEN_NAMES[role][i], cd, target, desc:descOf(target, ops), ops, ic:icons[sp] || 0 };
       return id;
@@ -2045,12 +2153,13 @@ function buildCatalog(cat){
   if (dgs.length){ DUNGEONS.length = 0; DUNGEONS.push(...dgs); }
   ITEM_SKINS = { normal:(cat.items || []).filter(i => i.t === 151), legend:(cat.items || []).filter(i => i.t === 23 || i.t === 217) };
   indexGear(cat.gear || []);
+  gelKeys().forEach((k, i) => { if (k){ MONSTERS[k].stars = i + 1; MONSTERS[k].food = i + 1; } });   // les gelées : de la nourriture à XP, pas des recrues
   ROSTER = buildRoster(cat);
   CAT_MODE = 'dofusdb'; CAT = cat;
 }
 // Monstres invocables : une sélection volontairement courte (les autres restent des ennemis), pour pouvoir en ajouter plus tard.
 // Les 1 à 3 étoiles servent surtout de nourriture à XP ; ROSTER_5 liste les 5 étoiles retenus.
-const ROSTER_N = { 1:25, 2:30, 3:35, 4:40, 5:20 };
+const ROSTER_N = { 1:30, 2:30, 3:35, 4:40, 5:20 };
 const ROSTER_5 = ['bouftou royal','tofu royal','kardorim','meulou','crocabulia','chêne mou','dragon cochon','minotoror','wa wabbit','maître corbac','royalmouth','bworker','kimbo','kolosso','ombre','merkator','comte harebourg','skeunk','rat noir','sphincter cell'];
 let ROSTER = null;   // null hors catalogue : tout est invocable
 function buildRoster(cat){
@@ -2060,7 +2169,7 @@ function buildRoster(cat){
   for (const k of Object.keys(MONSTERS).sort((a,b) => (inDg.has(b) - inDg.has(a)) || lv(a) - lv(b))){ const n = MONSTERS[k].name.toLowerCase(); if (!byName[n]) byName[n] = k; }
   const uniq = Object.values(byName), out = new Set();
   for (const st of [1,2,3,4,5]){
-    const cand = uniq.filter(k => MONSTERS[k].stars === st), picked = cand.filter(k => MONSTERS[k].hand);
+    const cand = uniq.filter(k => MONSTERS[k].stars === st && !MONSTERS[k].food), picked = cand.filter(k => MONSTERS[k].hand);
     if (st === 5) for (const n of ROSTER_5){ const k = byName[n]; if (k && MONSTERS[k].stars === 5 && !picked.includes(k)) picked.push(k); }
     const rest = cand.filter(k => !picked.includes(k)).sort((a,b) => lv(a) - lv(b)), pref = rest.filter(k => inDg.has(k));
     const need = Math.max(0, ROSTER_N[st] - picked.length), pool = pref.length >= need ? pref : rest;
@@ -2104,8 +2213,24 @@ const DIFF = L => { const T = BAL.diff; if (L <= T[0][0]) return T[0][1];
 const ENN = (L, role, x = 1) => { const d = DIFF(L) * x, [h, a] = BAL[role]; return { hpMult:h * d, atkMult:a * Math.sqrt(d) }; };
 // XP : généreuse sur les premiers donjons, pour que le début file, puis au tarif normal.
 const XPK = L => 1 + (BAL.xp0 - 1) * Math.max(0, 1 - (L - 10) / (BAL.xpFin - 10));
-const STAGES = { camp:[], xp:[], raid:[], dragon:[] };
-const MODE_LABEL = { camp:'Campagne', xp:'Dojo', raid:'Raids', dragon:'Dragons' };
+const STAGES = { camp:[], xp:[], gel:[], raid:[], dragon:[] };
+const MODE_LABEL = { camp:'Campagne', xp:'Dojo', gel:'Gelées', raid:'Raids', dragon:'Dragons' };
+// Gelaxième Dimension : cinq étages, et à chaque victoire une gelée à donner à manger à ses monstres.
+// Plus l'étage est haut, plus les gelées qui tombent ont d'étoiles.
+const GEL_TAUX = [{ 1:80, 2:20 }, { 1:30, 2:55, 3:15 }, { 2:30, 3:55, 4:15 }, { 3:40, 4:50, 5:10 }, { 3:20, 4:55, 5:25 }];
+function gelStages(){
+  const ks = gelKeys(); if (ks.some(k => !k)) return [];
+  const src = CAT && CAT.dungeons.find(d => (d.b || []).some(id => 'm' + id === ks[4]));
+  return [20, 60, 100, 140, 180].map((L, f) => {
+    const m = ENN(L, 'trash'), g = ENN(L, 'garde');
+    const salle = n => Array.from({ length:n }, (_, k) => ({ key:ks[(f + k) % 4], level:clampL(L - 1), ...m }));
+    const last = [{ key:ks[f % 4], level:L, ...g }, { key:ks[4], level:clampL(L + 1), boss:true, bossMult:1.3 + f * .15, ...ENN(L, 'boss') }, { key:ks[(f + 1) % 4], level:L, ...g }];
+    return { id:`gel:${f + 1}`, mode:'gel', grp:'gel', gname:'Gelaxième Dimension', short:`Étage ${f + 1}`, name:`Gelaxième Dimension · étage ${f + 1}`,
+      map:'fleurs', mapId:src ? src.mp || 0 : 0, maps:src ? src.mps || null : null, lvl:L, dofusLvl:0,
+      desc:'Chaque victoire rapporte une gelée, à donner à manger à un monstre pour le faire monter.', enemies:last, waves:[salle(2), salle(3), last],
+      req:f ? `gel:${f}` : null, kamas:[40 + L, 80 + 2 * L], xp:Math.round((50 + L * 9) * .5), rarity:{}, gel:GEL_TAUX[f] };
+  });
+}
 // Dojo : le mode d'entraînement. Trois salles de piétaille, sans boss ni butin, pour trois fois l'expérience
 // d'un donjon du même niveau. C'est là qu'on monte un monstre fraîchement invoqué ou une équipe en retard,
 // plutôt qu'en refaisant vingt fois le même donjon.
@@ -2189,6 +2314,7 @@ function finalizeStages(){
   }
   STAGES.camp = camp;
   STAGES.xp = dojoStages();
+  STAGES.gel = gelStages();
   STAGES.raid = bossStages(RAID_DEFS, 'raid', 10, 19, 1.25, .12, 10);   // 1er étage au niveau 29 : il faut avoir fait un bout de campagne et s'être équipé
   STAGES.dragon = bossStages(DRAGON_DEFS, 'dragon', 5, 40, 1.1, .22);
 }
@@ -2819,7 +2945,7 @@ const starSvg = `<svg viewBox="0 0 34 34" aria-hidden="true"><path d="M17 1.5l4.
 const teamMons = () => save.team.map(uid => Eco.monByUid(save, uid)).filter(Boolean);
 // Une équipe mémorisée par mode : on ne refait pas sa composition à chaque fois qu'on change de contenu.
 // save.team reste l'équipe qui part au combat ; les autres sont rangées dans save.teams.
-const TEAM_MODES = [['camp','Campagne'],['xp','Dojo'],['raid','Raids'],['dragon','Dragons'],['arene','Arène'],['rta','Arène en direct']];
+const TEAM_MODES = [['camp','Campagne'],['xp','Dojo'],['gel','Gelées'],['raid','Raids'],['dragon','Dragons'],['arene','Arène'],['rta','Arène en direct']];
 let teamCtx = 'camp';   // mode dont on modifie l'équipe dans l'onglet Équipe
 const teamOf = m => { save.teams = save.teams || {}; return save.teams[m] || []; };
 // Charge l'équipe du mode avant d'y jouer ; si elle est vide, on garde celle en place
@@ -2904,8 +3030,10 @@ function renderTop(){
   const cur = ['donjons','arene','boss'].includes(view) ? 'jouer' : view;   // ces vues sont des enfants du hub
   $('#tabs').innerHTML = tabs.map(([v,l]) => `<button data-act="nav" data-v="${v}" ${cur === v ? 'aria-current="page"' : ''}>${l}</button>`).join('');
 }
+const VUES = ['jouer', 'equipe', 'trophees', 'invocation', 'succes', 'hdv', 'chat', 'donjons', 'arene', 'boss'];
 function render(){
   if (!save) return;
+  try { sessionStorage.setItem('idd-vue', view); } catch(e){}
   renderTop();
   document.body.classList.toggle('in-combat', inCombat);
   if (!inCombat) document.body.classList.remove('fs');
@@ -2979,6 +3107,11 @@ function dropsHtml(d){
     lignes.push(`<li><span>Trophées <span class="muted">(1 ou 2 par victoire)</span></span><span class="dchips">${RARITIES.filter(r => d.rarity[r]).map(r => `<b style="color:var(--r-${r})">${RAR_LABEL[r]} ${Math.round(d.rarity[r] / tot * 100)} %</b>`).join('')}</span></li>`);
     if (skins.length) lignes.push(`<li><span>Trophées possibles</span><span class="dicos">${skins.slice(0, 7).map(i => `<button class="dico" data-act="voirTro" data-id="${i.id}" data-l="${ilvl}" title="${esc(i.n)}"><img src="${IMG_BASE}/items/${i.i}.png" alt="" loading="lazy" data-fb></button>`).join('')}</span></li>`);
   }
+  if (d.gel){
+    const tot = Object.values(d.gel).reduce((a, b) => a + b, 0), ks = gelKeys();
+    lignes.push(`<li><span>Gelée <span class="muted">(1 ou 2 par victoire)</span></span><span class="dchips">${Object.entries(d.gel).map(([st, w]) => `<b>${st} ★ ${Math.round(w / tot * 100)} %</b>`).join('')}</span></li>`);
+    lignes.push(`<li><span>À donner à manger</span><span class="dicos">${Object.keys(d.gel).map(st => `<span class="dico" title="${esc(MONSTERS[ks[st - 1]].name)} · ${fmt(GEL_XP[st])} XP">${portrait(ks[st - 1], 30, { badge:false })}</span>`).join('')}</span></li>`);
+  }
   if (d.dofus) lignes.push(`<li><span>Dofus</span><b style="color:var(--r-legendaire)">${DOFUS_NAMES[d.dofus]} · ${Math.round(d.dofusRate * 100)} %</b></li>`);
   if (d.dofus) lignes.push(`<li><span class="muted" style="font-size:11.5px">Clique une icône pour voir ses jets possibles</span></li>`);
   lignes.push(`<li><span>${gemIcon('perfect', 14)} Pierre d'âme pleine</span><b>1 au premier passage</b></li>`);
@@ -3022,6 +3155,7 @@ const stageBoss = d => {
 const MODE_CARD = {
   camp:   { t:'Campagne', s:'Donjons, équipement et progression',  col:'#5c8a35', u:'niveaux' },
   xp:     { t:'Dojo',     s:'Entraînement : triple expérience, sans butin', col:'#2f7f8f', u:'paliers' },
+  gel:    { t:'Gelées',   s:'Des gelées à faire manger à tes monstres',     col:'#c2468f', u:'étages' },
   raid:   { t:'Raids',    s:'La seule source de trophées',         col:'#c25e0a', u:'étages' },
   dragon: { t:'Dragons',  s:'Les Dofus, gardés par leurs dragons', col:'#7a3fb0', u:'étages' },
 };
@@ -3255,6 +3389,28 @@ function slotCell(mon, n){
   return `<button class="cell ${slotPick === n ? 'on' : ''} ${it ? 'r-' + it.rarity : ''}" data-act="slot" data-slot="${n}" title="${it ? `${itemName(it)} +${it.lvl}` : 'Emplacement ' + n + ' vide'}">
     ${it ? itemIcon(it) + `<span class="lv">+${it.lvl}</span>` : `<span class="ghost">${itemIcon({ main:SLOT_MAINS[n][0], rarity:n === 6 ? 'legendaire' : 'normal', lvl:0 })}</span>`}</button>`;
 }
+// Nourrir : on coche les monstres à donner, le gain s'affiche avant de valider.
+let feedOn = false, feedSel = [];
+function feedModal(mon){
+  if (!feedOn) return '';
+  const tous = Eco.mangeables(save, mon).sort((a, b) => (MONSTERS[b.key].food || 0) - (MONSTERS[a.key].food || 0) || (b.key === mon.key) - (a.key === mon.key) || starsOf(a) - starsOf(b) || a.level - b.level);
+  feedSel = feedSel.filter(u => tous.some(x => x.uid === u));
+  const pris = tous.filter(x => feedSel.includes(x.uid)), xp = pris.reduce((t, f) => t + foodXp(f, mon), 0);
+  const sorts = pris.filter(f => f.key === mon.key && !MONSTERS[f.key].food).length;
+  let lv = mon.level, reste = mon.xp + xp; while (lv < MAX_LVL && reste >= xpNeed(lv)){ reste -= xpNeed(lv); lv++; }
+  const cases = tous.map(f => { const fm = MONSTERS[f.key], on = feedSel.includes(f.uid);
+    return `<button class="cell ${fm.food ? 'r-rare' : f.key === mon.key ? 'r-heroique' : ''} ${on ? 'on' : ''}" data-act="feedPick" data-uid="${f.uid}" aria-pressed="${on}"
+      title="${esc(fm.name)} · ${starsOf(f)} ★ · niveau ${f.level} · ${fmt(foodXp(f, mon))} XP">${portrait(f.key, 46, { badge:false })}<span class="st">${starsTxt(starsOf(f))}</span><span class="lv">${fmtC(foodXp(f, mon))}</span></button>`; }).join('');
+  return `<div class="over modal" data-act="feedOff"><div class="win" style="width:min(460px,100%)" data-stop>
+    <div class="wt"><h2>Nourrir ${esc(MONSTERS[mon.key].name)}</h2><button class="x" data-act="feedOff" aria-label="Fermer">×</button></div>
+    <div class="wb" style="display:grid; gap:8px">
+      <p class="hint" style="margin:0">Les monstres donnés disparaissent. Une <b>gelée</b> rapporte énormément ; un monstre de la <b>même espèce</b> rapporte le double et monte un sort d'un niveau. Ceux de tes équipes ne sont pas proposés.</p>
+      <div class="grid mgrid feedgrid">${cases || '<span class="muted" style="grid-column:1/-1">Aucun monstre à donner.</span>'}</div>
+      <div class="band slate"><span>${pris.length} choisi${pris.length > 1 ? 's' : ''} · +${fmt(xp)} XP</span><span>niv. ${mon.level}${lv > mon.level ? ` → ${lv}` : ''}${sorts ? ` · +${sorts} niv. de sort` : ''}</span></div>
+      <div class="row" style="justify-content:space-between"><button class="btn grey sm" data-act="feedPetits">Cocher les 1 ★ et 2 ★</button>
+        <button class="btn" data-act="feedGo" ${pris.length ? '' : 'disabled'}>Donner à manger</button></div>
+    </div></div></div>`;
+}
 function monDetail(mon){
   const m = MONSTERS[mon.key], inTeam = save.team.includes(mon.uid), ac = Eco.awakenCost(mon);
   const st = starsOf(mon), nFod = Eco.fodder(save, mon).length;
@@ -3275,8 +3431,9 @@ function monDetail(mon){
       </div>${picker}${volModal()}
       <div class="row"><button class="btn ${inTeam ? 'grey' : ''}" data-act="team">${inTeam ? 'Retirer de l\'équipe' : 'Ajouter à l\'équipe'}</button>
         ${st >= MAX_STARS ? '<span class="ok">6 ★ · éveillé</span>' : `<button class="btn" data-act="awaken" ${canAw ? '' : 'disabled'} title="Sacrifie ${ac.n} monstre${ac.n > 1 ? 's' : ''} de ${st} ★ hors équipe">Évoluer en ${st + 1} ★ · ${ac.n} × ${st} ★ <span style="opacity:.75">(${nFod} dispo)</span> · ${fmt(ac.kamas)} K</button>`}
+        <button class="btn grey" data-act="feedOn" ${Eco.mangeables(save, mon).length ? '' : 'disabled'} title="Lui donner d'autres monstres à manger contre de l'expérience">Nourrir</button>
         ${confirmBtn('rel'+mon.uid, 'Relâcher', 'Confirmer', 'release')}</div>
-    </div></section>`;
+    </div></section>${feedModal(mon)}`;
 }
 // Caractéristiques et sorts : colonne de droite sur grand écran, sous l'équipement sinon
 function monStats(mon){
@@ -3316,7 +3473,9 @@ function gearCell(mon, sl){
 // Une ligne d'effet : la valeur tirée, sa fourchette, et où elle se situe dedans
 function gearLineHtml(l){
   const neg = l.v < 0, span = l.b - l.a, r = span ? (l.v - l.a) / span : 1;
-  return `<li class="${neg ? 'neg' : 'pos'}"><span>${neg ? '' : '+'}${l.v} ${CHAR_NAME[l.c] || ''}</span>
+  // Les caractéristiques de Dofus qui n'existent pas ici (PA, PM, Force, Sagesse…) sont converties : on dit en quoi.
+  const vers = CHAR_MAP[l.c] ? STAT[CHAR_MAP[l.c][0]] : '';
+  return `<li class="${neg ? 'neg' : 'pos'}"><span>${neg ? '' : '+'}${l.v} ${CHAR_NAME[l.c] || ''}${vers && vers !== CHAR_NAME[l.c] ? ` <small class="muted" style="font-weight:normal">→ ${vers}</small>` : ''}</span>
     <span class="rg">${l.a} à ${l.b}</span><span class="mini"><i style="width:${Math.round(r*100)}%"></i></span></li>`;
 }
 function gearDetail(it, mon, sl){
@@ -3524,20 +3683,36 @@ function itemDetail(it){
 }
 
 // ---------- Invocation
+let tauxOn = false;
+// Les taux par étoiles, et les monstres qu'on peut tirer dans chacune.
+function tauxModal(){
+  if (!tauxOn) return '';
+  const tot = Object.values(SUMMON.rates).reduce((a, b) => a + b, 0);
+  const pool = Object.keys(MONSTERS).filter(k => (!ROSTER || ROSTER.has(k)) && !MONSTERS[k].food);
+  const rangs = Object.entries(SUMMON.rates).reverse().map(([st, w]) => {
+    const ks = pool.filter(k => MONSTERS[k].stars === +st).sort((a, b) => MONSTERS[a].name.localeCompare(MONSTERS[b].name, 'fr'));
+    return `<div class="tr"><div class="th"><span class="stars">${starsTxt(+st)}</span><span>${Math.round(w / tot * 100)} % <span class="muted" style="font-weight:normal">· ${ks.length} monstres</span></span></div>
+      <div class="tm">${ks.map(k => portrait(k, 34, { badge:false })).join('')}</div></div>`;
+  }).join('');
+  return `<div class="over modal" data-act="tauxOff"><div class="win" style="width:min(460px,100%)" data-stop>
+    <div class="wt"><h2>Chances d'invocation</h2><button class="x" data-act="tauxOff" aria-label="Fermer">×</button></div>
+    <div class="wb"><div class="tauxl">${rangs}</div></div></div></div>`;
+}
 function viewInvocation(){
-  const tot = Object.values(SUMMON.rates).reduce((a,b) => a+b, 0);
-  const altar = `<article class="win altar"><div class="wt"><h2>${SUMMON.label}</h2></div><div class="wb">
-      <span class="gem">${gemIcon('perfect', 64)}</span><div class="count">${save.stones}</div>
-      <ul class="rates">${Object.entries(SUMMON.rates).map(([st,w]) => `<li><span class="stars">${starsTxt(+st)}</span> ${Math.round(w/tot*100)} %</li>`).join('')}</ul>
-      <div class="row" style="justify-content:center"><button class="btn" data-act="summon" ${save.stones < 1 ? 'disabled' : ''}>Invoquer</button><button class="btn" data-act="summon10" ${save.stones < 10 ? 'disabled' : ''}>Invoquer ×10</button></div></div></article>`;
-  let rev = '<p class="muted">Chaque niveau réussi pour la première fois offre une pierre d\'âme pleine. Les succès en débloquent d\'autres.</p>';
+  const altar = `<article class="win altar"><div class="wt"><h2>Portail d'invocation</h2></div><div class="wb">
+      <div class="portail" style="background-image:url('${IMG_OK ? IMG_BASE + '/maps/0.5/236717056.jpg' : 'assets/launcher.jpg'}')"><button class="aide" data-act="tauxOn" title="Chances d'invocation" aria-label="Chances d'invocation">?</button></div>
+      <span class="gem">${gemIcon('perfect', 56)}</span><div><div class="count">${save.stones}</div><span class="muted" style="font-size:12px">${save.stones > 1 ? 'Pierres d\'âme pleines' : SUMMON.label}</span></div>
+      <div class="row" style="justify-content:center"><button class="btn" data-act="summon" ${save.stones < 1 ? 'disabled' : ''}>Invoquer</button><button class="btn" data-act="summon10" ${save.stones < 10 ? 'disabled' : ''}>Invoquer ×10</button></div>
+      <p class="hint" style="grid-column:1 / -1; margin:0">Chaque niveau réussi pour la première fois offre une pierre d'âme pleine. Les succès en débloquent d'autres.</p></div></article>`;
+  let rev = '';
   if (lastSummon){
     const mon = lastSummon.mon, m = MONSTERS[mon.key];
-    rev = `<div class="glow${m.stars}" style="display:grid; justify-items:center" data-n="${mon.uid}"><div class="stage">${portrait(mon.key,140,{badge:false})}</div><h3>${m.name}</h3>
+    rev = `<section class="win"><div class="wt"><h2>Dernière invocation</h2></div><div class="wb"><div class="panel reveal" aria-live="polite">
+      <div class="glow${m.stars}" style="display:grid; justify-items:center" data-n="${mon.uid}"><div class="stage">${portrait(mon.key,140,{badge:false})}</div><h3>${m.name}</h3>
       <div><span class="stars" style="font-size:18px">${starsTxt(m.stars)}</span> <span class="muted">${ELEM[m.el]} · ${m.role}</span>${lastSummon.isNew ? ' <b class="new">Nouveau !</b>' : ''}</div>
-      <div class="row" style="justify-content:center; margin-top:10px"><button class="btn grey" data-act="seeMon" data-uid="${mon.uid}">Voir la fiche</button></div></div>`;
+      <div class="row" style="justify-content:center; margin-top:10px"><button class="btn grey" data-act="seeMon" data-uid="${mon.uid}">Voir la fiche</button></div></div></div></div></section>`;
   }
-  return `<div class="altars">${altar}</div><section class="win"><div class="wt"><h2>Autel d'invocation</h2></div><div class="wb"><div class="panel reveal" aria-live="polite">${rev}</div></div></section>`;
+  return `<div class="altars">${altar}</div>${rev}${tauxModal()}`;
 }
 
 // ---------- Séquence d'invocation : la pierre se charge, la couleur grimpe palier par palier jusqu'au nombre d'étoiles tiré, puis elle éclate
@@ -3907,19 +4082,23 @@ function apercuModal(){
 }
 
 // ---------- Hôtel de vente
-let hdvTab = 'acheter', hdvVendre = null;   // objet choisi pour la mise en vente
+let hdvTab = 'acheter', hdvVendre = null, hdvVu = null;   // objet choisi pour la mise en vente · lot dont on regarde les jets
 function hdvLigne(l, mien){
   const o = l.objet, g = l.genre === 'g';
   const vis = g ? gearIcon(o, 34) : itemIcon(o);
   const det = g ? `niveau ${l.niveau} · jet ${Math.round(o.jet * 100)} %` : `${RAR_LABEL[o.rarity]} +${o.lvl}`;
   const jours = Math.max(0, Math.ceil((new Date(l.expire_le) - Date.now()) / 864e5));
-  return `<div class="hdvrow">
-    <span class="box ${g ? JET_CLASS(o.jet) : 'r-' + o.rarity}">${vis}</span>
-    <span style="display:grid; min-width:0"><b>${esc(l.nom)}</b><span class="sub">${det}${mien ? ` · ${jours} j restants` : ` · ${esc(l.vendeur_nom)}`}</span></span>
+  // Les jets : ce que la pièce donne vraiment, ligne par ligne, avec sa fourchette possible.
+  const jets = hdvVu !== l.id ? '' : `<div class="hdvjets">${g
+    ? `<ul class="gdlines">${(o.lines || []).map(gearLineHtml).join('')}</ul><span class="muted" style="font-size:11.5px">Jet ${Math.round(o.jet * 100)} % · ${JET_LABEL(o.jet)} · niveau ${l.niveau}</span>`
+    : `<ul class="gdlines">${itemBonuses(o).map((b, i) => `<li class="pos"><span>${fmtStat(b.s, b.v)}</span><span class="rg">${i ? 'bonus' : 'effet principal'}</span><span></span></li>`).join('')}</ul><span class="muted" style="font-size:11.5px">${RAR_LABEL[o.rarity]} · amélioration +${o.lvl}</span>`}</div>`;
+  return `<div class="hdvrow ${hdvVu === l.id ? 'vu' : ''}">
+    <button class="box ${g ? JET_CLASS(o.jet) : 'r-' + o.rarity}" data-act="hdvVoir" data-id="${l.id}" title="Voir les jets">${vis}</button>
+    <button class="hdvnom" data-act="hdvVoir" data-id="${l.id}"><b>${esc(l.nom)}</b><span class="sub">${det}${mien ? ` · ${jours} j restants` : ` · ${esc(l.vendeur_nom)}`} · <u>${hdvVu === l.id ? 'masquer' : 'voir les jets'}</u></span></button>
     <span class="prix">${fmt(l.prix)} K</span>
     ${mien ? `<button class="btn grey sm" data-act="hdvReprendre" data-id="${l.id}">Reprendre</button>`
            : `<button class="btn sm" data-act="hdvAcheter" data-id="${l.id}" ${save.kamas >= l.prix ? '' : 'disabled'}>Acheter</button>`}
-  </div>`;
+    ${jets}</div>`;
 }
 function viewHdv(){
   const win = c => `<section class="win"><div class="wt"><h2>Hôtel de vente<small>${hdvMiens.length}/${HDV_MAX} emplacements</small></h2></div>
@@ -4063,8 +4242,10 @@ function viewSucces(){
       <span class="achr">${st.done ? '<span class="ok">Tout réclamé</span>' : `<button class="btn sm" data-act="claim" data-id="${a.id}" ${st.ready ? '' : 'disabled'}>${gemIcon('perfect', 14)} +${st.reward}</button>`}</span></li>`;
   }).join('');
   const total = ACHS.reduce((t, a) => t + a.tiers.length, 0), got = ACHS.reduce((t, a) => t + (save.ach[a.id] || 0), 0);
+  const prets = ACHS.filter(a => achState(save, a).ready).length;
   return `<section class="win"><div class="wt"><h2>Succès<small>${got} / ${total} paliers</small></h2></div>
-    <div class="wb"><p class="muted" style="margin:0 0 8px">Chaque palier atteint se réclame contre des pierres d'âme pleines : 1 pour le premier, 2 pour le deuxième, et ainsi de suite.</p>
+    <div class="wb"><div class="row" style="justify-content:space-between; margin:0 0 8px; flex-wrap:nowrap; align-items:flex-start"><p class="muted" style="margin:0">Chaque palier atteint se réclame contre des pierres d'âme pleines : 1 pour le premier, 2 pour le deuxième, et ainsi de suite.</p>
+      <button class="btn sm" data-act="claimAll" style="flex:none" ${prets ? '' : 'disabled'}>Tout réclamer</button></div>
     <ul class="achs">${rows}</ul></div></section>`;
 }
 
@@ -4088,6 +4269,10 @@ const ACT = {
   autoStop(){ if (autoRun && autoRun.on) autoEnd('Série arrêtée.'); },
   autoAgain(){ const a = autoRun; if (a && !a.on){ autoRun = null; autoStart(a.dg, a.total); } },
   autoClose(){ autoRun = null; renderAuto(); },
+  claimAll(){
+    let n = 0, tours = 0;
+    for (let g = 0; g < 200; g++){ const a = ACHS.find(x => achState(save, x).ready); if (!a) break; n += achClaim(save, a); tours++; }   // un succès peut avoir plusieurs paliers d'avance
+    if (!tours) return; persist(); toast(`${tours} palier${tours > 1 ? 's' : ''} réclamé${tours > 1 ? 's' : ''} : +${n} pierre${n > 1 ? 's' : ''} d'âme pleine${n > 1 ? 's' : ''}.`); render(); },
   claim(d){ const n = achClaim(save, ACHS.find(a => a.id === d.id)); if (!n) return; persist(); toast(`+${n} pierre${n > 1 ? 's' : ''} d'âme pleine${n > 1 ? 's' : ''}.`); render(); },
   nav(d){ if (inCombat){ battleId++; inCombat = false; if (ro) ro.disconnect(); } view = d.v; slotPick = null; gearPick = null; teamPick = null; volPick = null; swapOpen = false; confirmKey = null; upMsg = null; upFx = null; render(); window.scrollTo(0,0); },
   fight(d){ startCombat(+d.i); },
@@ -4096,7 +4281,7 @@ const ACT = {
   endAll(){ endAll = true; paintEnd(); },
   nextStage(){ if (endData && endData.next != null) startCombat(endData.next); },
   flee(){ ACT.nav({ v:(curStage && curStage.back) || 'donjons' }); toast('Tu as fui le combat.'); },
-  selMon(d){ selMon = +d.uid; slotPick = null; gearPick = null; teamPick = null; volPick = null; swapOpen = false; confirmKey = null; render(); },
+  selMon(d){ selMon = +d.uid; feedOn = false; feedSel = []; slotPick = null; gearPick = null; teamPick = null; volPick = null; swapOpen = false; confirmKey = null; render(); },
   seeMon(d){ selMon = +d.uid; view = 'equipe'; render(); },
   team(){
     const i = save.team.indexOf(selMon);
@@ -4327,6 +4512,7 @@ function startCombat(dg){
             </div>
           </div>
           <div class="spellbar" id="spellbar"></div>
+          ${dg.mode === 'wb' ? '<div class="wbbar" id="wbbar"><div class="wbh"><b></b><span></span></div><div class="wbt"><i></i><em></em></div><div class="wbp"></div></div>' : ''}
         </section>
         <div class="hudbar">
           <div class="chat" id="chat" aria-label="Journal du combat"><ol id="log"></ol></div>
@@ -4335,6 +4521,7 @@ function startCombat(dg){
         </div>
       </div></section>`;
   field = $('#field'); logEl = $('#log');
+  field.classList.toggle('wb', dg.mode === 'wb');
   document.querySelectorAll('#speedSeg button').forEach(b => b.addEventListener('click', () => {
     speed = +b.dataset.s; paintCtrls(); try { localStorage.setItem('idd-speed', speed); } catch(e){}
   }));
@@ -4363,7 +4550,7 @@ function layoutField(){
   const W = field.clientWidth, H = field.clientHeight, L = W < 560 ? CELLS.mob : CELLS.desk;
   // L'ordre des tours et les sorts sont posés sur l'arène : on réserve leur bande pour que les monstres
   // soient placés entre les deux, sans jamais passer dessous.
-  const hautBande = (() => { const e = $('#ftop'); return e ? e.offsetHeight + 10 : 0; })();
+  const hautBande = (() => { const e = $('#wbbar') || $('#ftop'); return e ? e.offsetHeight + 10 : 0; })();
   const basBande  = (() => { const e = $('#spellbar'); return e ? e.offsetHeight + 10 : 0; })();
   const Hu = Math.max(120, H - hautBande - basBande);         // hauteur réellement jouable
   // Vraie map : la grille et les sprites sont calés sur la taille des cases de l'image, pour que les monstres soient à l'échelle du décor
@@ -4382,7 +4569,7 @@ function layoutField(){
   for (const u of Engine.all(state)){
     const idx = +u.id.slice(1), [i,j,flip] = cercle ? (u.side === 'A' ? autour(idx) : [.55, .55]) : u.side === 'A' ? (state.A.length > 3 ? L.A10 : L.A)[idx] : state.B.length === 1 ? L.B[1] : L.B[idx];
     if (cercle) nodes[u.id].classList.toggle('flip', !!flip);
-    if (cercle && u.side === 'B') nodes[u.id].style.setProperty('--sz', Math.max(1.7, MONSTERS[u.key].sz || 1));   // au centre du cercle, il doit dominer
+    if (cercle && u.side === 'B') nodes[u.id].style.setProperty('--sz', Math.max(2.4, MONSTERS[u.key].sz || 1));   // au centre du cercle, il doit dominer
     const x = cx + (i-j)*tw/2, y = cy + (i+j)*tw/4, n = nodes[u.id];
     n.style.left = x + 'px'; n.style.top = (y + tw*.12) + 'px'; n.style.zIndex = Math.round(y);
     cells.push({ x, y, color: u.side === 'A' ? '#2b7bd6' : '#d8402b' });
@@ -4439,8 +4626,22 @@ async function nextWave(my){
   flashWave(`${ww} ${waveIdx + 1} / ${n}${boss ? ' · boss' : ''}`);
   await wait(800);
 }
+// Une couleur par barre de vie du boss mondial, de la première à la dernière.
+const WB_COUL = ['#3fae4a', '#8fbf2f', '#e2c21f', '#f0962a', '#e8632b', '#e0452b', '#c92f6a', '#9a3fc4', '#5a55d6', '#2f9bd6'];
+function wbPaint(u, hp){
+  const el = $('#wbbar'); if (!el || !u.bars) return;
+  const n = u.bars.n, c = WB_COUL[u.bar % WB_COUL.length], suiv = u.bar < n - 1 ? WB_COUL[(u.bar + 1) % WB_COUL.length] : '#2a2926';
+  el.style.setProperty('--c', c); el.style.setProperty('--n', suiv);
+  const ft = $('#ftop'); el.style.setProperty('--ctl', (ft ? ft.offsetWidth + 4 : 0) + 'px'); el.style.setProperty('--ctlh', (ft ? ft.offsetHeight - 8 : 0) + 'px');
+  el.querySelector('.wbh b').textContent = u.name;
+  el.querySelector('.wbh span').textContent = `Barre ${u.bar + 1} / ${n}`;
+  el.querySelector('.wbt i').style.setProperty('--w', Math.max(0, hp / u.stats.hp * 100) + '%');
+  el.querySelector('.wbt em').textContent = `${fmtC(hp)} / ${fmtC(u.stats.hp)}`;
+  el.querySelector('.wbp').innerHTML = WB_COUL.slice(0, n).map((k, i) => `<i class="${i < u.bar ? 'off' : ''}" style="--pc:${k}"></i>`).join('');
+}
 function setHp(id, hp){
   const u = Engine.byId(state, id), r = hp / u.stats.hp, bar = nodes[id].querySelector('.bar.hp');
+  if (u.bars) wbPaint(u, hp);
   bar.style.setProperty('--w', (r*100) + '%'); bar.querySelector('span').textContent = `${fmtC(hp)} / ${fmtC(u.stats.hp)}`;
   tls[id].querySelector('.hp b').style.setProperty('--w', (r*100) + '%');
 }
@@ -4847,7 +5048,8 @@ async function play(events, my){
       case 'bar': {
         const u = Engine.byId(state, e.id), b = nodes[e.id].querySelector('.barn');
         if (b) b.textContent = '×' + (u.bars.n - e.bar);
-        nodes[e.id].style.setProperty('--barc', `hsl(${Math.max(0, 28 - e.bar * 4)} 85% ${Math.max(30, 52 - e.bar * 2)}%)`);
+        nodes[e.id].style.setProperty('--barc', WB_COUL[e.bar % WB_COUL.length]);
+        { const w = $('#wbbar'); if (w){ w.classList.remove('flash'); void w.offsetWidth; w.classList.add('flash'); } }
         setHp(e.id, e.hp); SON.critique(); pop(e.id, 'Barre brisée !', 'crit');
         log(`${uname(e.id)} perd une barre de vie (${e.bar} / ${u.bars.n}) : il frappe plus fort.`, 'kill');
         await wait(420); break;
@@ -4927,6 +5129,7 @@ function paintEnd(){
       <span class="cell" title="Kamas">${kamaIcon(34)}<span class="lv">${fmt(L.kamas)}</span></span>
       ${L.items.map(it => `<span class="cell r-${it.rarity}" title="${itemName(it)} · ${RAR_LABEL[it.rarity]}">${itemIcon(it)}<span class="lv">+0</span></span>`).join('')}
       ${(L.gear || []).map(g => `<span class="cell ${JET_CLASS(g.jet)}" title="${esc(gearName(g))} · niveau ${gearLvl(g)} · jet ${Math.round(g.jet*100)} %">${gearIcon(g, 40)}<span class="lv">${Math.round(g.jet*100)}%</span></span>`).join('')}
+      ${(L.mons || []).map(x => `<span class="cell r-rare" title="${esc(MONSTERS[x.key].name)} · ${MONSTERS[x.key].stars} ★ · ${fmt(foodXp(x))} XP à donner">${portrait(x.key, 40, { badge:false })}<span class="lv">${MONSTERS[x.key].stars}★</span></span>`).join('')}
       ${L.stones ? `<span class="cell r-heroique" title="Pierre d'âme pleine">${gemIcon('perfect',36)}<span class="q">${L.stones}</span></span>` : ''}
     </div>${L.first ? '<p class="hint" style="padding:0 8px 6px">Premier passage : une pierre d\'âme pleine offerte.</p>' : ''}` : '';
   const btns = dg.finish
@@ -5011,6 +5214,12 @@ function lauPan(){
 function lauOpen(){
   if (lauReady) return;
   lauReady = true;
+  // Jeu déjà lancé dans cet onglet et partie en place : un rechargement ramène droit à la page où on était.
+  let deja = false; try { deja = sessionStorage.getItem('idd-lance') === '1'; } catch(e){}
+  if (deja && save && save.player){
+    try { const v = sessionStorage.getItem('idd-vue'); if (v && VUES.includes(v)) view = v; } catch(e){}
+    return lauStart();
+  }
   const e = $('#lauEgg'); if (!e) return;
   const txt = save && save.player ? 'Jouer' : (me ? 'Créer mon personnage' : 'Commencer');
   for (const id of ['lauEgg', 'lauEgg2']){ const b = $('#' + id); if (b) b.disabled = false; }
@@ -5067,6 +5276,7 @@ function creStep(){
       <button class="btn" data-act="creGo">Entrer dans le monde</button></div></div>`;
 }
 function lauStart(){
+  try { sessionStorage.setItem('idd-lance', '1'); } catch(e){}      // dans cet onglet, le launcher ne se rejoue plus au rechargement
   $('#lau').hidden = true;
   $('#wrap').hidden = false;
   render(); window.scrollTo(0,0);
@@ -5081,6 +5291,7 @@ Object.assign(ACT, {
   son(d, b){ sonOn = !sonOn; try { localStorage.setItem('idd-son', sonOn ? '1' : '0'); } catch(e){}
     if (b) b.textContent = sonOn ? '♪' : '♪̸';
     if (sonOn) SON.clic(); },
+  hdvVoir(d){ hdvVu = hdvVu === +d.id ? null : +d.id; render(); },
   hdvTab(d){ hdvTab = d.v; hdvMsg = ''; if (d.v !== 'vendre') hdvVendre = null; hdvCharger().then(render); render(); },
   hdvPick(d){ hdvVendre = { t:d.t, id:+d.id }; hdvMsg = ''; render(); },
   async hdvDeposer(){
@@ -5104,6 +5315,14 @@ Object.assign(ACT, {
   async hdvReprendre(d){ await hdvReprendre(+d.id); toast('Lot repris.'); render(); },
   hdvEncaisser(){ hdvEncaisser(); },
   chatSend(){ chatSend(); },
+  feedOn(){ feedOn = true; feedSel = []; render(); }, feedOff(){ feedOn = false; feedSel = []; render(); },
+  feedPick(d){ const u = +d.uid; feedSel = feedSel.includes(u) ? feedSel.filter(x => x !== u) : feedSel.concat(u); render(); },
+  feedPetits(){ const mon = Eco.monByUid(save, selMon); feedSel = Eco.mangeables(save, mon).filter(f => !MONSTERS[f.key].food && starsOf(f) <= 2).map(f => f.uid); render(); },
+  feedGo(){
+    const mon = Eco.monByUid(save, selMon), r = Eco.feed(save, mon, feedSel); if (r.err) return toast(r.err);
+    feedOn = false; feedSel = []; persist();
+    toast(`+${fmt(r.xp)} XP${r.ups ? ` · niveau ${mon.level}` : ''}${r.sorts ? ` · +${r.sorts} niveau${r.sorts > 1 ? 'x' : ''} de sort` : ''}.`); render(); },
+  tauxOn(){ tauxOn = true; render(); }, tauxOff(){ tauxOn = false; render(); },
   optOpen(){ optOn = true; optMsg = ''; optBusy = false; optPaint(); },
   optClose(){ if (optBusy) return; optOn = false; optPaint(); },
   optIn(){ optLogin(false); }, optNew(){ optLogin(true); }, optOut(){ optLogout(); },
