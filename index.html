@@ -313,6 +313,16 @@ body.in-combat .tabs{display:none}
 .rtawait{display:flex; align-items:center; gap:9px; padding:10px 12px; background:var(--row2); border:1px solid var(--panel-line); border-radius:7px; font-size:13px}
 .rtawait .sp{width:16px; height:16px; flex:none; border-radius:50%; border:2px solid var(--panel-line); border-top-color:var(--orange2); animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* Hôtel de vente */
+.hdvlist{display:grid; gap:5px; max-height:420px; overflow:auto; padding:2px}
+.hdvrow{display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; gap:9px; align-items:center;
+  padding:5px 8px 5px 5px; background:var(--row2); border:1px solid var(--panel-line); border-radius:6px}
+.hdvrow .box{width:40px; height:40px; display:grid; place-items:center; border-radius:6px;
+  border:1px solid var(--slot-line); background:linear-gradient(var(--slot-hi), var(--slot))}
+.hdvrow .box img, .hdvrow .box svg{width:34px; height:34px; object-fit:contain}
+.hdvrow b{font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.hdvrow .sub{font-size:11px; color:var(--ink2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.hdvrow .prix{font-weight:bold; font-variant-numeric:tabular-nums; white-space:nowrap; color:var(--orange-dk)}
 /* Inventaire : filtres compacts et marqueurs */
 .invfiltres{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
 .invfiltres .seuil{display:flex; align-items:center; gap:6px; font-size:11.5px}
@@ -2270,6 +2280,98 @@ async function netPush(force){
   catch(e){}
 }
 
+// ---- Hôtel de vente. Reprend les règles du jeu : vingt emplacements par compte, taxe prélevée à la mise
+// en vente et jamais rendue, deux semaines d'exposition, retour au vendeur si personne n'achète.
+// Une différence assumée : dans Dofus on vend des lots de 1, 10 ou 100 objets identiques. Ici chaque pièce
+// a son propre jet, donc aucune n'est identique à une autre — les lots n'auraient aucun sens, on vend à l'unité.
+const HDV_MAX = 20;        // lots en vente simultanés
+const HDV_TAXE = .02;      // prélevée au dépôt
+const HDV_JOURS = 14;
+let hdvLots = [], hdvMiens = [], hdvGains = [], hdvQ = '', hdvTri = 'prix', hdvMsg = '', hdvT = null;
+
+const hdvNom = (genre, o) => genre === 'g' ? gearName(o) : itemName(o);
+const hdvQualite = (genre, o) => genre === 'g' ? Math.round(o.jet * 100) : RARITIES.indexOf(o.rarity) * 20 + o.lvl;
+const hdvNiveau = (genre, o) => genre === 'g' ? gearLvl(o) : (o.il || 20);
+
+async function hdvCharger(){
+  if (!netOn()) return;
+  try {
+    let q = sb.from('hdv').select('*').is('acheteur', null).eq('retire', false).gt('expire_le', new Date().toISOString());
+    if (hdvQ.trim()) q = q.ilike('nom', '%' + hdvQ.trim() + '%');
+    q = hdvTri === 'prix' ? q.order('prix', { ascending:true })
+      : hdvTri === 'niveau' ? q.order('niveau', { ascending:false })
+      : q.order('qualite', { ascending:false });
+    const { data } = await q.limit(80);
+    hdvLots = data || [];
+    const mes = await sb.from('hdv').select('*').eq('vendeur', me.id).order('mis_le', { ascending:false }).limit(60);
+    const tout = mes.data || [];
+    hdvMiens = tout.filter(l => !l.acheteur && !l.retire && new Date(l.expire_le) > new Date());
+    hdvGains = tout.filter(l => l.acheteur && !l.encaisse);                 // vendus, kamas à récupérer
+    const perimes = tout.filter(l => !l.acheteur && !l.retire && new Date(l.expire_le) <= new Date());
+    for (const l of perimes) await hdvReprendre(l.id, true);                // invendu : il revient au vendeur
+  } catch(e){ hdvMsg = 'L\'hôtel de vente n\'a pas répondu.'; }
+}
+// Dépose un objet. La taxe part tout de suite, comme dans le jeu.
+async function hdvDeposer(genre, o, prix){
+  if (!netOn()) return { err:'Il faut un compte.' };
+  if (!(prix > 0)) return { err:'Indique un prix.' };
+  const taxe = Math.max(1, Math.round(prix * HDV_TAXE));
+  if (save.kamas < taxe) return { err:`La taxe est de ${fmt(taxe)} kamas, tu n'en as pas assez.` };
+  if (hdvMiens.length >= HDV_MAX) return { err:`Tes ${HDV_MAX} emplacements sont pris.` };
+  try {
+    const { error } = await sb.from('hdv').insert({
+      vendeur:me.id, vendeur_nom:(save.player && save.player.name) || 'Invocateur',
+      genre, objet:o, nom:hdvNom(genre, o), niveau:hdvNiveau(genre, o), qualite:hdvQualite(genre, o),
+      emplacement: genre === 'g' ? o.s : String(o.slot || ''), prix,
+      expire_le:new Date(Date.now() + HDV_JOURS * 864e5).toISOString(),
+    });
+    if (error) return { err:'Dépôt refusé par le serveur.' };
+  } catch(e){ return { err:'Le serveur n\'a pas répondu.' }; }
+  save.kamas -= taxe;                                        // la taxe ne revient jamais
+  if (genre === 'g') save.gear = (save.gear || []).filter(g => g.id !== o.id);
+  else save.items = save.items.filter(i => i.id !== o.id);
+  persist();
+  return { ok:true, taxe };
+}
+// Achat : le serveur arbitre, pour qu'un seul acheteur emporte le lot.
+async function hdvAcheter(lot){
+  if (!netOn()) return { err:'Il faut un compte.' };
+  if (save.kamas < lot.prix) return { err:'Pas assez de kamas.' };
+  try {
+    const { data, error } = await sb.rpc('hdv_acheter', { p_id:lot.id });
+    if (error || !data) return { err:'Ce lot vient de partir.' };
+    const l = Array.isArray(data) ? data[0] : data;
+    save.kamas -= l.prix;
+    const o = l.objet; o.owner = null; o.id = save.nextId++;   // nouvel identifiant chez l'acheteur
+    if (l.genre === 'g'){ save.gear = save.gear || []; save.gear.push(o); } else save.items.push(o);
+    persist();
+    return { ok:true, lot:l };
+  } catch(e){ return { err:'Le serveur n\'a pas répondu.' }; }
+}
+// Reprendre un lot invendu, ou récupérer le fruit d'une vente
+async function hdvReprendre(id, silencieux){
+  const lot = hdvMiens.find(l => l.id === id) || hdvGains.find(l => l.id === id);
+  try {
+    await sb.from('hdv').update({ retire:true }).eq('id', id).eq('vendeur', me.id).is('acheteur', null);
+  } catch(e){ return { err:'Reprise impossible.' }; }
+  if (lot && !lot.acheteur){
+    const o = lot.objet; o.owner = null; o.id = save.nextId++;
+    if (lot.genre === 'g'){ save.gear = save.gear || []; save.gear.push(o); } else save.items.push(o);
+    persist();
+  }
+  if (!silencieux) await hdvCharger();
+  return { ok:true };
+}
+async function hdvEncaisser(){
+  if (!hdvGains.length) return;
+  const total = hdvGains.reduce((t, l) => t + l.prix, 0);
+  try { await sb.from('hdv').update({ encaisse:true }).in('id', hdvGains.map(l => l.id)).eq('vendeur', me.id); }
+  catch(e){ return; }
+  save.kamas += total; persist();
+  toast(`${fmt(total)} kamas récupérés de l'hôtel de vente.`);
+  await hdvCharger(); render();
+}
+
 // ---- Arène en direct (RTA) : 1 contre 1, équipes de trois, avec bannissement et sélection.
 //
 // Pas de serveur de jeu : les deux clients s'accordent par salon temps réel. Deux conséquences assumées —
@@ -2575,6 +2677,7 @@ function renderTop(){
   const ready = ACHS.filter(a => achState(save, a).ready).length;
   const tabs = [['jouer','Jouer'],['equipe','Équipe'],['trophees','Inventaire'],['invocation','Invocation'],
     ['succes','Succès' + (ready ? ` <b class="tabn">${ready}</b>` : '')]];
+  if (sb) tabs.push(['hdv', 'Hôtel de vente' + (hdvGains.length ? ` <b class="tabn">${hdvGains.length}</b>` : '')]);
   if (sb) tabs.push(['chat', 'Chat' + (chatUnread ? ` <b class="tabn">${chatUnread}</b>` : '')]);
   const cur = ['donjons','arene','boss'].includes(view) ? 'jouer' : view;   // ces vues sont des enfants du hub
   $('#tabs').innerHTML = tabs.map(([v,l]) => `<button data-act="nav" data-v="${v}" ${cur === v ? 'aria-current="page"' : ''}>${l}</button>`).join('');
@@ -2585,7 +2688,8 @@ function render(){
   document.body.classList.toggle('in-combat', inCombat);
   if (inCombat) return;
   const main = $('#main');
-  if (view === 'chat') main.innerHTML = viewChat();
+  if (view === 'hdv') main.innerHTML = viewHdv();
+  else if (view === 'chat') main.innerHTML = viewChat();
   else if (view === 'jouer') main.innerHTML = viewJouer();
   else if (view === 'donjons'){ const sc = $('#dlist') ? $('#dlist').scrollTop : null; main.innerHTML = viewDonjons(); drawMinis(); if (sc != null) $('#dlist').scrollTop = sc; else scrollToSel(); }
   else if (view === 'equipe') main.innerHTML = viewEquipe();
@@ -3493,6 +3597,73 @@ function apercuModal(){
     </div></div></div>`;
 }
 
+// ---------- Hôtel de vente
+let hdvTab = 'acheter', hdvVendre = null;   // objet choisi pour la mise en vente
+function hdvLigne(l, mien){
+  const o = l.objet, g = l.genre === 'g';
+  const vis = g ? gearIcon(o, 34) : itemIcon(o);
+  const det = g ? `niveau ${l.niveau} · jet ${Math.round(o.jet * 100)} %` : `${RAR_LABEL[o.rarity]} +${o.lvl}`;
+  const jours = Math.max(0, Math.ceil((new Date(l.expire_le) - Date.now()) / 864e5));
+  return `<div class="hdvrow">
+    <span class="box ${g ? JET_CLASS(o.jet) : 'r-' + o.rarity}">${vis}</span>
+    <span style="display:grid; min-width:0"><b>${esc(l.nom)}</b><span class="sub">${det}${mien ? ` · ${jours} j restants` : ` · ${esc(l.vendeur_nom)}`}</span></span>
+    <span class="prix">${fmt(l.prix)} K</span>
+    ${mien ? `<button class="btn grey sm" data-act="hdvReprendre" data-id="${l.id}">Reprendre</button>`
+           : `<button class="btn sm" data-act="hdvAcheter" data-id="${l.id}" ${save.kamas >= l.prix ? '' : 'disabled'}>Acheter</button>`}
+  </div>`;
+}
+function viewHdv(){
+  const win = c => `<section class="win"><div class="wt"><h2>Hôtel de vente<small>${hdvMiens.length}/${HDV_MAX} emplacements</small></h2></div>
+    <div class="wb" style="display:grid; gap:9px">${c}</div></section>`;
+  if (!sb) return win('<p style="margin:0">L\'hôtel de vente demande une connexion au serveur, qui n\'est pas configurée.</p>');
+  if (!netOn()) return win('<p style="margin:0">Il faut un compte pour acheter et vendre. Crée-le depuis le launcher.</p>');
+
+  const onglets = `<div class="row modes">${[['acheter','Acheter'],['vendre','Vendre'],['mes','Mes ventes']].map(([k, l]) =>
+    `<button class="btn grey sm" data-act="hdvTab" data-v="${k}" aria-pressed="${hdvTab === k}">${l}${k === 'mes' && hdvGains.length ? ` <b class="tabn">${hdvGains.length}</b>` : ''}</button>`).join('')}</div>`;
+
+  if (hdvTab === 'acheter') return onglets + win(`
+    <div class="row">
+      <input class="search" id="hdvQ" placeholder="Rechercher un objet" value="${esc(hdvQ)}" style="flex:1; min-width:140px">
+      <span class="selwrap"><select class="sel" id="hdvTri">${[['prix','Prix croissant'],['niveau','Niveau'],['qualite','Qualité']].map(([v, l]) => `<option value="${v}" ${hdvTri === v ? 'selected' : ''}>${l}</option>`).join('')}</select></span>
+    </div>
+    ${hdvMsg ? `<div class="upmsg ko">${esc(hdvMsg)}</div>` : ''}
+    <div class="hdvlist">${hdvLots.map(l => hdvLigne(l, false)).join('') || '<span class="muted">Aucun objet en vente pour cette recherche.</span>'}</div>
+    <div class="invfoot">${kamaIcon(16)} ${fmt(save.kamas)} K</div>`);
+
+  if (hdvTab === 'vendre'){
+    const libres = [...(save.gear || []).filter(g => g.owner == null).map(o => ({ t:'g', o })),
+                    ...save.items.filter(i => i.owner == null).map(o => ({ t:'i', o }))]
+      .sort((a, b) => (b.o.jet || 0) - (a.o.jet || 0)).slice(0, 60);
+    const ch = hdvVendre && (hdvVendre.t === 'g' ? Eco.gearById(save, hdvVendre.id) : Eco.itemById(save, hdvVendre.id));
+    return onglets + win(`
+      ${hdvMiens.length >= HDV_MAX ? `<p class="hint" style="margin:0">Tes ${HDV_MAX} emplacements sont pris. Reprends un lot pour en libérer un.</p>` : ''}
+      <div class="band">Choisis un objet libre</div>
+      <div class="grid">${libres.map(x => {
+        const on = hdvVendre && hdvVendre.t === x.t && hdvVendre.id === x.o.id;
+        return x.t === 'g'
+          ? `<button class="cell ${JET_CLASS(x.o.jet)} ${on ? 'on' : ''}" data-act="hdvPick" data-t="g" data-id="${x.o.id}" title="${esc(gearName(x.o))}">${gearIcon(x.o, 42)}<span class="lv">${Math.round(x.o.jet * 100)}</span></button>`
+          : `<button class="cell r-${x.o.rarity} ${on ? 'on' : ''}" data-act="hdvPick" data-t="i" data-id="${x.o.id}" title="${esc(itemName(x.o))}">${itemIcon(x.o)}<span class="lv">+${x.o.lvl}</span></button>`;
+      }).join('') || '<span class="muted" style="grid-column:1/-1">Aucun objet libre. Retire d\'abord ce que portent tes monstres.</span>'}</div>
+      ${ch ? `<div class="band slate"><span>${esc(hdvNom(hdvVendre.t, ch))}</span><span>${hdvVendre.t === 'g' ? `jet ${Math.round(ch.jet * 100)} %` : RAR_LABEL[ch.rarity]}</span></div>
+        <div class="row">
+          <input class="search" id="hdvPrix" type="number" min="1" placeholder="Prix en kamas" style="flex:1; min-width:120px">
+          <button class="btn" data-act="hdvDeposer">Mettre en vente</button>
+        </div>
+        <p class="hint" style="margin:0">Une taxe de ${Math.round(HDV_TAXE * 100)} % du prix est prélevée au dépôt et n'est jamais rendue.
+          Le lot reste ${HDV_JOURS} jours, puis revient dans ton sac s'il n'a pas trouvé preneur.</p>` : ''}
+      ${hdvMsg ? `<div class="upmsg ko">${esc(hdvMsg)}</div>` : ''}`);
+  }
+
+  const gain = hdvGains.reduce((t, l) => t + l.prix, 0);
+  return onglets + win(`
+    ${hdvGains.length ? `<div class="band"><span>Ventes conclues</span><button class="btn sm" data-act="hdvEncaisser">Récupérer ${fmt(gain)} K</button></div>
+      <div class="hdvlist">${hdvGains.map(l => `<div class="hdvrow"><span class="box">${l.genre === 'g' ? gearIcon(l.objet, 34) : itemIcon(l.objet)}</span>
+        <span style="display:grid; min-width:0"><b>${esc(l.nom)}</b><span class="sub">vendu à ${esc(l.vendeur_nom === (save.player || {}).name ? 'un joueur' : l.vendeur_nom)}</span></span>
+        <span class="prix">${fmt(l.prix)} K</span><span></span></div>`).join('')}</div>` : ''}
+    <div class="band"><span>En vente</span><span>${hdvMiens.length} / ${HDV_MAX}</span></div>
+    <div class="hdvlist">${hdvMiens.map(l => hdvLigne(l, true)).join('') || '<span class="muted">Tu n\'as rien en vente.</span>'}</div>`);
+}
+
 // ---------- Arène en direct
 function rtaMonCard(o, opts){
   const m = MONSTERS[o.key]; if (!m) return '';
@@ -3774,7 +3945,8 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target;
-  if (t.id === 'fKind'){ filt.kind = t.value; render(); }
+  if (t.id === 'hdvTri'){ hdvTri = t.value; hdvCharger().then(render); }
+  else if (t.id === 'fKind'){ filt.kind = t.value; render(); }
   else if (t.id === 'fTri'){ filt.tri = t.value; render(); }
   else if (t.id === 'fPorte'){ filt.porte = t.value; render(); }
   else if (t.id === 'fSlot'){ filt.slot = +t.value; render(); }
@@ -3782,6 +3954,7 @@ document.addEventListener('change', e => {
 });
 document.addEventListener('input', e => {
   if (e.target.id === 'fSeuil'){ filt.seuil = +e.target.value; render(); }
+  if (e.target.id === 'hdvQ'){ hdvQ = e.target.value; clearTimeout(hdvT); hdvT = setTimeout(() => hdvCharger().then(render), 350); }
   if (e.target.id === 'dq'){ dq = e.target.value; $('#dlist').innerHTML = dgListHtml(); }
   if (e.target.id === 'eq'){
     ency.q = e.target.value; ency.n = 60;
@@ -4561,6 +4734,7 @@ function lauStart(){
   $('#wrap').hidden = false;
   render(); window.scrollTo(0,0);
   if (sb) chatLoad().then(() => { chatWatch(); if (view === 'chat') chatPaint(); });
+  if (sb) hdvCharger().then(renderTop);   // pour la pastille des ventes conclues
 }
 
 Object.assign(ACT, {
@@ -4568,6 +4742,28 @@ Object.assign(ACT, {
   son(d, b){ sonOn = !sonOn; try { localStorage.setItem('idd-son', sonOn ? '1' : '0'); } catch(e){}
     if (b) b.textContent = sonOn ? '♪' : '♪̸';
     if (sonOn) SON.clic(); },
+  hdvTab(d){ hdvTab = d.v; hdvMsg = ''; if (d.v !== 'vendre') hdvVendre = null; hdvCharger().then(render); render(); },
+  hdvPick(d){ hdvVendre = { t:d.t, id:+d.id }; hdvMsg = ''; render(); },
+  async hdvDeposer(){
+    const el = $('#hdvPrix'), prix = Math.floor(+(el && el.value) || 0);
+    if (!hdvVendre) return;
+    const o = hdvVendre.t === 'g' ? Eco.gearById(save, hdvVendre.id) : Eco.itemById(save, hdvVendre.id);
+    if (!o) return;
+    const r = await hdvDeposer(hdvVendre.t, o, prix);
+    if (r.err){ hdvMsg = r.err; return render(); }
+    hdvMsg = ''; hdvVendre = null;
+    toast(`Mis en vente. Taxe prélevée : ${fmt(r.taxe)} kamas.`);
+    await hdvCharger(); render();
+  },
+  async hdvAcheter(d){
+    const lot = hdvLots.find(l => l.id === +d.id); if (!lot) return;
+    const r = await hdvAcheter(lot);
+    if (r.err){ hdvMsg = r.err; await hdvCharger(); return render(); }
+    hdvMsg = ''; toast(`${lot.nom} acheté pour ${fmt(lot.prix)} kamas.`);
+    await hdvCharger(); render();
+  },
+  async hdvReprendre(d){ await hdvReprendre(+d.id); toast('Lot repris.'); render(); },
+  hdvEncaisser(){ hdvEncaisser(); },
   chatSend(){ chatSend(); },
   voirGear(d){ const g = GEAR.find(x => x.id === +d.id); if (g){ apercu = { t:'g', def:g }; render(); } },
   voirTro(d){ const i = (ITEM_SKINS.normal.concat(ITEM_SKINS.legend)).find(x => x.id === +d.id);
