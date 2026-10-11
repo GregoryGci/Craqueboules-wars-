@@ -15,7 +15,7 @@ console.log(`duel 3★ niv 30 contre 5★ niv 1 : les 3★ gagnent ${duel(3, 30,
 console.log(`à niveau égal (60) : 4★ contre 3★ ${duel(4, 60, 3, 60)} % · 5★ contre 4★ ${duel(5, 60, 4, 60)} %`);
 console.log('\n== 3. Partie neuve. Repère : 100 % au premier donjon.');
 let w = 0, N = 0; for (let k = 0; k < 25; k++){ const sv = Eco.newSave(); save = sv; const T = sv.team.map(u => Eco.monDef(sv, Eco.monByUid(sv, u))); for (let s = 0; s < 8; s++){ N++; if (simulate(STAGES.camp[0], T, s).win) w++; } }
-console.log(`partie neuve, 1er donjon : ${Math.round(w / N * 100)} % · dojo niveau 10 : ` + (() => { let w = 0, N = 0; for (let k = 0; k < 20; k++){ const sv = Eco.newSave(); const T = sv.team.map(u => Eco.monDef(sv, Eco.monByUid(sv, u))); for (let s = 0; s < 6; s++){ N++; if (simulate(STAGES.xp[0], T, s).win) w++; } } return Math.round(w / N * 100); })() + ' %');
+console.log(`partie neuve, 1er donjon : ${Math.round(w / N * 100)} %`);
 console.log('\n== 4. Boss mondial. Repère : 4 à 5 barres pour un joueur type, 7 pour dix monstres équipés à fond,');
 console.log('   et personne ne tombe avant la moitié de l\'assaut.');
 function wbSim(T, B, seed){

@@ -1896,7 +1896,7 @@ const Eco = (() => {
     for (const uid of team || save.team){ const m = monByUid(save, uid); if (m){ const ups = addXp(m, Math.round(dg.xp * (C.xp || 1))); out.xp.push({ key:m.key, name:MONSTERS[m.key].name, ups, level:m.level }); } }
     // Chaque mode a son butin, et un seul : la campagne l'équipement, les raids les trophées,
     // les dragons leur Dofus (rare) accompagné de quelques pièces d'équipement.
-    const n = dg.mode === 'xp' || dg.mode === 'gel' ? 0 : 1 + (R() < (dg.mode === 'camp' ? .4 : .5) * (C.drop || 1) ? 1 : 0), ilvl = dg.dofusLvl || dg.lvl;
+    const n = dg.mode === 'gel' ? 0 : 1 + (R() < (dg.mode === 'camp' ? .4 : .5) * (C.drop || 1) ? 1 : 0), ilvl = dg.dofusLvl || dg.lvl;
     out.gear = [];
     const dropGear = () => { const g = genGear(save, dg.lvl); if (g){ save.gear = save.gear || []; save.gear.push(g); out.gear.push(g); } };
     for (let i = 0; i < n; i++){
@@ -2213,16 +2213,44 @@ const KIT5 = [
     ['allAllies',4,[{op:'buff',type:'spdUp',turns:2},{op:'atb',amount:30}]],
     ['enemy',4,[{op:'dmg',mult:2.4,hits:3}]] ],
 ];
+// Un 5 ★ porte le rôle de son style de combat, mais reste un boss pour tout ce qui trie les monstres.
+const estBoss = m => m.role === 'Boss' || !!m.chef;
 const kit5 = h => KIT5.map((L, i) => L[(h >>> (4 + i * 5)) % L.length]);   // filet de sécurité pour un 5 ★ qui n'aurait pas son kit ci-dessous
 // Les kits des 5 ★. Chacun a sa mécanique, qu'aucun autre monstre ne possède ; les noms et les icônes des
 // sorts restent ceux de Dofus, mais ne servent que d'habillage. Format : [cible, recharge, effets, description].
 // Réglés sur des duels simulés pour que chacun gagne entre 40 et 60 % de ses combats contre les autres 5 ★.
+// Carrure de chaque 5 ★, accordée à son kit : [rôle, PV, ATK, DEF (en multiples de la base 5 ★), VIT,
+// taux critique, dégâts critiques, précision, résistance]. Un tank qui frappe avec sa DEF a de la DEF,
+// un empoisonneur a la précision pour poser ses doses, un assassin est fragile et rapide.
+const BASE5 = { hp:1390, atk:95, def:78 };
+const STYLE5 = {
+  'bouftou royal':        ['Tank',      1.18, .78, 1.30,  96, 10, 50, 10, 35],
+  'glourséleste':         ['Tank',      1.20, .68, 1.65,  94, 10, 50, 10, 40],
+  'kolosso':              ['Tank',      1.30, 1.00, 1.25, 100, 10, 50, 35, 30],
+  'coffre des forgerons': ['Tank',      1.28, .85, 1.18,  97, 10, 50, 25, 30],
+  'bworker':              ['Bagarreur', 1.12, 1.10, .82, 101, 20, 60, 10, 20],
+  'rat noir':             ['Bagarreur', 1.12, 1.05, .90, 104, 20, 60, 25, 20],
+  'sphincter cell':       ['Bagarreur', 1.12, 1.06, 1.05, 105, 15, 55, 30, 40],
+  'solar':                ['Bagarreur', 1.00, 1.10, 1.00, 106, 20, 60, 15, 25],
+  "l'éternel conflit":    ['Bagarreur', 1.08, 1.06, 1.00, 104, 20, 60, 30, 25],
+  'ombre':                ['Assassin',   .76, 1.30, .78, 114, 35, 85, 15, 15],
+  'wa wabbit':            ['Assassin',   .80, 1.04, .80, 124, 25, 65, 15, 15],
+  'hell mina':            ['Attaquant',  .82, 1.28, .82, 103, 32, 85, 10, 15],
+  'sylargh':              ['Attaquant',  .88, 1.28, .86, 103, 28, 75, 20, 15],
+  'merkator':             ['Attaquant',  .92, 1.22, .90, 106, 15, 55, 45, 20],
+  'kimbo':                ['Entraveur', 1.00, 1.00, 1.00, 108, 15, 55, 35, 25],
+  'misère':               ['Entraveur', 1.05, .96, 1.00, 107, 15, 55, 20, 25],
+  'comte harebourg':      ['Soutien',    .95, .86, .95, 116, 10, 50, 40, 25],
+  'kanigroula':           ['Soutien',   1.00, .86, 1.00, 114, 10, 50, 15, 30],
+  'koumiho':              ['Soutien',   1.02, 1.03, .95, 112, 15, 55, 15, 35],
+  'dantinéa':             ['Soigneur',  1.10, .84, 1.06, 109, 10, 50, 15, 40],
+};
 const KITS5 = {
   // Tank qui force l'ennemi à le viser et se soigne en encaissant ; ses dégâts viennent de sa DEF et de ses PV.
   'bouftou royal': [
-    ['enemy', 0, [{op:'dmg',mult:2.9,defK:1.6},{op:'debuff',type:'atkDown',turns:2,chance:40}], 'Frappe avec son ATK et sa DEF. 40 % de Faiblesse (2 t) : la cible frappe 40 % moins fort.'],
-    ['self', 3, [{op:'buff',type:'taunt',turns:2},{op:'buff',type:'defUp',turns:2},{op:'buff',type:'regen',turns:3}], 'Provocation (2 t) : les sorts monocibles ennemis doivent le viser. Armure (2 t) et Régénération (3 t) : 8 % de ses PV à chaque tour.'],
-    ['allEnemies', 4, [{op:'dmg',mult:1.8,hpK:.14},{op:'debuff',type:'stun',turns:1,chance:20}], 'Charge tous les ennemis ; les dégâts montent avec ses PV max. 20 % d\'Étourdi (1 t).'],
+    ['enemy', 0, [{op:'dmg',mult:2.3,defK:1.4},{op:'debuff',type:'atkDown',turns:2,chance:40}], 'Frappe avec son ATK et sa DEF. 40 % de Faiblesse (2 t) : la cible frappe 40 % moins fort.'],
+    ['self', 3, [{op:'buff',type:'taunt',turns:2},{op:'buff',type:'regen',turns:2}], 'Provocation (2 t) : les sorts monocibles ennemis doivent le viser. Régénération (2 t) : 8 % de ses PV à chaque tour.'],
+    ['allEnemies', 4, [{op:'dmg',mult:1.3,hpK:.08},{op:'debuff',type:'stun',turns:1,chance:20}], 'Charge tous les ennemis ; les dégâts montent avec ses PV max. 20 % d\'Étourdi (1 t).'],
   ],
   // Tout repose sur sa vitesse : plus il est rapide, plus il frappe et plus il rejoue.
   'wa wabbit': [
@@ -2232,8 +2260,8 @@ const KITS5 = {
   ],
   // Berserker : il paie ses coups avec ses PV, et frappe d'autant plus fort qu'il est blessé.
   'bworker': [
-    ['enemy', 0, [{op:'dmg',mult:3.4,missing:1.2}], '3,4× ATK, +1,2 % de dégâts par % de PV qui lui manque.'],
-    ['enemy', 3, [{op:'selfDmg',pct:15},{op:'dmg',mult:6.2,ignoreDef:50}], 'Sacrifie 15 % de ses PV actuels pour un coup de 6,2× ATK qui ignore la moitié de la DEF.'],
+    ['enemy', 0, [{op:'dmg',mult:3.2,missing:1}], '3,2× ATK, +1 % de dégâts par % de PV qui lui manque.'],
+    ['enemy', 3, [{op:'selfDmg',pct:15},{op:'dmg',mult:5.6,ignoreDef:50}], 'Sacrifie 15 % de ses PV actuels pour un coup de 5,6× ATK qui ignore la moitié de la DEF.'],
     ['self', 4, [{op:'buff',type:'endure',turns:2},{op:'buff',type:'atkUp',turns:2},{op:'heal',pct:15}], 'Ténacité (2 t) : ses PV ne peuvent pas descendre sous 1. Puissance (2 t), et se soigne de 15 %.'],
   ],
   // Ses sorts changent d'effet selon que son tour est pair ou impair.
@@ -2246,7 +2274,7 @@ const KITS5 = {
   'kolosso': [
     ['enemy', 0, [{op:'dmg',mult:3.5},{op:'debuff',type:'slow',turns:2,chance:55}], '3,5× ATK. 55 % de Ralentissement (2 t).'],
     ['allEnemies', 3, [{op:'dmg',mult:2.5},{op:'debuff',type:'stun',turns:1,chance:75,si:'slow'}], '2,5× ATK sur tous les ennemis. Ceux qui sont déjà ralentis ont 75 % de risque d\'être Étourdis (1 t).'],
-    ['self', 4, [{op:'shield',pct:30,turns:3},{op:'buff',type:'counter',turns:3}], 'Bouclier de 30 % de ses PV (3 t) et Riposte (3 t) : il rend à 2× ATK chaque sort monocible reçu.'],
+    ['self', 4, [{op:'shield',pct:35,turns:3},{op:'buff',type:'counter',turns:3}], 'Bouclier de 35 % de ses PV (3 t) et Riposte (3 t) : il rend à 2× ATK chaque sort monocible reçu.'],
   ],
   // Assassin : achève les blessés, et rejoue quand il tue.
   'ombre': [
@@ -2436,7 +2464,7 @@ function buildCatalog(cat){
   for (const d of cat.dungeons.slice().sort((a,b) => a.l - b.l || a.id - b.id)){
     const ms = d.m.map(id => 'm' + id).filter(k => MONSTERS[k]);
     const bossK = (d.b || []).map(id => 'm' + id).find(k => MONSTERS[k]);
-    const normals = [...new Set(ms.filter(k => k !== bossK && MONSTERS[k].role !== 'Boss'))];
+    const normals = [...new Set(ms.filter(k => k !== bossK && !estBoss(MONSTERS[k])))];
     if (!bossK && !normals.length) continue;
     const L = Math.max(2, Math.min(MAX_LVL, d.l));   // le niveau du donjon est celui du vrai jeu
     const pickN = i => normals.length ? normals[i % normals.length] : bossK;
@@ -2470,6 +2498,10 @@ function buildCatalog(cat){
     m.skills = K.map(([target, cd, ops, desc], i) => { const id = k + '_' + i, old = SKILLS[id] || SKILLS[m.skills[i]] || {};
       SKILLS[id] = { name:old.name || GEN_NAMES.Boss[i], ic:old.ic || 0, cd, target, ops, desc }; return id; });
     if (m.awaken) m.awaken = { ...m.awaken, swap:{} };
+    const S = STYLE5[m.name.toLowerCase()];
+    if (S){ const [role, hp, atk, def, spd, crit, critDmg, acc, res] = S;
+      m.role = role; m.chef = true;
+      m.base = { hp:Math.round(BASE5.hp * hp), atk:Math.round(BASE5.atk * atk), def:Math.round(BASE5.def * def), spd, crit, critDmg, acc, res }; }
   }
   gelKeys().forEach((k, i) => { if (k){ MONSTERS[k].stars = i + 1; MONSTERS[k].food = i + 1; } });   // les gelées : de la nourriture à XP, pas des recrues
   ROSTER = buildRoster(cat);
@@ -2507,7 +2539,7 @@ function starterKeys(){
   if (CAT_MODE === 'local') return ['tofu','larve','chafer'];
   const byName = n => [...(ROSTER || [])].find(k => MONSTERS[k].name.toLowerCase() === n) || Object.keys(MONSTERS).find(k => MONSTERS[k].name.toLowerCase() === n);
   const want = ['tofu','larve bleue','chafer lancier'].map(byName);
-  const spare = Object.keys(MONSTERS).filter(k => (!ROSTER || ROSTER.has(k)) && MONSTERS[k].stars <= 2 && MONSTERS[k].role !== 'Boss');
+  const spare = Object.keys(MONSTERS).filter(k => (!ROSTER || ROSTER.has(k)) && MONSTERS[k].stars <= 2 && !estBoss(MONSTERS[k]));
   return want.map((k, i) => k || spare[i] || Object.keys(MONSTERS)[i]);
 }
 
@@ -2531,8 +2563,8 @@ const DIFF = L => { const T = BAL.diff; if (L <= T[0][0]) return T[0][1];
 const ENN = (L, role, x = 1) => { const d = DIFF(L) * x, [h, a] = BAL[role]; return { hpMult:h * d, atkMult:a * Math.sqrt(d) }; };
 // XP : généreuse sur les premiers donjons, pour que le début file, puis au tarif normal.
 const XPK = L => 1 + (BAL.xp0 - 1) * Math.max(0, 1 - (L - 10) / (BAL.xpFin - 10));
-const STAGES = { camp:[], xp:[], gel:[], raid:[], dragon:[] };
-const MODE_LABEL = { camp:'Campagne', xp:'Dojo', gel:'Gelées', raid:'Raids', dragon:'Dragons' };
+const STAGES = { camp:[], gel:[], raid:[], dragon:[] };
+const MODE_LABEL = { camp:'Campagne', gel:'Gelées', raid:'Raids', dragon:'Dragons' };
 // Gelaxième Dimension : cinq étages, et à chaque victoire une gelée à donner à manger à ses monstres.
 // Plus l'étage est haut, plus les gelées qui tombent ont d'étoiles.
 const GEL_TAUX = [{ 1:80, 2:20 }, { 1:30, 2:55, 3:15 }, { 2:30, 3:55, 4:15 }, { 3:40, 4:50, 5:10 }, { 3:20, 4:55, 5:25 }];
@@ -2548,23 +2580,6 @@ function gelStages(){
       desc:'Chaque victoire rapporte une gelée, à donner à manger à un monstre pour le faire monter.', enemies:last, waves:[salle(2), salle(3), last],
       req:f ? `gel:${f}` : null, kamas:[40 + L, 80 + 2 * L], xp:Math.round((50 + L * 9) * .5), rarity:{}, gel:GEL_TAUX[f] };
   });
-}
-// Dojo : le mode d'entraînement. Trois salles de piétaille, sans boss ni butin, pour trois fois l'expérience
-// d'un donjon du même niveau. C'est là qu'on monte un monstre fraîchement invoqué ou une équipe en retard,
-// plutôt qu'en refaisant vingt fois le même donjon.
-const DOJO_XP = 3;
-function dojoStages(){
-  const out = [];
-  for (let L = 10; L <= MAX_LVL; L += 10){
-    const src = STAGES.camp.filter(d => d.lvl <= L).pop() || STAGES.camp[0]; if (!src) break;
-    const pool = [...new Set(src.waves.flat().filter(e => !e.boss).map(e => e.key))], m = ENN(L, 'trash');
-    const salle = (i, n) => Array.from({ length:n }, (_, k) => ({ key:pool[(i + k) % pool.length], level:clampL(L - 1), ...m }));
-    const waves = [salle(0, 2), salle(1, 3), salle(2, 3)];
-    out.push({ id:`xp:${L}`, mode:'xp', grp:'dojo', gname:'Dojo', short:`Niveau ${L}`, name:`Dojo · niveau ${L}`, map:src.map, mapId:src.mapId || 0, maps:null, lvl:L, dofusLvl:0,
-      desc:'Entraînement : beaucoup d\'expérience, aucun butin.', enemies:waves[2], waves, req:L > 10 ? `xp:${L - 10}` : null,
-      kamas:[20 + L, 40 + 2 * L], xp:Math.round((50 + L * 9) * DOJO_XP), rarity:{} });
-  }
-  return out;
 }
 // boss : nom du monstre dans le catalogue · mains : effets principaux des trophées lâchés
 const RAID_DEFS = [
@@ -2598,10 +2613,10 @@ function bossStages(defs, mode, floors, lvStep, mult0, multStep, lv0 = 0){
   const out = [], keys = Object.keys(MONSTERS), strong = keys.filter(k => MONSTERS[k].stars >= 4);
   defs.forEach((D, di) => {
     const named = keys.filter(k => D.boss.test(MONSTERS[k].name.toLowerCase())).sort((a,b) => (MONSTERS[a].dofusLvl || 0) - (MONSTERS[b].dofusLvl || 0));
-    const bossK = named.find(k => MONSTERS[k].role === 'Boss') || named[0] || strong[di % (strong.length || 1)] || keys[0];   // sans catalogue : un monstre fort fait office de boss
+    const bossK = named.find(k => estBoss(MONSTERS[k])) || named[0] || strong[di % (strong.length || 1)] || keys[0];   // sans catalogue : un monstre fort fait office de boss
     const src = CAT && CAT.dungeons.find(d => (d.b || []).some(id => 'm' + id === bossK));
-    let pool = src ? [...new Set(src.m.map(id => 'm' + id).filter(k => MONSTERS[k] && k !== bossK && MONSTERS[k].role !== 'Boss'))] : [];
-    if (!pool.length) pool = keys.filter(k => k !== bossK && MONSTERS[k].stars <= 3 && MONSTERS[k].role !== 'Boss').slice(di*2, di*2 + 4);
+    let pool = src ? [...new Set(src.m.map(id => 'm' + id).filter(k => MONSTERS[k] && k !== bossK && !estBoss(MONSTERS[k])))] : [];
+    if (!pool.length) pool = keys.filter(k => k !== bossK && MONSTERS[k].stars <= 3 && !estBoss(MONSTERS[k])).slice(di*2, di*2 + 4);
     if (!pool.length) pool = [bossK];
     const place = src ? src.n : `Repaire de ${MONSTERS[bossK].name}`, bn = MONSTERS[bossK].name;
     for (let f = 1; f <= floors; f++){
@@ -2631,7 +2646,6 @@ function finalizeStages(){
     prev = id;
   }
   STAGES.camp = camp;
-  STAGES.xp = dojoStages();
   STAGES.gel = gelStages();
   STAGES.raid = bossStages(RAID_DEFS, 'raid', 10, 19, 1.25, .12, 10);   // 1er étage au niveau 29 : il faut avoir fait un bout de campagne et s'être équipé
   STAGES.dragon = bossStages(DRAGON_DEFS, 'dragon', 5, 40, 1.1, .22);
@@ -2695,7 +2709,7 @@ function daily(save){
 }
 // Les 10 adversaires du jour, du plus faible au plus fort : identiques toute la journée
 function arenaFoes(save){
-  const A = daily(save).arena, rng = mulberry(strHash(A.day)), keys = Object.keys(MONSTERS).filter(k => MONSTERS[k].role !== 'Boss');
+  const A = daily(save).arena, rng = mulberry(strHash(A.day)), keys = Object.keys(MONSTERS).filter(k => !estBoss(MONSTERS[k]));
   return ARENA_NAMES.map((name, r) => {
     const lo = Math.min(4, 1 + Math.floor(r / 3)), hi = Math.min(5, 2 + Math.floor(r / 2.5));
     let pool = keys.filter(k => MONSTERS[k].stars >= lo && MONSTERS[k].stars <= hi); if (pool.length < 3) pool = keys;
@@ -3239,7 +3253,7 @@ function toast(msg){ const t = $('#toast'); t.textContent = msg; t.hidden = fals
 const monImg = m => m.g && IMG_OK ? `${IMG_BASE}/monsters/${m.g}.png` : null;
 function portrait(key, sz, o = {}){
   const m = MONSTERS[key], src = monImg(m);
-  return `<span class="por ${o.round ? 'round' : ''}" style="--elc:${elVar(m.el)};--sz:${sz}px" title="${m.name}"><i class="ini">${m.short}</i>${o.badge !== false && sz >= 34 ? elBadge(m.el) : ''}${src ? `<img class="pimg" src="${src}" alt="" loading="lazy" data-fb>` : ''}</span>`;
+  return `<span class="por ${o.round ? 'round' : ''}" style="--elc:${elVar(m.el)};--sz:${sz}px" title="${m.name}"><i class="ini">${m.short}</i>${src ? `<img class="pimg" src="${src}" alt="" loading="lazy" data-fb>` : ''}</span>`;
 }
 const sico = s => { const [g,c] = STAT_ICO[s.replace('Pct','')]; return `<svg class="sico" viewBox="0 0 16 16" aria-hidden="true"><path d="${GLYPH[g]}" fill="${c}" fill-rule="evenodd" stroke="#0006" stroke-width=".6"/></svg>`; };
 function spellIcon(id, el){
@@ -3263,7 +3277,7 @@ const starSvg = `<svg viewBox="0 0 34 34" aria-hidden="true"><path d="M17 1.5l4.
 const teamMons = () => save.team.map(uid => Eco.monByUid(save, uid)).filter(Boolean);
 // Une équipe mémorisée par mode : on ne refait pas sa composition à chaque fois qu'on change de contenu.
 // save.team reste l'équipe qui part au combat ; les autres sont rangées dans save.teams.
-const TEAM_MODES = [['camp','Campagne'],['xp','Dojo'],['gel','Gelées'],['raid','Raids'],['dragon','Dragons'],['arene','Arène'],['rta','Arène en direct']];
+const TEAM_MODES = [['camp','Campagne'],['gel','Gelées'],['raid','Raids'],['dragon','Dragons'],['arene','Arène'],['rta','Arène en direct']];
 let teamCtx = 'camp';   // mode dont on modifie l'équipe dans l'onglet Équipe
 const teamOf = m => { save.teams = save.teams || {}; return save.teams[m] || []; };
 // Charge l'équipe du mode avant d'y jouer ; si elle est vide, on garde celle en place
@@ -3483,8 +3497,7 @@ const stageBoss = d => {
 };
 const MODE_CARD = {
   camp:   { t:'Campagne', s:'Donjons, équipement et progression',  col:'#5c8a35', u:'niveaux' },
-  xp:     { t:'Dojo',     s:'Entraînement : triple expérience, sans butin', col:'#2f7f8f', u:'paliers' },
-  gel:    { t:'Gelées',   s:'Des gelées à faire manger à tes monstres',     col:'#c2468f', u:'étages' },
+  gel:    { t:'Gelées',   s:'Des gelées à donner à manger : la source d\'XP',     col:'#c2468f', u:'étages' },
   raid:   { t:'Raids',    s:'La seule source de trophées',         col:'#c25e0a', u:'étages' },
   dragon: { t:'Dragons',  s:'Les Dofus, gardés par leurs dragons', col:'#7a3fb0', u:'étages' },
 };
@@ -3510,7 +3523,7 @@ function viewJouer(){
     <div class="wb" style="display:grid; gap:8px">
       ${team.length ? '' : '<p class="hint" style="margin:0">Ajoute au moins un monstre à ton équipe avant de partir au combat.</p>'}
       ${bloc('Aventure', ['camp', 'raid', 'dragon'].map(mode).join(''))}
-      ${bloc('Entraînement', ['xp', 'gel'].map(mode).join(''))}
+      ${bloc('Entraînement', mode('gel'))}
       ${bloc('Défis du jour', defis)}
     </div></section>`;
 }
@@ -4234,29 +4247,26 @@ async function summonShow(rs){
 
 // ---------- Encyclopédie : tous les monstres du catalogue, et tous les objets Dofus chargés à la demande depuis DofusDB
 const API_BASE = 'https://api.dofusdb.fr', ENCY_PAGE = 48;
-const ITEM_TYPES = [[0,'Tous les objets'],[23,'Dofus'],[151,'Trophées'],[217,'Prysmaradites'],[1,'Amulettes'],[9,'Anneaux'],[10,'Ceintures'],[11,'Bottes'],[16,'Chapeaux'],[17,'Capes'],[82,'Boucliers'],[18,'Familiers'],
-  [2,'Arcs'],[3,'Baguettes'],[4,'Bâtons'],[5,'Dagues'],[6,'Épées'],[7,'Marteaux'],[8,'Pelles'],[19,'Haches']];
+const ITEM_TYPES = [['','Tous les objets'],['coiffe','Coiffes'],['cape','Capes'],['amulette','Amulettes'],['anneau','Anneaux'],['ceinture','Ceintures'],['bottes','Bottes'],['arme','Armes'],['trophee','Trophées'],['dofus','Dofus']];
 let eqTab = 'coll', encyT = null, encyWhere = null;
-const ency = { kind:'mons', q:'', stars:0, el:'', inv:1, n:60, sel:null, type:0, items:[], total:null, loading:false, err:false, req:0, item:null };
+const ency = { kind:'mons', q:'', stars:0, el:'', inv:1, n:60, sel:null, type:'', items:[], total:null, loading:false, err:false, req:0, item:null };
 const plain = t => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 function encyMons(){
   const q = plain(ency.q.trim());
   return Object.keys(MONSTERS).filter(k => { const m = MONSTERS[k]; return (!q || plain(m.name).includes(q)) && (!ency.stars || m.stars === ency.stars) && (!ency.el || m.el === ency.el) && (!ency.inv || !ROSTER || ROSTER.has(k)); })
     .sort((a,b) => (MONSTERS[a].dofusLvl || 0) - (MONSTERS[b].dofusLvl || 0) || MONSTERS[a].name.localeCompare(MONSTERS[b].name, 'fr'));
 }
-// Page suivante d'objets (ou première page si reset) ; seule la dernière requête lancée est prise en compte
-function encyFetch(reset){
-  if (reset){ ency.items = []; ency.total = null; }
-  const my = ++ency.req, q = plain(ency.q.trim());
-  ency.loading = true; ency.err = false;
-  const url = `${API_BASE}/items?$limit=${ENCY_PAGE}&$skip=${ency.items.length}&$sort[level]=1&$select[]=id&$select[]=name&$select[]=level&$select[]=iconId&$select[]=typeId&$select[]=description`
-    + (q ? `&slug.fr[$search]=${encodeURIComponent(q)}` : '') + (ency.type ? `&typeId=${ency.type}` : '');
-  fetch(url).then(r => r.ok ? r.json() : Promise.reject()).then(d => {
-    if (my !== ency.req) return;
-    ency.items.push(...(d.data || []).map(x => ({ id:x.id, n:(x.name && (x.name.fr || x.name.en)) || '?', l:x.level || 1, i:x.iconId, t:(x.type && x.type.name && x.type.name.fr) || '', d:(x.description && x.description.fr) || '' })));
-    ency.total = d.total ?? ency.items.length; ency.loading = false; encyPaint();
-  }).catch(() => { if (my === ency.req){ ency.loading = false; ency.err = true; encyPaint(); } });
+// Les objets de l'encyclopédie sont ceux du jeu, et seulement ceux-là : l'équipement qui tombe en campagne,
+// les trophées des raids et les Dofus des dragons. Elle listait auparavant tout DofusDB — ressources,
+// familiers, objets de quête — dont presque rien n'existe ici.
+function encyObjets(){
+  const q = plain(ency.q.trim());
+  return GEAR.map(g => ({ id:g.id, n:g.n, l:g.l, i:g.i, k:g.s, e:g.e }))
+    .concat(ITEM_SKINS.normal.map(x => ({ id:x.id, n:x.n, l:x.l, i:x.i, k:'trophee' })), ITEM_SKINS.legend.map(x => ({ id:x.id, n:x.n, l:x.l, i:x.i, k:'dofus' })))
+    .filter(o => (!ency.type || o.k === ency.type) && (!q || plain(o.n).includes(q)))
+    .sort((a, b) => a.l - b.l || a.n.localeCompare(b.n, 'fr'));
 }
+function encyFetch(){ ency.n = 60; }
 function encyGrid(){
   if (ency.kind === 'mons'){
     const keys = encyMons(), owned = new Set(save.monsters.map(m => m.key));
@@ -4264,11 +4274,10 @@ function encyGrid(){
       html: keys.slice(0, ency.n).map(k => `<button class="cell ${k === ency.sel ? 'on' : ''}" data-act="eSel" data-k="${k}" title="${esc(MONSTERS[k].name)}">${portrait(k, 52, { badge:false })}<span class="st">${starsTxt(MONSTERS[k].stars)}</span>${owned.has(k) ? '<span class="own" title="Possédé"></span>' : ''}</button>`).join('')
         + (keys.length > ency.n ? `<button class="btn grey sm emore" data-act="eMore">Afficher plus (${keys.length - ency.n})</button>` : '') || '<p class="muted" style="grid-column:1/-1; margin:0">Aucun monstre ne correspond.</p>' };
   }
-  const more = ency.total != null && ency.items.length < ency.total;
-  return { count: ency.err ? 'DofusDB est injoignable.' : ency.total == null ? 'Chargement…' : `${ency.items.length} / ${fmt(ency.total)} objets`,
-    html: ency.items.map(it => `<button class="cell ${ency.item && it.id === ency.item.id ? 'on' : ''}" data-act="eItem" data-id="${it.id}" title="${esc(it.n)}"><img class="iimg" src="${IMG_BASE}/items/${it.i}.png" alt="" loading="lazy" data-fb><span class="q">${it.l}</span></button>`).join('')
-      + (ency.loading ? '<p class="muted" style="grid-column:1/-1; margin:0">Chargement…</p>' : more ? `<button class="btn grey sm emore" data-act="eMore">Afficher plus</button>` : '')
-      + (ency.err ? '<p class="neg" style="grid-column:1/-1; margin:0">Impossible de joindre DofusDB. <button class="btn grey sm" data-act="eRetry">Réessayer</button></p>' : !ency.loading && !ency.items.length ? '<p class="muted" style="grid-column:1/-1; margin:0">Aucun objet ne correspond.</p>' : '') };
+  const tous = encyObjets();
+  return { count: `${Math.min(ency.n, tous.length)} / ${fmt(tous.length)} objets du jeu`,
+    html: tous.slice(0, ency.n).map(it => `<button class="cell ${ency.item && it.id === ency.item.id ? 'on' : ''}" data-act="eItem" data-id="${it.id}" title="${esc(it.n)} · niveau ${it.l}"><img class="iimg" src="${IMG_BASE}/items/${it.i}.png" alt="" loading="lazy" data-fb><span class="lv">${it.l}</span></button>`).join('')
+      + (tous.length > ency.n ? `<button class="btn grey sm emore" data-act="eMore">Afficher plus (${tous.length - ency.n})</button>` : '') || '<p class="muted" style="grid-column:1/-1; margin:0">Aucun objet ne correspond.</p>' };
 }
 // Met à jour la grille sans toucher au champ de recherche (pour ne pas perdre le focus pendant la frappe)
 function encyPaint(){ const g = $('#egrid'); if (!g) return; const r = encyGrid(); g.innerHTML = r.html; $('#ecount').textContent = r.count; }
@@ -4276,9 +4285,12 @@ function encyDetail(){
   if (ency.kind === 'items'){
     const it = ency.item;
     if (!it) return '<section class="win"><div class="wt"><h2>Objet</h2></div><div class="wb muted">Choisis un objet dans la liste.</div></section>';
+    const ou = it.k === 'trophee' ? 'Se gagne en raid, puis se monte jusqu\'à +15.' : it.k === 'dofus' ? 'Se gagne sur les dragons, à taux très bas.' : `Tombe en campagne dans les donjons proches du niveau ${it.l}.`;
+    const lignes = (it.e || []).map(([c, a, b]) => { const m = CHAR_MAP[c];
+      return `<li class="${b < 0 ? 'neg' : 'pos'}"><span>${CHAR_NAME[c] || 'Effet'}${m && STAT[m[0]] !== CHAR_NAME[c] ? ` <small class="muted" style="font-weight:normal">→ ${STAT[m[0]]}</small>` : ''}</span><b class="mono">${a === b ? (a > 0 ? '+' + a : a) : `${a} à ${b}`}</b></li>`; }).join('');
     return `<section class="win"><div class="wt"><h2>${esc(it.n)}<small>niv. ${it.l}</small></h2></div><div class="wb" style="display:grid; gap:8px">
-      <div class="ehead"><span class="eimg"><img src="${IMG_BASE}/items/${it.i}.png" alt="" data-fb></span><div><b>${esc(it.n)}</b><br><span class="muted">${esc(it.t)} · niveau ${it.l}</span></div></div>
-      ${it.d ? `<p style="margin:0">${esc(it.d)}</p>` : ''}<p class="hint" style="margin:0">Données et image : DofusDB.</p></div></section>`;
+      <div class="ehead"><span class="eimg"><img src="${IMG_BASE}/items/${it.i}.png" alt="" data-fb></span><div><b>${esc(it.n)}</b><br><span class="muted">${it.k === 'trophee' ? 'Trophée' : it.k === 'dofus' ? 'Dofus' : GEAR_LABEL[it.k] || it.k} · niveau ${it.l}</span></div></div>
+      ${lignes ? `<ul class="rows">${lignes}</ul>` : ''}<p class="hint" style="margin:0">${ou}</p></div></section>`;
   }
   const k = ency.sel && MONSTERS[ency.sel] ? ency.sel : null;
   if (!k) return '<section class="win"><div class="wt"><h2>Monstre</h2></div><div class="wb muted">Choisis un monstre dans la liste.</div></section>';
@@ -4298,7 +4310,6 @@ function encyDetail(){
     <p style="margin:0">${where.length ? esc(where.slice(0, 5).join(', ')) + (where.length > 5 ? ` et ${where.length - 5} autre${where.length > 6 ? 's' : ''}` : '') : 'Aucun donjon de campagne : uniquement par invocation.'}</p></div></section>`;
 }
 function viewEncy(){
-  if (ency.kind === 'items' && ency.total == null && !ency.loading && !ency.err) encyFetch(true);
   const r = encyGrid(), mons = ency.kind === 'mons';
   const opt = (v, l, cur) => `<option value="${v}" ${String(cur) === String(v) ? 'selected' : ''}>${l}</option>`;
   return `<div class="split">${encyDetail()}
@@ -4634,10 +4645,10 @@ const ACT = {
   grp(d){ openGrp = openGrp === d.k ? null : d.k; const l = $('#dlist'), sc = l.scrollTop; l.innerHTML = dgListHtml(); l.scrollTop = sc; },
   skUp(d){ const r = Eco.skillUp(save, Eco.monByUid(save, selMon), +d.i, d.w); if (r.err) return toast(r.err); persist(); SON.niveau(); toast(`Sort monté au niveau ${r.lv}.`); render(); },
   eqTab(d){ eqTab = d.v; render(); },
-  eKind(d){ ency.kind = d.v; ency.q = ''; ency.n = 60; if (d.v === 'items') ency.total = null; render(); },
+  eKind(d){ ency.kind = d.v; ency.q = ''; ency.n = 60; render(); },
   eSel(d){ ency.sel = d.k; render(); },
-  eItem(d){ ency.item = ency.items.find(x => x.id === +d.id) || null; render(); },
-  eMore(){ if (ency.kind === 'mons'){ ency.n += 120; encyPaint(); } else if (!ency.loading){ encyFetch(false); encyPaint(); } },
+  eItem(d){ ency.item = encyObjets().find(x => x.id === +d.id) || null; render(); },
+  eMore(){ ency.n += 120; encyPaint(); },
   eRetry(){ encyFetch(!ency.items.length); encyPaint(); },
   auto(d){ if (isUnlocked(+d.i)) autoStart(stages()[+d.i]); },
   autoStop(){ if (autoRun && autoRun.on) autoEnd('Série arrêtée.'); },
@@ -4837,7 +4848,7 @@ document.addEventListener('input', e => {
   if (e.target.id === 'eq'){
     ency.q = e.target.value; ency.n = 60;
     if (ency.kind === 'mons') encyPaint();
-    else { clearTimeout(encyT); encyT = setTimeout(() => { encyFetch(true); encyPaint(); }, 350); }   // on attend la fin de la frappe avant d'interroger DofusDB
+    else { ency.n = 60; encyPaint(); }
   }
 });
 document.addEventListener('change', e => {
@@ -4845,7 +4856,7 @@ document.addEventListener('change', e => {
   if (t.id === 'estars'){ ency.stars = +t.value; ency.n = 60; encyPaint(); }
   else if (t.id === 'eel'){ ency.el = t.value; ency.n = 60; encyPaint(); }
   else if (t.id === 'einv'){ ency.inv = +t.value; ency.n = 60; encyPaint(); }
-  else if (t.id === 'etype'){ ency.type = +t.value; encyFetch(true); encyPaint(); }
+  else if (t.id === 'etype'){ ency.type = t.value; ency.n = 60; encyPaint(); }
 });
 let resizeT = null;
 window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (!inCombat && view === 'donjons') drawMinis(); }, 150); });

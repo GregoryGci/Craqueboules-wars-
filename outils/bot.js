@@ -33,14 +33,14 @@ function runBot(opts = {}){
     }
   }
   const play = d => { const r = simulate(d, defs(), seed++); if (r.win){ Eco.loot(sv, d); gearUp(); } return r.win; };
-  let runs = 0, farm = -1, raidBest = -1, farmN = 0, dojo = -1, nD = 0, nF = 0, nR = 0, stuck = 0; const xp = STAGES.xp;
+  let runs = 0, farm = -1, raidBest = -1, farmN = 0, dojo = -1, nD = 0, nF = 0, nR = 0, stuck = 0; const xp = STAGES.gel;
   for (let i = 0; i < camp.length && runs < maxRuns; i++){
     const d = camp[i]; let r0 = runs, losses = 0;
     for (;;){
       if (runs >= maxRuns) break;
       const p = est(d);
       if (p >= .5){ runs++; if (play(d)) break; losses++; continue; }
-      // bloqué : on tourne entre dojo (XP), donjon sûr (équipement) et raid (trophées)
+      // bloqué : on tourne entre gelées (XP), donjon sûr (équipement) et raid (trophées)
       farmN++; runs++; const tour = farmN % 4;
       if (farmN % 8 === 1){
         farm = -1; for (let j = i - 1; j >= Math.max(0, i - 8); j--) if (est(camp[j], 4) >= .75){ farm = j; break; }
@@ -49,7 +49,9 @@ function runBot(opts = {}){
       }
       if (tour === 3 && raidBest >= 0){ nR++; play(raid[raidBest]); }
       else if (tour === 2 && farm >= 0){ nF++; play(camp[farm]); }
-      else if (dojo >= 0 && opts.dojo !== false){ nD++; play(xp[dojo]); }
+      else if (dojo >= 0 && opts.dojo !== false){ nD++; play(xp[dojo]);
+        // les gelées gagnées vont au monstre de l'équipe le plus en retard
+        for (const g of sv.monsters.filter(m => MONSTERS[m.key].food)){ const bas = team().slice().sort((a, b) => a.level - b.level)[0]; Eco.feed(sv, bas, [g.uid]); } }
       else if (farm >= 0){ nF++; play(camp[farm]); }
       else { stuck++; if (stuck > 30) return log; }
     }
@@ -59,7 +61,7 @@ function runBot(opts = {}){
 }
 function resume(log){
   const tiers = {};
-  for (const e of log){ const t = tiers[e.L] = tiers[e.L] || { n:0, runs:0, lvl:0, cum:0, raid:0, tro:0 }; t.n++; t.runs += e.runs; t.lvl = e.lvl; t.cum = e.cum; t.raid = e.raid; t.tro = e.tro; t.mix = `dojo ${e.nD} · farm ${e.nF} · raid ${e.nR}`; }
+  for (const e of log){ const t = tiers[e.L] = tiers[e.L] || { n:0, runs:0, lvl:0, cum:0, raid:0, tro:0 }; t.n++; t.runs += e.runs; t.lvl = e.lvl; t.cum = e.cum; t.raid = e.raid; t.tro = e.tro; t.mix = `gelées ${e.nD} · farm ${e.nF} · raid ${e.nR}`; }
   return Object.entries(tiers).map(([L, t]) => `L${L}: ${t.n} dj, ${t.runs} combats (${(t.runs / t.n).toFixed(1)}/dj), équipe niv ${t.lvl}, raid L${t.raid}, trophées +${t.tro}, cumul ${t.cum} (${t.mix})`).join('\n');
 }
 
