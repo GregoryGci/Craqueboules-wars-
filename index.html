@@ -3062,6 +3062,55 @@ function blip(freq, dur = .14, type = 'sine', vol = .05, when = 0){
     o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + dur);
   } catch(e){}
 }
+/* ---------- Sons. Tout est synthétisé à la volée : aucun fichier à héberger, et la page reste d'un seul bloc.
+   Un impact, c'est un souffle bruité qui claque plus une basse courte ; un soin, deux sinus qui montent. ---------- */
+let sonOn = true;
+try { sonOn = localStorage.getItem('idd-son') !== '0'; } catch(e){}
+let bruitBuf = null;
+function bruit(dur, vol, hz, q){
+  if (!sonOn) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (!bruitBuf){                                        // une seconde de bruit blanc, réutilisée
+      bruitBuf = actx.createBuffer(1, actx.sampleRate, actx.sampleRate);
+      const d = bruitBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const t = actx.currentTime, src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+    src.buffer = bruitBuf; src.loop = true;
+    f.type = 'bandpass'; f.frequency.setValueAtTime(hz, t); f.Q.value = q || 1;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(actx.destination);
+    src.start(t); src.stop(t + dur);
+  } catch(e){}
+}
+function sonBlip(freq, dur, type, vol, when, vers){
+  if (!sonOn) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = actx.currentTime + (when || 0), o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (vers) o.frequency.exponentialRampToValueAtTime(Math.max(20, vers), t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + dur);
+  } catch(e){}
+}
+const SON = {
+  coup(){ bruit(.09, .08, 1500, 1.2); sonBlip(150, .10, 'sine', .09, 0, 60); },
+  critique(){ bruit(.16, .13, 2300, .9); sonBlip(190, .18, 'square', .07, 0, 55);
+    for (const [f, d] of [[523, 0], [784, .04], [1046, .08]]) sonBlip(f, .16, 'triangle', .05, d); },
+  effleure(){ bruit(.06, .04, 900, 2); },
+  soin(){ for (const [f, d] of [[523, 0], [659, .06], [880, .12]]) sonBlip(f, .22, 'sine', .055, d); },
+  sort(){ sonBlip(300, .22, 'triangle', .05, 0, 820); },
+  mort(){ sonBlip(300, .45, 'sawtooth', .07, 0, 55); bruit(.3, .06, 500, .7); },
+  malus(){ sonBlip(420, .2, 'sawtooth', .05, 0, 180); },
+  bonus(){ sonBlip(520, .18, 'sine', .05, 0, 900); },
+  victoire(){ [523, 659, 784, 1046].forEach((f, i) => sonBlip(f, .32, 'triangle', .07, i * .11)); },
+  defaite(){ [392, 330, 262].forEach((f, i) => sonBlip(f, .4, 'sine', .07, i * .14)); },
+  niveau(){ [659, 880, 1174].forEach((f, i) => sonBlip(f, .26, 'sine', .06, i * .07)); },
+  clic(){ sonBlip(760, .05, 'square', .035); },
+};
+
 // rs : un tirage ou une liste de tirages (×10) ; la montée de couleur suit alors le meilleur de la série
 async function summonShow(rs){
   if (fxOff) return;   // animations réduites : le résultat s'affiche directement dans la page
@@ -3470,7 +3519,7 @@ const ACT = {
   mode(d){ mode = d.v; selDg = null; openGrp = null; dq = ''; render(); },
   play(d){ mode = d.v; selDg = null; openGrp = null; dq = ''; view = 'donjons'; render(); window.scrollTo(0,0); },
   grp(d){ openGrp = openGrp === d.k ? null : d.k; const l = $('#dlist'), sc = l.scrollTop; l.innerHTML = dgListHtml(); l.scrollTop = sc; },
-  skUp(d){ const r = Eco.skillUp(save, Eco.monByUid(save, selMon), +d.i, d.w); if (r.err) return toast(r.err); persist(); toast(`Sort monté au niveau ${r.lv}.`); render(); },
+  skUp(d){ const r = Eco.skillUp(save, Eco.monByUid(save, selMon), +d.i, d.w); if (r.err) return toast(r.err); persist(); SON.niveau(); toast(`Sort monté au niveau ${r.lv}.`); render(); },
   eqTab(d){ eqTab = d.v; render(); },
   eKind(d){ ency.kind = d.v; ency.q = ''; ency.n = 60; if (d.v === 'items') ency.total = null; render(); },
   eSel(d){ ency.sel = d.k; render(); },
@@ -3689,6 +3738,7 @@ function startCombat(dg){
           <div class="fctrl">
             <div class="seg" role="group" aria-label="Vitesse" id="speedSeg"><button data-s="1">×1</button><button data-s="2">×2</button><button data-s="3">×3</button></div>
             <button class="btn grey sm" id="autoBtn" aria-pressed="false">Auto</button>
+            <button class="btn grey sm" data-act="son" title="Couper ou remettre le son" aria-label="Son">${sonOn ? '♪' : '♪̸'}</button>
           </div>
           <div class="timeline" id="timeline" aria-label="Ordre des tours"></div>
           <div class="spellbar" id="spellbar"></div>
@@ -4182,23 +4232,24 @@ async function play(events, my){
       case 'skill': {
         const a = Engine.byId(state, e.id), sk = SKILLS[e.skill]; curCaster = e.id;
         log(`${a.name} lance ${sk.name}.`, 'sk');
-        curLook = skillLook(e.skill, a.el);
+        curLook = skillLook(e.skill, a.el); SON.sort();
         await wait(castFx(a, e.skill, e.targets)); break;
       }
       case 'dmg':
         tal(e.id).taken += e.amount;
         if (curCaster){ const t = tal(curCaster); t.dmg += e.amount; t.hits++; if (e.crit) t.crits++; }
         setHp(e.id, e.hp); hitFx(e.id, e.crit, e.glance);
+        (e.crit ? SON.critique : e.glance ? SON.effleure : SON.coup)();
         pop(e.id, '−' + fmtC(e.amount), e.crit ? 'crit' : e.glance ? 'glance' : '');
         log(`${uname(e.id)} perd ${fmt(e.amount)} PV${e.crit ? ' (coup critique)' : e.glance ? ' (effleuré)' : ''}.`, 'dmg');
         await wait(nx && nx.t === 'dmg' && nx.id !== e.id ? 55 : 230); break;   // une zone touche toutes ses cibles presque en même temps
       case 'heal':
         if (curCaster) tal(curCaster).heal += e.amount;
-        setHp(e.id, e.hp); if (e.amount > 0){ healFx(e.id); pop(e.id, '+' + fmtC(e.amount), 'heal'); log(`${uname(e.id)} récupère ${fmt(e.amount)} PV.`, 'heal'); }
+        setHp(e.id, e.hp); if (e.amount > 0){ healFx(e.id); SON.soin(); pop(e.id, '+' + fmtC(e.amount), 'heal'); log(`${uname(e.id)} récupère ${fmt(e.amount)} PV.`, 'heal'); }
         await wait(nx && nx.t === 'heal' ? 40 : 150); break;
       case 'fx':
         setFx(e.id, e.effects);
-        if (e.added){ statusFx(e.id, e.added); pop(e.id, EFFECTS[e.added].label, 'info'); log(`${uname(e.id)} : ${EFFECTS[e.added].label} (${e.turns} tours).`); await wait(nx && nx.t === 'fx' && nx.added ? 40 : 130); }
+        if (e.added){ statusFx(e.id, e.added); (EFFECTS[e.added].good ? SON.bonus : SON.malus)(); pop(e.id, EFFECTS[e.added].label, 'info'); log(`${uname(e.id)} : ${EFFECTS[e.added].label} (${e.turns} tours).`); await wait(nx && nx.t === 'fx' && nx.added ? 40 : 130); }
         if (e.cleansed){ pop(e.id, 'Malus retiré', 'info'); await wait(160); }
         break;
       case 'resist': pop(e.id, 'Résisté', 'info'); log(`${uname(e.id)} résiste.`); await wait(220); break;
@@ -4206,7 +4257,7 @@ async function play(events, my){
         setAtb(e.id, e.atb, e.reset ? 200 : 300);
         if (!e.reset){ pop(e.id, `Barre ${e.delta > 0 ? '+' : '−'}${Math.abs(e.delta)} %`, 'info'); await wait(180); }
         break;
-      case 'death': if (curCaster && curCaster !== e.id) tal(curCaster).kills++; deathFx(e.id); setDead(e.id); log(`${uname(e.id)} est mort !`, 'kill'); await wait(nx && nx.t === 'dmg' ? 60 : 260); break;
+      case 'death': if (curCaster && curCaster !== e.id) tal(curCaster).kills++; deathFx(e.id); SON.mort(); setDead(e.id); log(`${uname(e.id)} est mort !`, 'kill'); await wait(nx && nx.t === 'dmg' ? 60 : 260); break;
       case 'stunned': pop(e.id, 'Étourdi', 'info'); log(`${uname(e.id)} est étourdi et passe son tour.`, 'sk'); await wait(420); break;
       case 'end':
         if (e.winner === 'A' && waveIdx < curStage.waves.length - 1) await nextWave(my); else showEnd(e.winner);
@@ -4234,6 +4285,7 @@ function showEnd(w){
   field.classList.remove('quake');   // une secousse en cours anime un transform, ce qui re-piégerait l'overlay fixe dans l'arène
   field.appendChild(o);
   paintEnd();
+  (win ? SON.victoire : SON.defaite)();
   log(win ? 'Combat terminé : victoire.' : 'Combat terminé : défaite.', 'sys');
 }
 const END_HEAD = `<thead><tr><th>Nom</th><th class="c-sec">Niv.</th><th>Dégâts infligés</th><th class="c-sec">Critiques</th>
@@ -4414,6 +4466,9 @@ function lauStart(){
 
 Object.assign(ACT, {
   lauTab(d){ lauTab = d.v; $('#lauTabs').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === lauTab))); lauPan(); },
+  son(d, b){ sonOn = !sonOn; try { localStorage.setItem('idd-son', sonOn ? '1' : '0'); } catch(e){}
+    if (b) b.textContent = sonOn ? '♪' : '♪̸';
+    if (sonOn) SON.clic(); },
   chatSend(){ chatSend(); },
   voirGear(d){ const g = GEAR.find(x => x.id === +d.id); if (g){ apercu = { t:'g', def:g }; render(); } },
   voirTro(d){ const i = (ITEM_SKINS.normal.concat(ITEM_SKINS.legend)).find(x => x.id === +d.id);
