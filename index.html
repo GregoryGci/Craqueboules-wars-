@@ -81,6 +81,34 @@ h1,h2,h3{font-family:var(--font); margin:0; line-height:1.15; text-wrap:balance}
 .res{display:flex; flex-wrap:wrap; list-style:none; margin:0; padding:3px 4px; background:var(--panel); border:1px solid var(--win-out); border-radius:8px; box-shadow:inset 0 0 0 2px var(--win-hi)}
 .res li{display:flex; align-items:center; gap:5px; padding:2px 9px 2px 6px; font-variant-numeric:tabular-nums; font-weight:bold}
 .res li + li{border-left:1px solid var(--panel-line)}
+/* Raccourcis du bandeau : série automatique, succès, chat, réglages. Des cases du jeu, pas des boutons d'appli. */
+.top .res{margin-left:auto}
+.outils{display:flex; gap:5px}
+.obtn{position:relative; width:36px; height:36px; padding:0; display:grid; place-items:center; cursor:pointer; color:#4a463c;
+  border-radius:8px; border:1px solid var(--slot-line); background:linear-gradient(var(--slot-hi), var(--slot)); box-shadow:inset 0 1px 0 #fff8, 0 1px 2px #0004}
+.obtn:hover{border-color:var(--orange2)}
+.obtn svg{width:22px; height:22px}
+.obtn .tabn{position:absolute; right:-5px; top:-6px; font-style:normal; box-shadow:0 1px 2px #0006}
+.obtn.tourne svg{animation:tourne 1.6s linear infinite}
+@keyframes tourne{to{transform:rotate(360deg)}}
+/* Fenêtres ouvertes depuis ces raccourcis */
+.pan{width:min(440px, 100%)}
+.pan.grand{width:min(620px, 100%)}
+.pan.ency{width:min(980px, 100%)}
+.pan > .wb{display:grid; gap:9px; max-height:calc(100vh - 110px); max-height:calc(100dvh - 110px); overflow:auto}
+.pan.grand .chatlist{height:min(54vh, 480px)}
+.optl{display:flex; justify-content:space-between; align-items:center; gap:10px; min-height:30px}
+.optl > span{min-width:0}
+.pan textarea{width:100%; min-height:70px; background:var(--panel); color:var(--ink); border:1px solid var(--win-out); border-radius:6px; font:11px ui-monospace, monospace; padding:6px; box-sizing:border-box}
+/* Menu Jouer : des lignes de liste, comme les donjons */
+.hlist{display:grid; gap:2px; padding:4px}
+.hrow{grid-template-columns:auto minmax(0,1fr) auto; gap:10px; padding:5px 10px 5px 5px; font:inherit; color:var(--ink)}
+.hrow .por{width:44px; height:44px}
+.hrow .dn b{font-size:14px}
+.hrow .dn .muted{font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.hrow .hst{display:grid; gap:3px; justify-items:end; font-size:11.5px; font-variant-numeric:tabular-nums; white-space:nowrap}
+.hrow .hst .xpbar{width:64px}
+.hrow:disabled{opacity:.55; cursor:not-allowed}
 .res svg{display:block; flex:none}
 .tabs{display:flex; flex-wrap:wrap; gap:3px}
 .tabs button{background:linear-gradient(#cfcab7, #b7b19c); border:1px solid var(--win-out); border-radius:8px 8px 0 0; padding:6px 16px; cursor:pointer; font-weight:bold; color:#4a463c; box-shadow:inset 0 1px 0 #fff8}
@@ -785,26 +813,7 @@ body.fs .cwin .hudbar{display:none}
 .clscard[aria-pressed="true"] .cls-av{border-color:#ffffff66}
 
 /* Jouer : le hub des modes. Une carte par mode, avec son boss, sa couleur et son avancement. */
-.mgrid2{display:grid; grid-template-columns:repeat(auto-fit, minmax(278px, 1fr)); gap:10px}
-.mcard{position:relative; display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:12px; align-items:center; text-align:left;
-  padding:10px 12px 10px 17px; border:1px solid var(--win-out); border-radius:9px; cursor:pointer; font:inherit; color:var(--ink);
-  background:linear-gradient(var(--row2), var(--row)); box-shadow:inset 0 1px 0 #fff9, 0 2px 6px #0003; overflow:hidden}
-.mcard::before{content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--mc)}
-.mcard:hover{border-color:var(--orange2); background:linear-gradient(#f2efe2, var(--row2))}
-.mcard:disabled{opacity:.55; cursor:not-allowed}
-.mc-art{position:relative; width:62px; height:62px; display:grid; place-items:center; border-radius:8px; flex:none; overflow:hidden;
-  background:radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--mc) 34%, #fff) 0, color-mix(in srgb, var(--mc) 72%, #000) 100%);
-  border:1px solid #0005; box-shadow:inset 0 0 10px #0004}
-.mc-art .por{--sz:56px; background:none; border:0; box-shadow:none}
-.mc-art .gemw{width:38px; height:38px}
-.mc-body{display:grid; gap:3px; min-width:0}
-.mc-t{font-size:16px; line-height:1.15}
-.mc-s{font-size:12px; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.mc-n{font-size:11.5px; color:var(--ink2); font-weight:bold}
 .elline{display:inline-flex; align-items:center; gap:5px}
-.mc-go{font-size:24px; color:var(--ink2); line-height:1; opacity:.6}
-.mcard .seg-bar{margin-top:1px}
-@media (hover:none){ .mcard:hover{border-color:var(--win-out); background:linear-gradient(var(--row2), var(--row))} }
 
 /* Fin de combat — en position fixe : l'arène est en overflow:hidden, un overlay absolu y était rogné dès que le bilan dépassait sa hauteur */
 .over{position:fixed; inset:0; background:#1a120888; z-index:5000; overflow:auto; overscroll-behavior:contain;
@@ -913,6 +922,8 @@ body.fs .cwin .hudbar{display:none}
   .wrap{gap:8px; padding-inline:max(10px, env(safe-area-inset-left)) max(10px, env(safe-area-inset-right));
     padding-block:8px calc(20px + env(safe-area-inset-bottom, 0px))}
   .top{gap:6px 10px}
+  .top .res{order:3; flex:1 1 100%; justify-content:space-between; margin-left:0}
+  .outils{margin-left:auto}
   .wt{padding-inline:38px}
   .wb{padding:8px}
   /* onglets : une rangée qui défile, au lieu de trois rangées qui mangent la hauteur */
@@ -1035,21 +1046,12 @@ body.fs .cwin .hudbar{display:none}
   <header class="top">
     <div class="pbadge" id="pbadge"></div>
     <ul class="res" id="res" aria-label="Ressources"></ul>
+    <nav class="outils" id="outils" aria-label="Raccourcis"></nav>
   </header>
   <nav class="tabs" id="tabs" aria-label="Menu"></nav>
   <main id="main" style="display:grid; gap:12px"></main>
   <footer class="foot">
     <span class="credit">Invocateurs des Douze · fan game non officiel · données et images © Ankama, usage privé</span>
-    <span id="saveNote">Sauvegarde automatique dans ce navigateur.</span>
-    <button class="btn grey sm" data-act="optOpen">Compte</button>
-    <button class="btn grey sm" data-act="copySave">Copier ma sauvegarde</button>
-    <button class="btn grey sm" data-act="toggleImport">Importer</button>
-    <button class="btn grey sm" data-act="resetSave" id="resetBtn">Nouvelle partie</button>
-    <div id="importBox" class="importbox" hidden>
-      <label for="importTxt">Colle ici un code de sauvegarde :</label>
-      <textarea id="importTxt"></textarea>
-      <div class="row"><button class="btn" data-act="doImport">Charger</button></div>
-    </div>
   </footer>
   <div id="optBox"></div>
 </div>
@@ -1224,7 +1226,7 @@ const gearDef = it => it && GEAR.find(g => g.id === it.g);
 function gearJet(lines){
   let t = 0, n = 0;
   for (const l of lines){ if (l.b === l.a) continue; t += (l.v - l.a) / (l.b - l.a); n++; }
-  return n ? t / n : 1;
+  return n ? t / n : .6;      // une pièce sans aucune ligne variable n'a pas de jet : elle n'est ni bonne ni parfaite
 }
 const JET_LABEL = j => j >= .97 ? 'Parfait' : j >= .8 ? 'Excellent' : j >= .6 ? 'Bon' : j >= .35 ? 'Correct' : 'Médiocre';
 const JET_CLASS = j => j >= .97 ? 'j-parfait' : j >= .8 ? 'j-excellent' : j >= .6 ? 'j-bon' : j >= .35 ? 'j-correct' : 'j-mediocre';
@@ -1237,6 +1239,7 @@ const JET_CLASS = j => j >= .97 ? 'j-parfait' : j >= .8 ? 'j-excellent' : j >= .
 // Comme dans Dofus, une pièce au-dessus du niveau du porteur ne donne pas tout : elle est bridée à son
 // niveau à lui (porteur), et se libère à mesure qu'il monte. Sans ça, un monstre de niveau 14 habillé en
 // niveau 40 traversait la campagne sans jamais avoir besoin de progresser.
+const PARFAIT = .01, FUSION = 10;   // chance d'un jet parfait en butin · exemplaires à fusionner pour en obtenir un
 const gearNorm = lv => 1.4 / (.6 + Math.max(4, lv) * .055);
 const GEAR_K = { hp:1.6, atk:2 };   // poids de l'équipement face aux stats de base
 function gearStats(it, porteur){
@@ -1699,7 +1702,28 @@ const Eco = (() => {
       if (bonus && R() < bonus * 3) v = Math.max(v, tir(a, b));
       return { c, a, b, v };
     });
+    // Le jet parfait est un événement : une chance sur cent en butin. Le reste du temps le tirage ne peut pas
+    // y arriver par hasard — sinon une pièce à une seule ligne serait parfaite une fois sur dix.
+    const libres = lines.filter(l => l.a !== l.b);
+    if (libres.length){
+      if (R() < PARFAIT) for (const l of lines) l.v = l.b;
+      else for (let g = 0; g < 40 && gearJet(lines) >= .97; g++){ const l = pick(libres); l.v = l.a + Math.floor(R() * (l.b - l.a)); }
+    }
     return { id: save.nextId++, g: def.id, s: def.s, lines, jet: gearJet(lines), owner: null };
+  }
+  // Fusion : dix exemplaires du même objet en font un seul, au jet parfait. On garde celui qu'on a choisi
+  // (il reste équipé s'il l'était) et on consomme neuf autres exemplaires libres et non protégés, les moins bons d'abord.
+  const fusibles = (save, it) => (save.gear || []).filter(g => g.g === it.g && g !== it && g.owner == null && !(save.lock || []).includes('g' + g.id)).sort((a, b) => a.jet - b.jet);
+  function fuse(save, it){
+    if (it.jet >= 1) return { err:'Cette pièce a déjà un jet parfait.' };
+    if (!it.lines.some(l => l.a !== l.b)) return { err:'Cette pièce n\'a pas de jet à améliorer.' };
+    const autres = fusibles(save, it);
+    if (autres.length < FUSION - 1) return { err:`Il faut ${FUSION} exemplaires (tu en as ${autres.length + 1}).` };
+    const pris = autres.slice(0, FUSION - 1);
+    save.gear = save.gear.filter(g => !pris.includes(g));
+    for (const l of it.lines) l.v = l.b;
+    it.jet = gearJet(it.lines);
+    return { ok:true };
   }
   const gearById = (save, id) => (save.gear || []).find(g => g.id === id);
   function gearOf(save, mon){
@@ -1912,7 +1936,7 @@ const Eco = (() => {
     return s;
   }
   return { skillUp, dupOf, genItem, itemsOf, monDef, equip, unequip, upgrade, upCost, sell, sellValue, awaken, awakenCost, release, summon, loot, newSave, monByUid, itemById,
-    genGear, gearById, gearOf, equipGear, unequipGear, sellGear, gearValue, fodder, feed, mangeables };
+    genGear, fuse, fusibles, gearById, gearOf, equipGear, unequipGear, sellGear, gearValue, fodder, feed, mangeables };
 })();
 
 /* =====================================================================
@@ -3059,7 +3083,7 @@ function chatWatch(){
     .on('postgres_changes', { event:'INSERT', schema:'public', table:'chat' }, p => {
       if (chatMsgs.some(m => m.id === p.new.id)) return;     // notre propre message, déjà affiché
       chatMsgs.push(p.new);
-      if (view === 'chat' && chatTab === 'monde') chatPaint(); else chatUnread++;
+      if (panneau === 'chat' && chatTab === 'monde') chatPaint(); else chatUnread++;
       renderTop();
     })
     .subscribe();
@@ -3120,8 +3144,8 @@ async function mpFil(ancien){
 }
 async function mpOuvrir(id, nom){
   if (!netOn() || !id || id === me.id) return;
-  mpAvec = { id, nom }; mpMsgs = []; mpFin = false; chatTab = 'mp'; chatErr = ''; view = 'chat';
-  render();
+  mpAvec = { id, nom }; mpMsgs = []; mpFin = false; chatTab = 'mp'; chatErr = ''; panneau = 'chat';
+  popPaint();
   await mpFil(false);
   chatPaint(); mpLu(id);
 }
@@ -3134,8 +3158,8 @@ function mpRecu(m){
   const f = mpNoter(m.de, m.de_nom, m);
   const dedans = mpAvec && mpAvec.id === m.de;
   if (dedans && !mpMsgs.some(x => x.id === m.id)) mpMsgs.push(m);
-  if (dedans && view === 'chat' && chatTab === 'mp' && !inCombat){ chatPaint(); mpLu(m.de); }
-  else { f.nonLus++; toast(`Message privé de ${m.de_nom}`); if (view === 'chat') chatPaint(); }
+  if (dedans && panneau === 'chat' && chatTab === 'mp'){ chatPaint(); mpLu(m.de); }
+  else { f.nonLus++; toast(`Message privé de ${m.de_nom}`); if (panneau === 'chat') chatPaint(); }
   renderTop();
 }
 function mpWatch(){
@@ -3316,17 +3340,30 @@ function renderTop(){
     <li title="Parchemins dorés (arène)">${resIcon(GOLD_ICON,16)}${save.gold}</li>
     <li title="Parchemins de sort">${resIcon(SCROLL_ICON,16)}${save.scrolls}</li>`;
   const ready = ACHS.filter(a => achState(save, a).ready).length;
-  const tabs = [['jouer','Jouer'],['equipe','Équipe'],['trophees','Inventaire'],['invocation','Invocation'],
-    ['succes','Succès' + (ready ? ` <b class="tabn">${ready}</b>` : '')]];
+  const tabs = [['jouer','Jouer'],['equipe','Équipe'],['trophees','Inventaire'],['invocation','Invocation']];
   if (sb) tabs.push(['hdv', 'Hôtel de vente' + (hdvGains.length ? ` <b class="tabn">${hdvGains.length}</b>` : '')]);
-  const nonLus = chatUnread + mpNonLus();
-  if (sb) tabs.push(['chat', 'Chat' + (nonLus ? ` <b class="tabn">${nonLus}</b>` : '')]);
+  const nonLus = chatUnread + mpNonLus(), a = autoRun, o = $('#outils');
+  if (o) o.innerHTML = (a ? `<button class="obtn ${a.on ? 'tourne' : ''}" data-act="pan" data-v="auto" title="Série automatique : ${a.done} / ${a.total}" aria-label="Série automatique">${ICO.auto}<b class="tabn">${a.on ? `${a.done}/${a.total}` : '✓'}</b></button>` : '')
+    + `<button class="obtn" data-act="pan" data-v="ency" title="Encyclopédie" aria-label="Encyclopédie">${ICO.livre}</button>`
+    + `<button class="obtn" data-act="pan" data-v="succes" title="Succès${ready ? ` : ${ready} à réclamer` : ''}" aria-label="Succès">${ICO.ogrine}${ready ? `<b class="tabn">${ready}</b>` : ''}</button>`
+    + (sb ? `<button class="obtn" data-act="pan" data-v="chat" title="Chat" aria-label="Chat">${ICO.bulle}${nonLus ? `<b class="tabn">${nonLus}</b>` : ''}</button>` : '')
+    + `<button class="obtn" data-act="pan" data-v="opt" title="Réglages" aria-label="Réglages">${ICO.roue}</button>`;
   const cur = ['donjons','arene','boss'].includes(view) ? 'jouer' : view;   // ces vues sont des enfants du hub
   $('#tabs').innerHTML = tabs.map(([v,l]) => `<button data-act="nav" data-v="${v}" ${cur === v ? 'aria-current="page"' : ''}>${l}</button>`).join('');
 }
-const VUES = ['jouer', 'equipe', 'trophees', 'invocation', 'succes', 'hdv', 'chat', 'donjons', 'arene', 'boss'];
+const VUES = ['jouer', 'equipe', 'trophees', 'invocation', 'hdv', 'donjons', 'arene', 'boss'];
+// Icônes des raccourcis, dessinées en code comme le reste de l'interface.
+const ICO = {
+  roue:   '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="4.2" stroke-dasharray="3.4 2.88"/><circle cx="12" cy="12" r="5.6" fill="none" stroke="currentColor" stroke-width="2.6"/></svg>',
+  bulle:  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7l-5 4v-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" fill="currentColor"/><path d="M6.5 9h11M6.5 12.5h7" stroke="#e9e4d3" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  ogrine: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5 22 9 12 22.5 2 9z" fill="#b53fd0" stroke="#5e1a72" stroke-width="1"/><path d="M12 1.5 22 9H2z" fill="#e8a3f5"/><path d="M12 22.5 8 9h8z" fill="#8c26a6"/><path d="M12 1.5 8 9h8z" fill="#f6d2fb"/></svg>',
+  livre:  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4.5C6 3 9 3 12 5c3-2 6-2 9-.5V19c-3-1.5-6-1.5-9 .5-3-2-6-2-9-.5z" fill="#8a5a26" stroke="#4a2f10" stroke-width="1"/><path d="M4.6 6c2.3-.8 4.4-.6 6.4.7v10.6c-2-1.1-4.1-1.3-6.4-.7zM19.4 6c-2.3-.8-4.4-.6-6.4.7v10.6c2-1.1 4.1-1.3 6.4-.7z" fill="#f3ead2"/><path d="M6 8.6c1.3-.3 2.5-.2 3.6.3M6 11c1.3-.3 2.5-.2 3.6.3M14.4 8.9c1.1-.5 2.3-.6 3.6-.3M14.4 11.3c1.1-.5 2.3-.6 3.6-.3" stroke="#8a7a55" stroke-width=".9" fill="none"/></svg>',
+  auto:   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 1-7.4 5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M2.2 4.6 5 10.4l5.6-2.6z" fill="currentColor"/></svg>',
+};
 function render(){
   if (!save) return;
+  if (!VUES.includes(view)) view = 'jouer';
+  if (panneau && panneau !== 'chat') popPaint();           // le chat se repeint lui-même, pour ne pas perdre la saisie en cours
   try { sessionStorage.setItem('idd-vue', view); } catch(e){}
   renderTop();
   document.body.classList.toggle('in-combat', inCombat);
@@ -3334,13 +3371,11 @@ function render(){
   if (inCombat) return;
   const main = $('#main');
   if (view === 'hdv') main.innerHTML = viewHdv();
-  else if (view === 'chat') main.innerHTML = viewChat();
   else if (view === 'jouer') main.innerHTML = viewJouer();
   else if (view === 'donjons'){ const sc = $('#dlist') ? $('#dlist').scrollTop : null; main.innerHTML = viewDonjons(); drawMinis(); if (sc != null) $('#dlist').scrollTop = sc; else scrollToSel(); }
   else if (view === 'equipe') main.innerHTML = viewEquipe();
   else if (view === 'trophees') main.innerHTML = viewTrophees();
   else if (view === 'invocation') main.innerHTML = viewInvocation();
-  else if (view === 'succes') main.innerHTML = viewSucces();
   else if (view === 'arene') main.innerHTML = viewArene();
   else if (view === 'boss') main.innerHTML = viewBoss();
 }
@@ -3453,36 +3488,30 @@ const MODE_CARD = {
   raid:   { t:'Raids',    s:'La seule source de trophées',         col:'#c25e0a', u:'étages' },
   dragon: { t:'Dragons',  s:'Les Dofus, gardés par leurs dragons', col:'#7a3fb0', u:'étages' },
 };
-function modeCard(o){
-  return `<button class="mcard" style="--mc:${o.col}" data-act="${o.act}" data-v="${o.v}"${o.off ? ' disabled' : ''}>
-    <span class="mc-art">${o.art}</span>
-    <span class="mc-body"><b class="mc-t">${o.t}</b><span class="mc-s">${o.s}</span>${o.r != null ? segBar(o.r, 14) : ''}<span class="mc-n">${o.n}</span></span>
-    <span class="mc-go" aria-hidden="true">›</span></button>`;
-}
+// Le menu des modes : des lignes de liste, rangées sous trois bandeaux, dans le style de la liste des donjons.
 function viewJouer(){
   const team = teamMons();
-  const cards = Object.keys(MODE_CARD).map(k => {
+  const ligne = o => `<button class="drow hrow" data-act="${o.act}" data-v="${o.v}"${o.off ? ' disabled' : ''}>${o.art}
+    <span class="dn"><b>${o.t}</b><span class="muted">${o.s}</span></span>
+    <span class="hst"><b>${o.n}</b><span class="xpbar"><b style="width:${Math.round((o.r || 0) * 100)}%"></b></span></span></button>`;
+  const mode = k => {
     const C = MODE_CARD[k], L = STAGES[k] || [], done = doneIn(save, k);
-    const nx = L.findIndex(d => !save.cleared.includes(d.id));
-    const d = L[nx < 0 ? L.length - 1 : nx];
-    const bk = d && stageBoss(d);
-    return modeCard({ t:C.t, s:C.s, col:C.col, act:'play', v:k, off:!L.length,
-      art: bk ? portrait(bk, 56, { badge:false }) : '',
-      r: L.length ? done / L.length : 0,
-      n: L.length ? `${done} / ${L.length} ${C.u} terminés` : 'Bientôt' });
-  });
-  const foes = arenaFoes(save), won = foes.filter(f => f.done).length;
-  cards.push(modeCard({ t:'Arène', s:'Dix duels par jour, payés en parchemins dorés', col:'#b8860b', act:'nav', v:'arene',
-    art: resIcon(GOLD_ICON, 38), r: foes.length ? won / foes.length : 0,
-    n: `${won} / ${foes.length} duels gagnés aujourd'hui` }));
-  const W = daily(save).wb, B = wbBoss();
-  cards.push(modeCard({ t:'Boss mondial', s:'Trois assauts par jour, récompense au score', col:'#2f7bc8', act:'nav', v:'boss',
-    art: portrait(B.key, 56, { badge:false }), r: W.tries / WB_TRIES,
-    n: `${W.tries} / ${WB_TRIES} assauts${W.bb ? ` · record ${wbTxt(W.bb)} barres` : ''}` }));
+    const nx = L.findIndex(d => !save.cleared.includes(d.id)), d = L[nx < 0 ? L.length - 1 : nx], bk = d && stageBoss(d);
+    return ligne({ t:C.t, s:C.s, act:'play', v:k, off:!L.length, art: bk ? portrait(bk, 44, { badge:false }) : '<span class="por"></span>',
+      r: L.length ? done / L.length : 0, n: L.length ? `${done} / ${L.length}` : 'Bientôt' });
+  };
+  const foes = arenaFoes(save), won = foes.filter(f => f.done).length, W = daily(save).wb, B = wbBoss();
+  const defis = ligne({ t:'Arène', s:'Dix duels par jour, payés en parchemins dorés', act:'nav', v:'arene', art:`<span class="por">${resIcon(GOLD_ICON, 30)}</span>`,
+      r: foes.length ? won / foes.length : 0, n:`${won} / ${foes.length}` })
+    + ligne({ t:'Boss mondial', s:W.bb ? `Record : ${wbTxt(W.bb)} barres brisées` : 'Trois assauts par jour, rang selon les barres brisées', act:'nav', v:'boss',
+      art:portrait(B.key, 44, { badge:false }), r:W.tries / WB_TRIES, n:`${W.tries} / ${WB_TRIES}` });
+  const bloc = (titre, lignes) => `<div class="band"><span>${titre}</span></div><div class="panel hlist">${lignes}</div>`;
   return `<section class="win"><div class="wt"><h2>Jouer</h2></div>
-    <div class="wb" style="display:grid; gap:10px">
+    <div class="wb" style="display:grid; gap:8px">
       ${team.length ? '' : '<p class="hint" style="margin:0">Ajoute au moins un monstre à ton équipe avant de partir au combat.</p>'}
-      <div class="mgrid2">${cards.join('')}</div>
+      ${bloc('Aventure', ['camp', 'raid', 'dragon'].map(mode).join(''))}
+      ${bloc('Entraînement', ['xp', 'gel'].map(mode).join(''))}
+      ${bloc('Défis du jour', defis)}
     </div></section>`;
 }
 
@@ -3499,9 +3528,8 @@ function viewDonjons(){
 }
 
 // ---------- Équipe
-const eqTabs = () => `<div class="row modes" role="group" aria-label="Affichage">${[['coll','Mes monstres'],['ency','Encyclopédie']].map(([k,l]) => `<button class="btn grey sm" data-act="eqTab" data-v="${k}" aria-pressed="${eqTab === k}">${l}</button>`).join('')}</div>`;
+const eqTabs = () => '';   // l'encyclopédie a quitté cet onglet : elle s'ouvre depuis le bandeau
 function viewEquipe(){
-  if (eqTab === 'ency') return eqTabs() + viewEncy();
   const list = save.monsters.slice().sort((a,b) => (save.team.includes(b.uid) - save.team.includes(a.uid)) || MONSTERS[b.key].stars - MONSTERS[a.key].stars || b.level - a.level);
   if (!selMon || !Eco.monByUid(save, selMon)) selMon = list[0] && list[0].uid;
   const cells = list.map(m => `<button class="cell ${m.uid === selMon ? 'on' : ''}" data-act="selMon" data-uid="${m.uid}" title="${MONSTERS[m.key].name}, niveau ${m.level}">
@@ -3547,27 +3575,51 @@ function volModal(){
 }
 // Équipe pleine : au lieu de refuser, on demande qui remplacer
 // ---------- Compte : se connecter, se déconnecter, changer de compte
-let optOn = false, optMsg = '', optBusy = false;
-function optPaint(){
+let panneau = null, optMsg = '', optBusy = false;   // panneau : fenêtre ouverte par-dessus la page — opt · chat · succes · auto
+const optPaint = () => popPaint();
+function popPaint(){
   const box = $('#optBox'); if (!box) return;
-  const note = $('#saveNote');
-  if (note) note.textContent = netOn() ? 'Sauvegarde automatique sur ton compte, avec une copie dans ce navigateur.' : 'Sauvegarde automatique dans ce navigateur seulement.';
-  if (!optOn){ box.innerHTML = ''; return; }
-  const corps = !sb ? '<p style="margin:0">Le serveur en ligne n\'est pas configuré : la partie reste dans ce navigateur.</p>'
-    : me ? `<ul class="rows"><li><span>Compte</span><b style="overflow:hidden; text-overflow:ellipsis">${esc(me.email || 'connecté')}</b></li>
-        <li><span>Sauvegarde</span><b>en ligne + ce navigateur</b></li></ul>
-      <p class="hint" style="margin:0">Ta partie est envoyée sur ton compte à chaque changement : tu la retrouves sur n'importe quel appareil en te connectant.
-        Te déconnecter l'envoie une dernière fois, puis te laisse te connecter à un autre compte.</p>
-      <div class="row" style="justify-content:flex-end"><button class="btn" data-act="optOut" ${optBusy ? 'disabled' : ''}>Se déconnecter</button></div>`
-    : `<p class="hint" style="margin:0">Tu joues sans compte : la partie n'existe que dans ce navigateur. Connecte-toi pour charger la partie d'un compte ;
-        si le compte est neuf, c'est ta partie actuelle qui y sera rangée.</p>
+  if (panneau === 'auto' && !autoRun) panneau = null;
+  if (!panneau){ box.innerHTML = ''; return; }
+  if (panneau === 'ency'){                                  // l'encyclopédie garde ses deux fenêtres, on les pose telles quelles
+    const fond = box.querySelector('.over'), y = fond ? fond.scrollTop : 0;
+    box.innerHTML = `<div class="over modal" data-act="panOff"><div class="pan ency" data-stop>
+      <div class="row" style="justify-content:flex-end; margin-bottom:6px"><button class="btn grey sm" data-act="panOff">Fermer ×</button></div>${viewEncy()}</div></div>`;
+    if (y) box.querySelector('.over').scrollTop = y;
+    return;
+  }
+  const [titre, sous, corps] = panneau === 'opt' ? ['Réglages', '', optCorps()] : panneau === 'succes' ? ['Succès', ...succesCorps()]
+    : panneau === 'auto' ? autoCorps() : chatCorps();
+  const garde = box.querySelector('.pan > .wb'), pos = garde ? garde.scrollTop : 0;
+  box.innerHTML = `<div class="over modal" data-act="panOff"><div class="win pan ${panneau === 'chat' || panneau === 'succes' ? 'grand' : ''}" data-stop>
+    <div class="wt"><h2>${titre}${sous ? `<small>${sous}</small>` : ''}</h2><button class="x" data-act="panOff" aria-label="Fermer">×</button></div>
+    <div class="wb">${corps}</div></div></div>`;
+  if (panneau === 'chat') chatPaint(); else if (pos) box.querySelector('.pan > .wb').scrollTop = pos;
+}
+function optCorps(){
+  const compte = !sb ? '<p style="margin:0">Le serveur en ligne n\'est pas configuré : la partie reste dans ce navigateur.</p>'
+    : me ? `<div class="optl"><span>${esc(me.email || 'Compte connecté')}</span><button class="btn grey sm" data-act="optOut" ${optBusy ? 'disabled' : ''}>Se déconnecter</button></div>
+      <p class="hint" style="margin:0">Ta partie est envoyée sur ton compte à chaque changement, avec une copie dans ce navigateur. Te déconnecter l'envoie une dernière fois, puis te laisse te connecter à un autre compte.</p>`
+    : `<p class="hint" style="margin:0">Tu joues sans compte : la partie n'existe que dans ce navigateur. Connecte-toi pour charger la partie d'un compte ; si le compte est neuf, c'est ta partie actuelle qui y sera rangée.</p>
       <input class="search" id="optM" type="email" autocomplete="email" placeholder="Adresse électronique" aria-label="Adresse électronique">
       <input class="search" id="optP" type="password" autocomplete="current-password" placeholder="Mot de passe" aria-label="Mot de passe">
-      <div class="row" style="justify-content:flex-end"><button class="btn grey" data-act="optNew" ${optBusy ? 'disabled' : ''}>Créer un compte</button>
-        <button class="btn" data-act="optIn" ${optBusy ? 'disabled' : ''}>Se connecter</button></div>`;
-  box.innerHTML = `<div class="over modal" data-act="optClose"><div class="win" style="width:min(420px,100%)" data-stop>
-    <div class="wt"><h2>Compte</h2><button class="x" data-act="optClose" aria-label="Fermer">×</button></div>
-    <div class="wb" style="display:grid; gap:9px">${corps}<div class="upmsg ko">${esc(optMsg)}</div></div></div></div>`;
+      <div class="row" style="justify-content:flex-end"><button class="btn grey sm" data-act="optNew" ${optBusy ? 'disabled' : ''}>Créer un compte</button>
+        <button class="btn sm" data-act="optIn" ${optBusy ? 'disabled' : ''}>Se connecter</button></div>`;
+  const bascule = (act, on) => `<button class="btn grey sm" data-act="${act}" aria-pressed="${on}">${on ? 'Activé' : 'Désactivé'}</button>`;
+  return `<div class="band">Compte</div>${compte}<div class="upmsg ko">${esc(optMsg)}</div>
+    <div class="band">Jeu</div>
+    <div class="optl"><span>Sons</span>${bascule('optSon', sonOn)}</div>
+    <div class="optl"><span>Combats en plein écran</span>${bascule('optPlein', plein)}</div>
+    <div class="optl"><span>Combats en automatique</span>${bascule('optAuto', auto)}</div>
+    <div class="optl"><span>Vitesse des combats</span><span class="seg" role="group" aria-label="Vitesse">${[1, 2, 3].map(v => `<button data-act="optVit" data-s="${v}" aria-pressed="${speed === v}">×${v}</button>`).join('')}</span></div>
+    <div class="band">Sauvegarde</div>
+    <div class="row"><button class="btn grey sm" data-act="copySave">Copier ma sauvegarde</button><button class="btn grey sm" data-act="toggleImport">Importer</button>
+      <button class="btn grey sm" data-act="resetSave" id="resetBtn">Nouvelle partie</button></div>
+    <div id="importBox" class="importbox" hidden>
+      <label for="importTxt">Colle ici un code de sauvegarde :</label>
+      <textarea id="importTxt"></textarea>
+      <div class="row"><button class="btn sm" data-act="doImport">Charger</button></div>
+    </div>`;
 }
 async function optLogin(creer){
   const mail = ($('#optM').value || '').trim(), pass = $('#optP').value || '';
@@ -3620,41 +3672,40 @@ function chatPaint(garde){
   }).join('') || `<li class="vide">${mp ? 'Aucun message encore. Écris le premier.' : 'Personne n\'a encore parlé. Lance-toi.'}</li>`;
   box.scrollTop = garde ? box.scrollHeight - bas : box.scrollHeight;
 }
-function viewChat(){
+// Renvoie [titre, sous-titre, contenu] de la fenêtre de chat.
+function chatCorps(){
   const peut = netOn();
   if (!peut) chatTab = 'monde';
   if (chatTab === 'monde') chatUnread = 0;
   else if (mpAvec) mpLu(mpAvec.id);
-  setTimeout(() => { chatPaint(); renderTop(); }, 0);
   const nl = mpNonLus();
   const onglets = peut ? `<div class="row modes">
     <button class="btn grey sm" data-act="chatTab" data-v="monde" aria-pressed="${chatTab === 'monde'}">Monde${chatUnread ? ` <b class="tabn">${chatUnread}</b>` : ''}</button>
     <button class="btn grey sm" data-act="chatTab" data-v="mp" aria-pressed="${chatTab === 'mp'}">Messages privés${nl ? ` <b class="tabn">${nl}</b>` : ''}</button></div>` : '';
-  const win = (titre, sous, c) => `<section class="win"><div class="wt"><h2>${titre}<small>${sous}</small></h2></div>
-    <div class="wb" style="display:grid; gap:8px">${c}</div></section>`;
+  const win = (titre, sous, c) => [titre, sous, c], fen = ([t, u, c]) => [t, u, onglets + c];
   const saisie = (ok, ph) => `<div class="chatsend">
       <input class="search" id="chatIn" maxlength="300" placeholder="${ph}" ${ok ? '' : 'disabled'} aria-label="Message">
       <button class="btn" data-act="chatSend" ${ok ? '' : 'disabled'}>Envoyer</button>
     </div>
     <div class="upmsg ko" id="chatErr"></div>`;
 
-  if (chatTab === 'mp' && !mpOk) return onglets + win('Messages privés', 'indisponibles',
-    '<p style="margin:0">Les messages privés ne sont pas encore activés sur le serveur : il reste à passer <b>CHAT.sql</b> dans Supabase.</p>');
-  if (chatTab === 'mp' && mpAvec) return onglets + win(esc(mpAvec.nom), 'message privé', `
+  if (chatTab === 'mp' && !mpOk) return fen(win('Messages privés', 'indisponibles',
+    '<p style="margin:0">Les messages privés ne sont pas encore activés sur le serveur : il reste à passer <b>CHAT.sql</b> dans Supabase.</p>'));
+  if (chatTab === 'mp' && mpAvec) return fen(win(esc(mpAvec.nom), 'message privé', `
     <div class="row"><button class="btn grey sm" data-act="mpRetour">‹ Conversations</button></div>
     <ul class="chatlist" id="chatList"></ul>
-    ${saisie(true, 'Ton message à ' + esc(mpAvec.nom) + '…')}`);
-  if (chatTab === 'mp') return onglets + win('Messages privés', `${mpFils.length} conversation${mpFils.length > 1 ? 's' : ''}`, `
+    ${saisie(true, 'Ton message à ' + esc(mpAvec.nom) + '…')}`));
+  if (chatTab === 'mp') return fen(win('Messages privés', `${mpFils.length} conversation${mpFils.length > 1 ? 's' : ''}`, `
     <input class="search" id="mpQ" placeholder="Écrire à un joueur : son pseudo" value="${esc(mpQ)}" aria-label="Chercher un joueur">
     <div class="mplist" id="mpTrouves"></div>
     <div class="band"><span>Conversations</span></div>
     <div class="mplist" id="mpFils"></div>
-    <div class="upmsg ko" id="chatErr"></div>`);
-  return onglets + win('Chat monde', sb ? 'en direct' : 'hors ligne', `
+    <div class="upmsg ko" id="chatErr"></div>`));
+  return fen(win('Chat monde', sb ? 'en direct' : 'hors ligne', `
     ${!sb ? '<p class="hint" style="margin:0">Le chat demande une connexion au serveur, qui n\'est pas configurée.</p>' : ''}
     <ul class="chatlist" id="chatList"></ul>
     ${saisie(peut, peut ? 'Ton message…' : 'Crée un compte pour écrire')}
-    ${peut ? '' : '<p class="hint" style="margin:0">Tu lis le chat sans compte, mais il en faut un pour écrire. Crée-le depuis le launcher.</p>'}`);
+    ${peut ? '' : '<p class="hint" style="margin:0">Tu lis le chat sans compte, mais il en faut un pour écrire. Crée-le depuis le launcher.</p>'}`));
 }
 function teamModal(){
   if (teamPick == null) return '';
@@ -3816,6 +3867,8 @@ function gearDetail(it, mon, sl){
       </div>
     </div>
     <div class="gdfoot"><span class="muted" style="font-size:11.5px">${GEAR_LABEL[d ? d.s : sl]} · catégorie ${esc(d ? d.s : '')}</span>
+      ${(() => { const n = Eco.fusibles(save, it).length + 1, ok = n >= FUSION && it.jet < 1 && it.lines.some(l => l.a !== l.b);
+        return n > 1 || ok ? `<button class="btn grey sm" data-act="gfuse" data-id="${it.id}" ${ok ? '' : 'disabled'} title="Fusionne ${FUSION} exemplaires de cet objet en un seul, au jet parfait. Les ${FUSION - 1} autres, libres et non protégés, sont consommés.">Fusionner ${Math.min(n, FUSION)} / ${FUSION}</button>` : ''; })()}
       ${mine ? `<button class="btn grey sm" data-act="gunequip" data-v="${sl}">Retirer</button>` : ''}
       ${confirmBtn('gsell' + it.id, `Vendre · ${fmt(Eco.gearValue(it))} K`, 'Confirmer', 'gsell')}</div>
   </div>`;
@@ -4250,7 +4303,7 @@ function viewEncy(){
   const opt = (v, l, cur) => `<option value="${v}" ${String(cur) === String(v) ? 'selected' : ''}>${l}</option>`;
   return `<div class="split">${encyDetail()}
     <section class="win"><div class="wt"><h2>Encyclopédie</h2></div><div class="wb" style="display:grid; gap:8px">
-      <div class="row modes">${[['mons',`Monstres (${fmt(Object.keys(MONSTERS).length)})`],['items','Objets']].map(([k,l]) => `<button class="btn grey sm" data-act="eKind" data-v="${k}" aria-pressed="${ency.kind === k}">${l}</button>`).join('')}</div>
+      <div class="row modes">${[['mons','Monstres'],['items','Objets']].map(([k,l]) => `<button class="btn grey sm" data-act="eKind" data-v="${k}" aria-pressed="${ency.kind === k}">${l}</button>`).join('')}</div>
       <div class="row" style="gap:6px"><input class="search" id="eq" type="search" style="flex:1; min-width:120px" placeholder="${mons ? 'Rechercher un monstre' : 'Rechercher un objet'}" value="${esc(ency.q)}" aria-label="Rechercher">
         ${mons ? `<select class="sel" id="estars" aria-label="Étoiles">${opt(0,'Toutes étoiles',ency.stars)}${[1,2,3,4,5].map(n => opt(n, starsTxt(n), ency.stars)).join('')}</select>
           <select class="sel" id="eel" aria-label="Élément">${opt('','Tous éléments',ency.el)}${Object.keys(ELEM).map(e => opt(e, ELEM[e], ency.el)).join('')}</select>
@@ -4310,21 +4363,24 @@ function autoEnd(msg, bad){
   if (!inCombat) render();
 }
 function renderAuto(){
-  let box = $('#autobox');
-  if (!autoRun){ if (box) box.hidden = true; return; }
-  if (!box){ box = document.createElement('aside'); box.id = 'autobox'; box.className = 'win autobox'; box.setAttribute('aria-label', 'Série automatique'); document.body.appendChild(box); }
+  const vieux = $('#autobox'); if (vieux) vieux.remove();
+  if (!autoRun && panneau === 'auto') panneau = null;
+  if (save) renderTop();
+  if (panneau === 'auto' || !autoRun) popPaint();
+}
+function autoCorps(){
   const a = autoRun, byR = {};
   for (const it of a.items) byR[it.rarity] = (byR[it.rarity] || 0) + 1;
-  box.hidden = false;
-  box.innerHTML = `<div class="wt"><h2>Auto<small>${a.done} / ${a.total}</small></h2>${a.on ? '' : '<button class="x" data-act="autoClose" title="Fermer" aria-label="Fermer">×</button>'}</div>
-    <div class="wb"><b>${a.dg.name}</b>
-      ${a.on ? `<div class="xpbar autobar"><b style="animation-duration:${a.dur}ms"></b></div><span class="muted">Combat ${a.done + 1} / ${a.total} en cours…</span>` : `<span class="${a.bad ? 'neg' : 'ok'}">${a.msg}</span>`}
-      <ul class="autoloot">
-        <li>${a.wins} victoire${a.wins > 1 ? 's' : ''}${a.ups ? ` · ${a.ups} niveau${a.ups > 1 ? 'x' : ''} gagné${a.ups > 1 ? 's' : ''}` : ''}</li>
-        <li>${kamaIcon(12)} ${fmt(a.kamas)} kamas${a.stones ? ` · ${gemIcon('perfect', 14)} ${a.stones}` : ''}</li>
-        <li>${a.items.length} objet${a.items.length > 1 ? 's' : ''}${a.items.length ? ' : ' + RARITIES.filter(r => byR[r]).map(r => `<b style="color:var(--r-${r})">${byR[r]} ${RAR_LABEL[r].toLowerCase()}</b>`).join(', ') : ''}</li>
+  return [`Série automatique`, `${a.done} / ${a.total}`, `<b>${a.dg.name}</b>
+      ${a.on ? `<div class="xpbar autobar" style="width:100%"><b style="animation-duration:${a.dur}ms"></b></div><span class="muted">Combat ${a.done + 1} / ${a.total} en cours…</span>` : `<span class="${a.bad ? 'neg' : 'ok'}">${a.msg}</span>`}
+      <ul class="rows">
+        <li><span>Victoires</span><b>${a.wins} / ${a.done}</b></li>
+        <li><span>Niveaux gagnés</span><b>${a.ups || 0}</b></li>
+        <li><span>${kamaIcon(12)} Kamas</span><b>${fmt(a.kamas)}</b></li>
+        ${a.stones ? `<li><span>${gemIcon('perfect', 14)} Pierres d'âme pleines</span><b>${a.stones}</b></li>` : ''}
+        <li><span>Objets</span><b>${a.items.length}${a.items.length ? ' · ' + RARITIES.filter(r => byR[r]).map(r => `<span style="color:var(--r-${r})">${byR[r]} ${RAR_LABEL[r].toLowerCase()}</span>`).join(', ') : ''}</b></li>
       </ul>
-      <div class="row" style="justify-content:flex-end">${a.on ? '<button class="btn grey sm" data-act="autoStop">Arrêter</button>' : `<button class="btn sm" data-act="autoAgain">Relancer ×${a.total}</button>`}</div></div>`;
+      <div class="row" style="justify-content:flex-end">${a.on ? '<button class="btn grey sm" data-act="autoStop">Arrêter</button>' : `<button class="btn grey sm" data-act="autoClose">Effacer</button><button class="btn sm" data-act="autoAgain">Relancer ×${a.total}</button>`}</div>`];
 }
 
 // ---------- Arène : 10 PNJ par jour, parchemins dorés à la clé, et la boutique qui va avec
@@ -4552,7 +4608,7 @@ function viewBoss(){
 }
 
 // ---------- Succès
-function viewSucces(){
+function succesCorps(){
   const rows = ACHS.map(a => {
     const st = achState(save, a);
     return `<li class="ach ${st.done ? 'done' : st.ready ? 'ready' : ''}">
@@ -4562,10 +4618,9 @@ function viewSucces(){
   }).join('');
   const total = ACHS.reduce((t, a) => t + a.tiers.length, 0), got = ACHS.reduce((t, a) => t + (save.ach[a.id] || 0), 0);
   const prets = ACHS.filter(a => achState(save, a).ready).length;
-  return `<section class="win"><div class="wt"><h2>Succès<small>${got} / ${total} paliers</small></h2></div>
-    <div class="wb"><div class="row" style="justify-content:space-between; margin:0 0 8px; flex-wrap:nowrap; align-items:flex-start"><p class="muted" style="margin:0">Chaque palier atteint se réclame contre des pierres d'âme pleines : 1 pour le premier, 2 pour le deuxième, et ainsi de suite.</p>
+  return [`${got} / ${total} paliers`, `<div><div class="row" style="justify-content:space-between; margin:0 0 8px; flex-wrap:nowrap; align-items:flex-start"><p class="muted" style="margin:0">Chaque palier atteint se réclame contre des pierres d'âme pleines : 1 pour le premier, 2 pour le deuxième, et ainsi de suite.</p>
       <button class="btn sm" data-act="claimAll" style="flex:none" ${prets ? '' : 'disabled'}>Tout réclamer</button></div>
-    <ul class="achs">${rows}</ul></div></section>`;
+    <ul class="achs">${rows}</ul></div>`];
 }
 
 // ---------- Actions
@@ -4587,7 +4642,7 @@ const ACT = {
   auto(d){ if (isUnlocked(+d.i)) autoStart(stages()[+d.i]); },
   autoStop(){ if (autoRun && autoRun.on) autoEnd('Série arrêtée.'); },
   autoAgain(){ const a = autoRun; if (a && !a.on){ autoRun = null; autoStart(a.dg, a.total); } },
-  autoClose(){ autoRun = null; renderAuto(); },
+  autoClose(){ autoRun = null; panneau = null; renderAuto(); },
   claimAll(){
     let n = 0, tours = 0;
     for (let g = 0; g < 200; g++){ const a = ACHS.find(x => achState(save, x).ready); if (!a) break; n += achClaim(save, a); tours++; }   // un succès peut avoir plusieurs paliers d'avance
@@ -4650,6 +4705,14 @@ const ACT = {
     confirmKey = null; persist(); render();
   },
   volNon(){ volPick = null; render(); },
+  gfuse(d){
+    const g = Eco.gearById(save, +d.id); if (!g) return;
+    const k = 'gfuse' + g.id;
+    if (confirmKey !== k){ confirmKey = k; return toast(`Fusionner ${FUSION} ${gearName(g)} en un seul au jet parfait ? Appuie encore pour confirmer.`); }
+    confirmKey = null;
+    const r = Eco.fuse(save, g); if (r.err) return toast(r.err);
+    persist(); toast(`${gearName(g)} : jet parfait.`); render();
+  },
   gunequip(d){
     const mon = Eco.monByUid(save, selMon), id = mon && mon.g && mon.g[d.v];
     const g = id && Eco.gearById(save, id); if (!g) return;
@@ -4739,21 +4802,22 @@ const ACT = {
   },
   toggleImport(){ const b = $('#importBox'); b.hidden = !b.hidden; },
   doImport(){
-    try { const s = JSON.parse(decodeURIComponent(escape(atob($('#importTxt').value.trim())))); if (!s || s.v !== 2 || !Array.isArray(s.monsters)) throw 0;
-      save = s; persist(); $('#importBox').hidden = true; toast('Sauvegarde chargée.'); ACT.nav({ v:'donjons' });
+    try { const s = JSON.parse(decodeURIComponent(escape(atob($('#importTxt').value.trim())))); if (!saveOk(s)) throw 0;
+      save = s; persist(); panneau = null; popPaint(); toast('Sauvegarde chargée.'); ACT.nav({ v:'jouer' });
     } catch(e){ toast('Code de sauvegarde invalide.'); }
   },
   resetSave(){
     if (confirmKey !== 'reset'){ confirmKey = 'reset'; $('#resetBtn').textContent = 'Confirmer : tout effacer'; return; }
     confirmKey = null; $('#resetBtn').textContent = 'Nouvelle partie';
-    save = Eco.newSave(); persist(); selMon = selItem = lastSummon = null; toast('Nouvelle partie.'); ACT.nav({ v:'donjons' });
+    try { sessionStorage.removeItem('idd-lance'); } catch(e){}
+    save = Eco.newSave(); persist(); location.reload();      // on repasse par le launcher pour recréer le personnage
   },
 };
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
   // clic sur le fond d'une modale : on ne ferme que si on a bien cliqué le fond, pas son contenu
   if (b.classList.contains('modal') && e.target.closest('[data-stop]')) return;
-  if (confirmKey && !['release','sell','gsell','resetSave','packClear'].includes(b.dataset.act)){ confirmKey = null; $('#resetBtn').textContent = 'Nouvelle partie'; }
+  if (confirmKey && !['release','sell','gsell','gfuse','resetSave','packClear'].includes(b.dataset.act)){ confirmKey = null; const rb = $('#resetBtn'); if (rb) rb.textContent = 'Nouvelle partie'; }
   const fn = ACT[b.dataset.act]; if (fn) fn(b.dataset, b);
 });
 document.addEventListener('change', e => {
@@ -5606,9 +5670,9 @@ function lauStart(){
   $('#lau').hidden = true;
   $('#wrap').hidden = false;
   render(); window.scrollTo(0,0);
-  if (sb) chatLoad().then(() => { chatWatch(); if (view === 'chat') chatPaint(); });
+  if (sb) chatLoad().then(() => { chatWatch(); if (panneau === 'chat') chatPaint(); });
   optPaint();
-  if (netOn()){ netAnnoncer(); mpCharger().then(() => { mpWatch(); renderTop(); if (view === 'chat') chatPaint(); }); }
+  if (netOn()){ netAnnoncer(); mpCharger().then(() => { mpWatch(); renderTop(); if (panneau === 'chat') chatPaint(); }); }
   if (sb) hdvCharger().then(renderTop);   // pour la pastille des ventes conclues
 }
 
@@ -5657,13 +5721,17 @@ Object.assign(ACT, {
     toast(`+${fmt(r.xp)} XP${r.ups ? ` · niveau ${mon.level}` : ''}${r.sorts ? ` · +${r.sorts} niveau${r.sorts > 1 ? 'x' : ''} de sort` : ''}.`); render(); },
   aideLigne(d, el){ if (el.title) toast(el.title); },   // au doigt, pas de survol : un appui affiche l'équivalence
   tauxOn(){ tauxOn = true; render(); }, tauxOff(){ tauxOn = false; render(); },
-  optOpen(){ optOn = true; optMsg = ''; optBusy = false; optPaint(); },
-  optClose(){ if (optBusy) return; optOn = false; optPaint(); },
+  pan(d){ panneau = d.v; optMsg = ''; optBusy = false; popPaint(); renderTop(); },
+  panOff(){ if (optBusy) return; panneau = null; popPaint(); renderTop(); },
+  optSon(){ sonOn = !sonOn; try { localStorage.setItem('idd-son', sonOn ? '1' : '0'); } catch(e){} if (sonOn) SON.clic(); popPaint(); },
+  optPlein(){ plein = !plein; try { localStorage.setItem('idd-fs', plein ? '1' : '0'); } catch(e){} popPaint(); },
+  optAuto(){ auto = !auto; try { localStorage.setItem('idd-auto', auto ? '1' : '0'); } catch(e){} popPaint(); },
+  optVit(d){ speed = +d.s; try { localStorage.setItem('idd-speed', speed); } catch(e){} popPaint(); },
   optIn(){ optLogin(false); }, optNew(){ optLogin(true); }, optOut(){ optLogout(); },
-  chatTab(d){ chatTab = d.v; chatErr = ''; render(); },
+  chatTab(d){ chatTab = d.v; chatErr = ''; popPaint(); renderTop(); },
   async chatPlus(){ await (chatTab === 'mp' ? mpFil(true) : chatLoad(true)); chatPaint(true); },
   mpOuvrir(d){ mpQ = ''; mpTrouves = []; mpOuvrir(d.id, d.nom); },
-  mpRetour(){ mpAvec = null; mpMsgs = []; chatErr = ''; render(); },
+  mpRetour(){ mpAvec = null; mpMsgs = []; chatErr = ''; popPaint(); },
   voirGear(d){ const g = GEAR.find(x => x.id === +d.id); if (g){ apercu = { t:'g', def:g }; render(); } },
   voirTro(d){ const i = (ITEM_SKINS.normal.concat(ITEM_SKINS.legend)).find(x => x.id === +d.id);
     if (i){ apercu = { t:'i', def:i, legend:ITEM_SKINS.legend.includes(i) }; render(); } },
