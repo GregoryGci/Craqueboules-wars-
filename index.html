@@ -313,6 +313,10 @@ body.in-combat .tabs{display:none}
 .rtawait{display:flex; align-items:center; gap:9px; padding:10px 12px; background:var(--row2); border:1px solid var(--panel-line); border-radius:7px; font-size:13px}
 .rtawait .sp{width:16px; height:16px; flex:none; border-radius:50%; border:2px solid var(--panel-line); border-top-color:var(--orange2); animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* Équipes enregistrées par mode */
+.teambar{display:flex; flex-wrap:wrap; gap:5px; align-items:center; margin-bottom:8px}
+.teambar .tn{display:inline-grid; place-items:center; min-width:15px; height:15px; padding:0 3px; border-radius:8px;
+  background:#ffffff40; font-size:10px; line-height:1}
 /* Chat public */
 .chatlist{list-style:none; margin:0; padding:7px 9px; display:grid; gap:4px; align-content:start;
   height:min(52vh, 420px); overflow:auto; background:var(--panel); border:1px solid var(--panel-line); border-radius:7px; box-shadow:inset 0 1px 3px #0002}
@@ -1573,7 +1577,7 @@ const Eco = (() => {
     return out;
   }
   function newSave(){
-    const s = { v:SAVE_V, sc:1, cat:CAT_MODE, kamas:800, stones:3, gold:0, scrolls:0, sum:0, ach:{}, nextId:1, monsters:[], items:[], gear:[], team:[], cleared:[], seen:[], wins:0 };
+    const s = { v:SAVE_V, sc:1, cat:CAT_MODE, kamas:800, stones:3, gold:0, scrolls:0, sum:0, ach:{}, nextId:1, monsters:[], items:[], gear:[], team:[], teams:{}, cleared:[], seen:[], wins:0 };
     const [k1, k2, k3] = starterKeys();
     const a = addMonster(s,k1,10), b = addMonster(s,k2,10), c = addMonster(s,k3,10);   // au niveau du premier donjon
     s.team = [a.uid, b.uid, c.uid]; s.seen = [k1, k2, k3];
@@ -2484,6 +2488,19 @@ function spellSvg(id, el){
 const heartSvg = `<svg viewBox="0 0 46 42" aria-hidden="true"><path d="M23 40S2 27 2 13.5A10.5 10.5 0 0 1 23 8a10.5 10.5 0 0 1 21 5.5C44 27 23 40 23 40z" fill="#d42a1c" stroke="#fff" stroke-width="2.5"/><path d="M9 11a6 6 0 0 1 8-3" stroke="#fff" stroke-opacity=".55" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`;
 const starSvg = `<svg viewBox="0 0 34 34" aria-hidden="true"><path d="M17 1.5l4.6 9.6 10.5 1.3-7.7 7.2 2 10.4L17 25 7.6 30l2-10.4-7.7-7.2 10.5-1.3z" fill="#ffc531" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>`;
 const teamMons = () => save.team.map(uid => Eco.monByUid(save, uid)).filter(Boolean);
+// Une équipe mémorisée par mode : on ne refait pas sa composition à chaque fois qu'on change de contenu.
+// save.team reste l'équipe qui part au combat ; les autres sont rangées dans save.teams.
+const TEAM_MODES = [['camp','Campagne'],['raid','Raids'],['dragon','Dragons'],['arene','Arène'],['rta','Arène en direct']];
+let teamCtx = 'camp';   // mode dont on modifie l'équipe dans l'onglet Équipe
+const teamOf = m => { save.teams = save.teams || {}; return save.teams[m] || []; };
+// Charge l'équipe du mode avant d'y jouer ; si elle est vide, on garde celle en place
+function applyTeam(m){
+  const t = teamOf(m).filter(uid => Eco.monByUid(save, uid));
+  if (t.length) save.team = t;
+  teamCtx = m;
+}
+// Enregistre la composition courante pour le mode qu'on est en train de modifier
+function rememberTeam(){ save.teams = save.teams || {}; save.teams[teamCtx] = save.team.slice(); }
 const confirmBtn = (key, label, labelSure, act) => `<button class="btn grey" data-act="${act}">${confirmKey === key ? labelSure : label}</button>`;
 const segBar = (r, n = 12, red) => `<div class="seg-bar ${red ? 'red' : ''}" aria-hidden="true">${Array.from({length:n}, (_,i) => `<i class="${i < Math.round(r*n) ? 'on' : ''}"></i>`).join('')}</div>`;
 
@@ -2729,7 +2746,13 @@ function viewEquipe(){
       ${portrait(m.key,52,{badge:false})}<span class="q">${m.level}</span><span class="st">${starsTxt(starsOf(m))}</span>${save.team.includes(m.uid) ? '<span class="team" title="Dans l\'équipe">É</span>' : ''}</button>`).join('');
   const mon = selMon && Eco.monByUid(save, selMon);
   if (!mon) return eqTabs() + '<section class="win"><div class="wb muted">Invoque un monstre pour commencer.</div></section>';
-  return eqTabs() + `<div class="split eqsplit">
+  const barreEquipes = `<div class="teambar">
+    <span class="muted" style="font-size:11.5px">Équipe de</span>
+    ${TEAM_MODES.map(([k, l]) => { const t = teamOf(k).filter(u => Eco.monByUid(save, u));
+      return `<button class="btn ${teamCtx === k ? '' : 'grey'} sm" data-act="teamCtx" data-v="${k}" aria-pressed="${teamCtx === k}"
+        title="${t.length ? t.map(u => MONSTERS[Eco.monByUid(save, u).key].name).join(', ') : 'aucune composition enregistrée'}">${l}${t.length ? ` <b class="tn">${t.length}</b>` : ''}</button>`; }).join('')}
+    <span class="muted" style="font-size:11px; margin-left:auto">Chaque mode garde sa composition.</span></div>`;
+  return eqTabs() + barreEquipes + `<div class="split eqsplit">
       ${monDetail(mon)}
       ${monStats(mon)}
     </div>
@@ -3513,11 +3536,11 @@ function viewSucces(){
 // ---------- Actions
 const ACT = {
   arTab(d){ arTab = d.v; render(); },
-  arFight(d){ arenaFight(+d.r); },
+  arFight(d){ applyTeam('arene'); arenaFight(+d.r); },
   arBuy(d){ const o = ARENA_SHOP.find(x => x.id === d.id); if (!o || save.gold < o.cost) return toast('Pas assez de parchemins dorés.'); save.gold -= o.cost; o.give(save); persist(); toast(`Acheté : ${o.name}.`); render(); },
   wbFight(){ wbFight(); },
   mode(d){ mode = d.v; selDg = null; openGrp = null; dq = ''; render(); },
-  play(d){ mode = d.v; selDg = null; openGrp = null; dq = ''; view = 'donjons'; render(); window.scrollTo(0,0); },
+  play(d){ mode = d.v; applyTeam(d.v); selDg = null; openGrp = null; dq = ''; view = 'donjons'; render(); window.scrollTo(0,0); },
   grp(d){ openGrp = openGrp === d.k ? null : d.k; const l = $('#dlist'), sc = l.scrollTop; l.innerHTML = dgListHtml(); l.scrollTop = sc; },
   skUp(d){ const r = Eco.skillUp(save, Eco.monByUid(save, selMon), +d.i, d.w); if (r.err) return toast(r.err); persist(); SON.niveau(); toast(`Sort monté au niveau ${r.lv}.`); render(); },
   eqTab(d){ eqTab = d.v; render(); },
@@ -3542,15 +3565,16 @@ const ACT = {
   seeMon(d){ selMon = +d.uid; view = 'equipe'; render(); },
   team(){
     const i = save.team.indexOf(selMon);
-    if (i >= 0){ save.team.splice(i,1); persist(); return render(); }
+    if (i >= 0){ save.team.splice(i,1); rememberTeam(); persist(); return render(); }
     if (save.team.length >= 3){ teamPick = selMon; return render(); }   // pleine : on demande qui remplacer
-    save.team.push(selMon); persist(); render();
+    save.team.push(selMon); rememberTeam(); persist(); render();
   },
   teamSwap(d){
     const i = save.team.indexOf(+d.uid);
     if (i >= 0 && teamPick != null) save.team[i] = teamPick;
-    teamPick = null; persist(); render();
+    teamPick = null; rememberTeam(); persist(); render();
   },
+  teamCtx(d){ applyTeam(d.v); render(); },
   teamCancel(){ teamPick = null; render(); },
   awaken(){ const r = Eco.awaken(save, Eco.monByUid(save, selMon)); if (r.err) return toast(r.err);
     persist(); toast(r.awakened ? `${r.st} ★ atteintes : le monstre s'éveille !` : `Évolué en ${r.st} ★.`); render(); },
@@ -4474,7 +4498,7 @@ Object.assign(ACT, {
   voirTro(d){ const i = (ITEM_SKINS.normal.concat(ITEM_SKINS.legend)).find(x => x.id === +d.id);
     if (i){ apercu = { t:'i', def:i, legend:ITEM_SKINS.legend.includes(i) }; render(); } },
   apercuOff(){ apercu = null; render(); },
-  rtaQueue(){ rtaQueue(); },
+  rtaQueue(){ applyTeam('rta'); rtaQueue(); },
   rtaQuit(){ if (rta && rta.chM) rtaSend({ t:'parti' }); rtaReset('Duel quitté.'); },
   rtaBan(d){ if (!rta || rta.banMien != null) return; rta.banMien = +d.uid; rtaSend({ t:'ban', uid:rta.banMien }); rtaStep(); },
   rtaPick(d){
