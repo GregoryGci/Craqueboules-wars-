@@ -1089,6 +1089,20 @@ const EFFECTS = {
   slow:    { label:'Ralentissement', short:'VIT−', good:false },
   defBreak:{ label:'Fragilité',      short:'DEF−', good:false },
   stun:    { label:'Étourdi',        short:'ÉTD',  good:false },
+  // Effets des 5 ★. « pile » : l'effet se cumule au lieu de se prolonger.
+  atkDown: { label:'Faiblesse',      short:'ATK−', good:false },
+  poison:  { label:'Poison',         short:'PSN',  good:false, pile:5 },
+  bomb:    { label:'Bombe',          short:'BMB',  good:false, pile:3 },
+  mark:    { label:'Marque',         short:'MRQ',  good:false },
+  silence: { label:'Silence',        short:'SIL',  good:false },
+  noheal:  { label:'Entrave',        short:'ENT',  good:false },
+  shield:  { label:'Bouclier',       short:'BCL',  good:true  },
+  taunt:   { label:'Provocation',    short:'PRV',  good:true  },
+  counter: { label:'Riposte',        short:'RIP',  good:true  },
+  endure:  { label:'Ténacité',       short:'TÉN',  good:true  },
+  regen:   { label:'Régénération',   short:'RÉG',  good:true  },
+  immune:  { label:'Immunité',       short:'IMM',  good:true  },
+  charge:  { label:'Charge',         short:'CHG',  good:true, pile:3, fixe:true },
 };
 
 const SKILLS = {
@@ -1342,6 +1356,7 @@ const Engine = (() => {
   const mates = (s,u) => s[u.side].filter(x => x.alive);
   const foes  = (s,u) => s[u.side === 'A' ? 'B' : 'A'].filter(x => x.alive);
   const has = (u,t) => u.effects.some(e => e.type === t);
+  const pile = (u,t) => u.effects.filter(e => e.type === t).length;
   const effSpd = u => u.stats.spd * (1 + (has(u,'spdUp') ? .3 : 0) - (has(u,'slow') ? .3 : 0));
   const isAdv = (a,t) => BEATS[a.el] === t.el;
   const isDis = (a,t) => BEATS[t.el] === a.el;
@@ -1371,26 +1386,76 @@ const Engine = (() => {
   }
   function beginTurn(s, actor){
     const ev = [];
-    s.turn++; s.actor = actor;
+    s.turn++; s.actor = actor; actor.nt = (actor.nt || 0) + 1;      // nt : ses tours à lui, pour les sorts pair / impair
     for (const k in actor.cds) if (actor.cds[k] > 0) actor.cds[k]--;
-    if (has(actor,'stun')){ ev.push({ t:'stunned', id:actor.id }); endTurn(s, actor, ev); return { skipped:true, events:ev }; }
+    // Début de tour : la régénération soigne, puis chaque dose de poison fait son effet.
+    if (has(actor,'regen')) soin(s, actor, actor.stats.hp * .08, ev);
+    for (const e of actor.effects.filter(e => e.type === 'poison')){ if (!actor.alive) break; subir(s, actor, e.v, ev, { dot:true }); }
+    if (!actor.alive){ checkOver(s, ev); s.actor = null; return { skipped:true, events:ev }; }
+    if (has(actor,'stun')){ ev.push({ t:'stunned', id:actor.id }); endTurn(s, actor, ev); checkOver(s, ev); return { skipped:true, events:ev }; }
     return { skipped:false, events:ev };
   }
-  function addEffect(s, tgt, type, turns, ev){
+  // v : valeur portée par l'effet (dégâts d'un poison ou d'une bombe, points d'un bouclier).
+  function addEffect(s, tgt, type, turns, ev, v){
+    const E = EFFECTS[type];
+    if (!E.good && has(tgt,'immune')){ ev.push({ t:'note', id:tgt.id, text:'Immunisé' }); return false; }
     const ex = tgt.effects.find(e => e.type === type);
-    if (ex) ex.turns = Math.max(ex.turns, turns);
-    else tgt.effects.push({ type, turns, fresh: tgt === s.actor });
+    if (E.pile){ if (pile(tgt, type) >= E.pile) return false; tgt.effects.push({ type, turns, fresh: tgt === s.actor, v }); }
+    else if (ex){ ex.turns = Math.max(ex.turns, turns); if (v != null) ex.v = Math.max(ex.v || 0, v); }
+    else tgt.effects.push({ type, turns, fresh: tgt === s.actor, v });
     ev.push({ t:'fx', id:tgt.id, effects:fxSnap(tgt), added:type, turns });
+    return true;
   }
-  function hit(s, att, tgt, op, ev){
+  function soin(s, tgt, amt, ev){
+    if (!tgt.alive) return 0;
+    if (has(tgt,'noheal')){ ev.push({ t:'note', id:tgt.id, text:'Soin bloqué' }); return 0; }
+    amt = Math.max(0, Math.min(tgt.stats.hp - tgt.hp, Math.round(amt)));
+    tgt.hp += amt; ev.push({ t:'heal', id:tgt.id, amount:amt, hp:tgt.hp });
+    return amt;
+  }
+  // Fait perdre des PV : le bouclier encaisse d'abord, la Ténacité empêche de tomber, puis mort ou barre suivante.
+  function subir(s, tgt, dmg, ev, o = {}){
+    dmg = Math.max(0, Math.round(dmg));
+    const b = tgt.effects.find(e => e.type === 'shield');
+    if (b && dmg > 0){
+      const pris = Math.min(b.v, dmg); b.v -= pris; dmg -= pris;
+      if (b.v <= 0) tgt.effects = tgt.effects.filter(e => e !== b);
+      ev.push({ t:'note', id:tgt.id, text:`Bouclier −${pris}`, silent:true }); ev.push({ t:'fx', id:tgt.id, effects:fxSnap(tgt) });
+    }
+    if (has(tgt,'endure') && dmg >= tgt.hp) dmg = Math.max(0, tgt.hp - 1);
+    tgt.hp = Math.max(0, tgt.hp - dmg);
+    ev.push({ t:'dmg', id:tgt.id, amount:dmg, crit:!!o.crit, glance:!!o.glance, adv:!!o.adv, dis:!!o.dis, hp:tgt.hp });
+    if (tgt.hp <= 0 && tgt.bars && tgt.bar < tgt.bars.n - 1){
+      // Boss à plusieurs barres de vie : la suivante est plus longue, et il frappe plus fort.
+      tgt.bar++;
+      tgt.stats = { ...tgt.stats, hp:Math.round(tgt.stats.hp * tgt.bars.hp), atk:Math.round(tgt.stats.atk * tgt.bars.atk) };
+      tgt.hp = tgt.stats.hp;
+      ev.push({ t:'bar', id:tgt.id, bar:tgt.bar, hp:tgt.hp });
+    }
+    else if (tgt.hp <= 0){ tgt.alive = false; tgt.atb = 0; tgt.effects = []; ev.push({ t:'death', id:tgt.id }); }
+    return dmg;
+  }
+  const atkDe = u => u.stats.atk * (has(u,'atkUp') ? 1.5 : 1) * (has(u,'atkDown') ? .6 : 1);
+  function hit(s, att, tgt, op, ev, sans){
     const rng = s.rng;
-    const atk = att.stats.atk * (has(att,'atkUp') ? 1.5 : 1);
     const def = tgt.stats.def * (has(tgt,'defUp') ? 1.7 : 1) * (has(tgt,'defBreak') ? .3 : 1);
     // L'ancienne formule divisait l'attaque par la défense : les deux montant ensemble, les dégâts restaient
     // figés autour de 25 à tous les niveaux. Désormais les dégâts suivent l'attaque, et la défense se lit comme
     // un pourcentage de réduction — calculé sur la défense rapportée au niveau, donc comparable d'un bout à l'autre.
-    const dref = def / pwrAt(tgt.level), cut = Math.min(.75, dref / (dref + 160));
-    let dmg = atk * op.mult * DMG_K * (1 - cut);
+    const dref = def / pwrAt(tgt.level), cut = Math.min(.75, dref / (dref + 160)) * (1 - (op.ignoreDef || 0) / 100);
+    // Base : l'attaque, à laquelle certains sorts ajoutent une part des PV max ou de la DEF du lanceur.
+    let base = atkDe(att) * op.mult;
+    if (op.hpK) base += att.stats.hp * op.hpK;
+    if (op.defK) base += att.stats.def * op.defK;
+    let dmg = base * DMG_K * (1 - cut);
+    if (op.spdK) dmg *= 1 + Math.max(0, effSpd(att) - 100) / 100 * op.spdK;                      // plus il est rapide
+    if (op.exec && tgt.hp / tgt.stats.hp < op.exec[0]) dmg *= 1 + op.exec[1];                    // achève les blessés
+    if (op.full && tgt.hp / tgt.stats.hp > op.full[0]) dmg *= 1 + op.full[1];                    // entame les cibles intactes
+    if (op.missing) dmg *= 1 + op.missing * (1 - att.hp / att.stats.hp);                         // plus il est blessé
+    if (op.perDebuff) dmg *= 1 + op.perDebuff * tgt.effects.filter(e => !EFFECTS[e.type].good).length;
+    if (op.perBuff) dmg *= 1 + op.perBuff * att.effects.filter(e => EFFECTS[e.type].good && e.type !== 'charge').length;
+    if (op.perCharge) dmg *= 1 + op.perCharge * pile(att,'charge');
+    if (has(tgt,'mark')) dmg *= 1.3;
     if (att.side === 'A'){                       // bonus de classe, côté joueur seulement
       const C = clsFx();
       if (C.solo && op.nTargets === 1) dmg *= C.solo;
@@ -1404,42 +1469,90 @@ const Engine = (() => {
     else if (rng()*100 < att.stats.crit + (op.critBonus||0) + (adv ? 15 : 0)){ crit = true; dmg *= 1 + att.stats.critDmg/100; }
     const elemK = att.side === 'A' && clsFx().elem || 1;
     if (adv) dmg *= 1 + .15 * elemK; if (dis) dmg *= .9;
-    dmg = Math.round(dmg * (.95 + rng()*.1));
-    tgt.hp = Math.max(0, tgt.hp - dmg);
-    ev.push({ t:'dmg', id:tgt.id, amount:dmg, crit, glance, adv, dis, hp:tgt.hp });
-    if (tgt.hp <= 0 && tgt.bars && tgt.bar < tgt.bars.n - 1){
-      // Boss à plusieurs barres de vie : la suivante est plus longue, et il frappe plus fort.
-      tgt.bar++;
-      tgt.stats = { ...tgt.stats, hp:Math.round(tgt.stats.hp * tgt.bars.hp), atk:Math.round(tgt.stats.atk * tgt.bars.atk) };
-      tgt.hp = tgt.stats.hp;
-      ev.push({ t:'bar', id:tgt.id, bar:tgt.bar, hp:tgt.hp });
+    const fait = subir(s, tgt, dmg * (.95 + rng()*.1), ev, { crit, glance, adv, dis });
+    if (op.steal && fait > 0 && att.alive){                       // vol de vie : pour lui, ou pour l'allié le plus mal en point
+      const qui = op.stealTo === 'lowest' ? mates(s, att).slice().sort((a, b) => a.hp / a.stats.hp - b.hp / b.stats.hp)[0] : att;
+      if (qui) soin(s, qui, fait * op.steal / 100, ev);
     }
-    else if (tgt.hp <= 0){ tgt.alive = false; tgt.atb = 0; tgt.effects = []; ev.push({ t:'death', id:tgt.id }); }
+    // Riposte : une cible touchée par un sort monocible rend le coup, une fois.
+    if (!sans && tgt.alive && att.alive && op.nTargets === 1 && has(tgt,'counter')){
+      ev.push({ t:'note', id:tgt.id, text:'Riposte' });
+      hit(s, tgt, att, { mult:2, nTargets:1 }, ev, true);
+    }
+    return fait;
   }
+  // Provocation : tant qu'un ennemi provoque, les sorts monocibles ne peuvent viser que lui.
+  const visables = (s, actor) => { const f = foes(s, actor), p = f.filter(u => has(u,'taunt')); return p.length ? p : f; };
   function resolveTargets(s, actor, sk, targetId){
-    if (sk.target === 'enemy')      return [byId(s,targetId) || foes(s,actor)[0]].filter(u => u && u.alive && u.side !== actor.side);
+    if (sk.target === 'enemy'){ const ok = visables(s, actor), t = byId(s, targetId); return [ok.includes(t) ? t : ok[0]].filter(Boolean); }
     if (sk.target === 'allEnemies') return foes(s,actor);
     if (sk.target === 'allAllies')  return mates(s,actor);
     return [actor];
   }
+  const resiste = (s, actor, tgt, ev) => { if (s.rng()*100 < Math.max(15, tgt.stats.res - actor.stats.acc)){ ev.push({ t:'resist', id:tgt.id }); return true; } return false; };
   function act(s, actor, skillId, targetId){
+    if (has(actor,'silence')) skillId = actor.skills[0];            // Silence : seul le premier sort répond
     const ev = [], sk = SKILLS[skillId], rng = s.rng, lv = actor.skl[skillId] || 1, pw = 1 + SK_STEP * (lv - 1);
     const targets = resolveTargets(s, actor, sk, targetId);
+    let bonusAtb = 0;
     ev.push({ t:'skill', id:actor.id, skill:skillId, targets:targets.map(u => u.id) });
     for (const op of sk.ops){
-      for (const tgt of targets){
-        if (!tgt.alive) continue;
+      // Conditions d'un effet : tour pair ou impair du lanceur
+      if (op.when === 'pair' && actor.nt % 2) continue;
+      if (op.when === 'impair' && !(actor.nt % 2)) continue;
+      // Effets qui ne se jouent qu'une fois, pas une fois par cible
+      if (op.op === 'atbSelf'){ bonusAtb += op.amount; continue; }
+      if (op.op === 'charge'){ for (let i = 0; i < op.n; i++) addEffect(s, actor, 'charge', 99, ev); continue; }
+      if (op.op === 'cdReset'){ const id = actor.skills[op.i]; if (id && actor.cds[id] > 0){ actor.cds[id] = 0; ev.push({ t:'note', id:actor.id, text:'Recharge annulée' }); } continue; }
+      if (op.op === 'selfDmg'){ subir(s, actor, Math.min(actor.hp - 1, actor.hp * op.pct / 100), ev); continue; }
+      if (op.op === 'balance'){                                       // met tous les alliés au même pourcentage de PV
+        const m = mates(s, actor), moy = m.reduce((t, u) => t + u.hp / u.stats.hp, 0) / m.length;
+        for (const u of m){ u.hp = Math.max(1, Math.round(u.stats.hp * moy)); ev.push({ t:'heal', id:u.id, amount:0, hp:u.hp }); }
+        continue;
+      }
+      if (op.op === 'revive'){                                        // relève un allié tombé ; personne à relever : soin de groupe
+        const mort = s[actor.side].find(u => !u.alive);
+        if (mort){ mort.alive = true; mort.hp = Math.round(mort.stats.hp * op.pct / 100); mort.atb = 0; mort.effects = []; ev.push({ t:'revive', id:mort.id, hp:mort.hp }); }
+        else for (const u of mates(s, actor)) soin(s, u, u.stats.hp * (op.sinon || 0) * pw / 100, ev);
+        continue;
+      }
+      if (op.op === 'dmg' && op.random){                              // coups répartis au hasard chez l'ennemi
+        for (let h = 0; h < op.random; h++){ const f = foes(s, actor); if (!f.length || !actor.alive) break;
+          const t = f[Math.floor(rng() * f.length)]; hit(s, actor, t, { ...op, mult:op.mult * pw, nTargets:2 }, ev);
+          if (op.puis && t.alive && rng()*100 < op.puis.chance && !resiste(s, actor, t, ev)) addEffect(s, t, op.puis.type, op.puis.turns, ev); }
+        continue;
+      }
+      for (const tgt of (op.self ? [actor] : targets)){                // self : l'effet revient au lanceur, quelle que soit la cible du sort
+        if (!tgt.alive || !actor.alive) continue;
+        if (op.si && !has(tgt, op.si)) continue;                      // seulement sur une cible qui porte déjà tel effet
         if (op.op === 'dmg'){ const o = { ...op, mult:op.mult * pw, nTargets:targets.length };
-          for (let h = 0; h < (op.hits||1) && tgt.alive; h++) hit(s, actor, tgt, o, ev); }
+          for (let h = 0; h < (op.hits||1) && tgt.alive && actor.alive; h++) hit(s, actor, tgt, o, ev);
+          if (op.splash) for (const v of foes(s, actor)) if (v !== tgt && actor.alive) hit(s, actor, v, { mult:o.mult * op.splash, nTargets:2 }, ev);
+          if (!tgt.alive && op.onKill){ if (op.onKill.atb) bonusAtb += op.onKill.atb; ev.push({ t:'note', id:actor.id, text:'Rejoue' }); }
+        }
+        else if (op.op === 'assist'){                                 // un allié pris au hasard frappe la même cible
+          const m = mates(s, actor).filter(u => u !== actor); if (!m.length) continue;
+          const a = m[Math.floor(rng() * m.length)]; ev.push({ t:'note', id:a.id, text:'Assiste' }); hit(s, a, tgt, { mult:op.mult * pw, nTargets:2 }, ev);
+        }
         else if (op.op === 'debuff'){
           if (rng()*100 >= op.chance) continue;
-          if (rng()*100 < Math.max(15, tgt.stats.res - actor.stats.acc)) ev.push({ t:'resist', id:tgt.id });
-          else addEffect(s, tgt, op.type, op.turns, ev);
+          if (!resiste(s, actor, tgt, ev)) addEffect(s, tgt, op.type, op.turns, ev);
+        }
+        else if (op.op === 'dot' || op.op === 'bomb'){                // poison : chaque tour · bombe : à l'échéance
+          if (rng()*100 >= (op.chance ?? 100)) continue;
+          if (!resiste(s, actor, tgt, ev)) for (let i = 0; i < (op.n || 1); i++) addEffect(s, tgt, op.op === 'dot' ? 'poison' : 'bomb', op.turns, ev, Math.round(atkDe(actor) * op.mult * pw * DMG_K));
+        }
+        else if (op.op === 'detonate'){                               // fait éclater d'un coup tout le poison restant
+          const ps = tgt.effects.filter(e => e.type === 'poison'); if (!ps.length) continue;
+          const tot = ps.reduce((t, e) => t + e.v * e.turns, 0) * op.k;
+          tgt.effects = tgt.effects.filter(e => e.type !== 'poison'); ev.push({ t:'fx', id:tgt.id, effects:fxSnap(tgt) });
+          ev.push({ t:'note', id:tgt.id, text:'Poison éclaté' }); subir(s, tgt, tot, ev);
         }
         else if (op.op === 'buff') addEffect(s, tgt, op.type, op.turns, ev);
+        else if (op.op === 'shield') addEffect(s, tgt, 'shield', op.turns, ev, Math.round(actor.stats.hp * op.pct * pw / 100));
         else if (op.op === 'heal'){
-          const amt = Math.min(tgt.stats.hp - tgt.hp, Math.round(tgt.stats.hp * op.pct * pw / 100));
-          tgt.hp += amt; ev.push({ t:'heal', id:tgt.id, amount:amt, hp:tgt.hp });
+          if (op.lowest && targets.some(u => u.alive && u.hp / u.stats.hp < tgt.hp / tgt.stats.hp)) continue;
+          soin(s, tgt, tgt.stats.hp * op.pct * pw / 100, ev);
         }
         else if (op.op === 'atb'){
           if (tgt === actor) continue;
@@ -1451,17 +1564,48 @@ const Engine = (() => {
           for (let i = tgt.effects.length-1; i >= 0 && n > 0; i--) if (!EFFECTS[tgt.effects[i].type].good){ tgt.effects.splice(i,1); n--; changed = true; }
           if (changed) ev.push({ t:'fx', id:tgt.id, effects:fxSnap(tgt), cleansed:true });
         }
+        else if (op.op === 'strip' || op.op === 'stealBuff'){         // retire des bonus à la cible, ou les lui prend
+          const bons = tgt.effects.filter(e => EFFECTS[e.type].good && !EFFECTS[e.type].fixe); if (!bons.length) continue;
+          if (rng()*100 >= (op.chance ?? 100) || resiste(s, actor, tgt, ev)) continue;
+          const pris = bons.slice(0, op.n); tgt.effects = tgt.effects.filter(e => !pris.includes(e));
+          ev.push({ t:'fx', id:tgt.id, effects:fxSnap(tgt) }); ev.push({ t:'note', id:tgt.id, text:op.op === 'strip' ? 'Bonus retiré' : 'Bonus volé' });
+          if (op.op === 'stealBuff') for (const e of pris) addEffect(s, actor, e.type, Math.max(2, e.turns), ev, e.v);
+        }
+        else if (op.op === 'transfer'){                               // refile ses propres malus à la cible
+          const mal = actor.effects.filter(e => !EFFECTS[e.type].good); if (!mal.length) continue;
+          actor.effects = actor.effects.filter(e => !mal.includes(e)); ev.push({ t:'fx', id:actor.id, effects:fxSnap(actor), cleansed:true });
+          for (const e of mal) addEffect(s, tgt, e.type, Math.max(2, e.turns), ev, e.v);
+        }
+        else if (op.op === 'cd'){                                     // allonge (ennemi) ou raccourcit (allié) les recharges
+          if (op.amount > 0 && (rng()*100 >= (op.chance ?? 100) || resiste(s, actor, tgt, ev))) continue;
+          let touche = false;
+          for (const id of tgt.skills){ if (!SKILLS[id].cd || (tgt === actor && id === skillId)) continue;
+            const c = tgt.cds[id] || 0, n = Math.max(0, Math.min(SKILLS[id].cd + 1, c + op.amount)); if (n !== c){ tgt.cds[id] = n; touche = true; } }
+          if (touche) ev.push({ t:'note', id:tgt.id, text:op.amount > 0 ? `Recharges +${op.amount}` : `Recharges ${op.amount}` });
+        }
+        else if (op.op === 'extend'){                                 // prolonge les bonus en cours
+          let n = 0; for (const e of tgt.effects) if (EFFECTS[e.type].good && !EFFECTS[e.type].fixe){ e.turns += op.n; n++; }
+          if (n) ev.push({ t:'fx', id:tgt.id, effects:fxSnap(tgt) });
+        }
       }
+      if (op.spend){ actor.effects = actor.effects.filter(e => e.type !== 'charge'); ev.push({ t:'fx', id:actor.id, effects:fxSnap(actor) }); }
     }
     actor.cds[skillId] = sk.cd - (lv >= SK_MAX && sk.cd > 0 ? 1 : 0);
-    if (actor.alive) endTurn(s, actor, ev);
+    if (actor.alive){ endTurn(s, actor, ev); if (bonusAtb && actor.alive){ actor.atb = Math.min(100, bonusAtb); ev.push({ t:'atb', id:actor.id, atb:actor.atb, delta:bonusAtb, reset:true }); } }
     checkOver(s, ev);
     return ev;
   }
   function endTurn(s, actor, ev){
     actor.atb = 0;
-    actor.effects = actor.effects.filter(e => { if (e.fresh){ e.fresh = false; return true; } return --e.turns > 0; });
+    const finies = [];
+    actor.effects = actor.effects.filter(e => { if (e.fresh){ e.fresh = false; return true; } if (EFFECTS[e.type].fixe) return true; if (--e.turns > 0) return true; finies.push(e); return false; });
     ev.push({ t:'fx', id:actor.id, effects:fxSnap(actor) });
+    // Une bombe arrivée à échéance explose sur son porteur, et éclabousse ses alliés.
+    for (const e of finies) if (e.type === 'bomb' && actor.alive){
+      ev.push({ t:'note', id:actor.id, text:'Explosion' });
+      const autour = mates(s, actor).filter(u => u !== actor);
+      subir(s, actor, e.v, ev); for (const u of autour) subir(s, u, e.v * .4, ev);
+    }
     ev.push({ t:'atb', id:actor.id, atb:0, reset:true });
     s.actor = null;
   }
@@ -1471,31 +1615,45 @@ const Engine = (() => {
     if (s.over) ev.push({ t:'end', winner:s.winner });
   }
   function aiChoose(s, u){
-    const team = mates(s,u), enemies = foes(s,u);
+    const team = mates(s,u), enemies = foes(s,u), muet = has(u,'silence');
+    const bons = t => t.effects.filter(e => EFFECTS[e.type].good && !EFFECTS[e.type].fixe).length;
     let best = null;
     u.skills.forEach((id, i) => {
-      if (u.cds[id] > 0) return;
+      if (u.cds[id] > 0 || (muet && i)) return;
       const sk = SKILLS[id]; let score = i*12;
       for (const op of sk.ops){
+        if ((op.when === 'pair' && u.nt % 2) || (op.when === 'impair' && !(u.nt % 2))){ score -= 6; continue; }
         if (op.op === 'heal'){ const low = Math.min(...team.map(m => m.hp/m.stats.hp)); score += low < .55 ? 80 : low < .8 ? 10 : -60; }
-        if (op.op === 'buff'){ const lacking = team.filter(m => !has(m,op.type)).length; score += lacking >= Math.min(2, team.length) ? 20 : -40; }
+        if (op.op === 'buff'){ const lacking = team.filter(m => !has(m,op.type)).length; score += lacking >= Math.min(2, team.length) || sk.target === 'self' && !has(u, op.type) ? 20 : -40; }
+        if (op.op === 'shield'){ score += team.filter(m => !has(m,'shield')).length >= Math.min(2, team.length) || sk.target === 'self' && !has(u,'shield') ? 22 : -40; }
         if (op.op === 'atb' && op.amount > 0) score += team.length > 1 ? 15 : -30;
         if (op.op === 'cleanse' && team.some(m => m.effects.some(e => !EFFECTS[e.type].good))) score += 25;
+        if (op.op === 'revive') score += s[u.side].some(m => !m.alive) ? 140 : (Math.min(...team.map(m => m.hp/m.stats.hp)) < .6 ? 50 : -60);
+        if (op.op === 'selfDmg') score += u.hp / u.stats.hp < .4 ? -90 : 0;
+        if (op.op === 'strip' || op.op === 'stealBuff') score += enemies.some(bons) ? 28 : -12;
+        if (op.op === 'transfer') score += u.effects.some(e => !EFFECTS[e.type].good) ? 30 : -6;
+        if (op.op === 'cd' && op.amount < 0) score += team.some(m => Object.values(m.cds).some(c => c > 0)) ? 25 : -40;
+        if (op.op === 'balance'){ const r = team.map(m => m.hp/m.stats.hp); score += Math.max(...r) - Math.min(...r) > .3 ? 45 : -35; }
+        if (op.op === 'detonate') score += enemies.some(t => has(t,'poison')) ? 30 : -45;
+        if (op.perCharge) score += pile(u,'charge') >= 2 ? 30 : -45;
+        if (op.exec) score += enemies.some(t => t.hp / t.stats.hp < op.exec[0]) ? 14 : 0;
       }
       if (!best || score > best.score) best = { id, score };
     });
     let target = null;
     if (SKILLS[best.id].target === 'enemy'){
-      const val = t => (1 - t.hp/t.stats.hp)*1.2 + (isAdv(u,t) ? .6 : 0) - (isDis(u,t) ? .4 : 0) + (has(t,'defBreak') ? .3 : 0) - (t.boss ? .2 : 0);
-      target = enemies.slice().sort((a,b) => val(b) - val(a))[0].id;
+      const ops = SKILLS[best.id].ops, deton = ops.some(o => o.op === 'detonate'), vole = ops.some(o => o.op === 'strip' || o.op === 'stealBuff');
+      const val = t => (1 - t.hp/t.stats.hp)*1.2 + (isAdv(u,t) ? .6 : 0) - (isDis(u,t) ? .4 : 0) + (has(t,'defBreak') ? .3 : 0) + (has(t,'mark') ? .3 : 0) - (t.boss ? .2 : 0)
+        + (deton ? pile(t,'poison') * .8 : 0) + (vole ? bons(t) * .5 : 0);
+      target = visables(s, u).slice().sort((a,b) => val(b) - val(a))[0].id;
     }
     return { skill:best.id, target };
   }
   function validTargets(s, actor, skillId){
     const t = SKILLS[skillId].target;
-    return t === 'self' ? [actor] : (t === 'allAllies' ? mates(s,actor) : foes(s,actor));
+    return t === 'self' ? [actor] : t === 'allAllies' ? mates(s,actor) : t === 'enemy' ? visables(s, actor) : foes(s,actor);
   }
-  return { createBattle, nextWave, advance, preview, beginTurn, act, aiChoose, validTargets, all, byId, effSpd, isAdv, isDis };
+  return { createBattle, nextWave, advance, preview, beginTurn, act, aiChoose, validTargets, all, byId, effSpd, isAdv, isDis, has };
 })();
 
 /* =====================================================================
@@ -1640,16 +1798,21 @@ const Eco = (() => {
   const awakenCost = mon => { const st = starsOf(mon);
     return { st, n: st, kamas: Math.round(st * 300 * (.2 + (mon.level || 1) * .012)), el: MONSTERS[mon.key].el }; };
   // Les monstres mangeables : même nombre d'étoiles, hors équipe, et pas celui qu'on fait évoluer.
-  const fodder = (save, mon) => save.monsters.filter(x => x !== mon && !save.team.includes(x.uid) && starsOf(x) === starsOf(mon));
-  function awaken(save, mon){
+  // Un monstre engagé dans une équipe, quel que soit le mode, ne se mange pas.
+  const engage = (save, m) => save.team.includes(m.uid) || Object.values(save.teams || {}).some(t => t.includes(m.uid));
+  const fodder = (save, mon) => save.monsters.filter(x => x !== mon && !engage(save, x) && starsOf(x) === starsOf(mon));
+  // uids : les monstres que le joueur a choisi de sacrifier. Sans choix, on prend les plus faibles.
+  function awaken(save, mon, uids){
     const st = starsOf(mon);
     if (st >= MAX_STARS) return { err:'Déjà au maximum (6 étoiles).' };
     const c = awakenCost(mon), dispo = fodder(save, mon);
     if (dispo.length < c.n) return { err:`Il faut ${c.n} monstre${c.n > 1 ? 's' : ''} ${st} ★ hors équipe (tu en as ${dispo.length}).` };
     if (save.kamas < c.kamas) return { err:`Il te faut ${c.kamas} kamas.` };
+    const choisis = uids ? dispo.filter(x => uids.includes(x.uid)) : null;
+    if (choisis && choisis.length !== c.n) return { err:`Choisis exactement ${c.n} monstre${c.n > 1 ? 's' : ''} ${st} ★.` };
     save.kamas -= c.kamas;
-    // On sacrifie les plus faibles d'abord, et on libère ce qu'ils portaient
-    const manges = dispo.sort((a, b) => a.level - b.level).slice(0, c.n);
+    // On libère ce que portaient les sacrifiés
+    const manges = choisis || dispo.sort((a, b) => a.level - b.level).slice(0, c.n);
     for (const f of manges){
       for (const it of itemsOf(save, f)) unequip(save, it);
       for (const g of Object.values(gearOf(save, f))) unequipGear(save, g);
@@ -1659,8 +1822,6 @@ const Eco = (() => {
     if (mon.st >= MAX_STARS) mon.awakened = true;   // la forme éveillée est la récompense du 6 ★
     return { ok:true, st:mon.st, awakened:mon.awakened };
   }
-  // Un monstre engagé dans une équipe, quel que soit le mode, ne se mange pas.
-  const engage = (save, m) => save.team.includes(m.uid) || Object.values(save.teams || {}).some(t => t.includes(m.uid));
   const mangeables = (save, mon) => save.monsters.filter(x => x !== mon && !engage(save, x));
   function feed(save, mon, uids){
     const plats = mangeables(save, mon).filter(x => uids.includes(x.uid));
@@ -2028,7 +2189,132 @@ const KIT5 = [
     ['allAllies',4,[{op:'buff',type:'spdUp',turns:2},{op:'atb',amount:30}]],
     ['enemy',4,[{op:'dmg',mult:2.4,hits:3}]] ],
 ];
-const kit5 = h => KIT5.map((L, i) => L[(h >>> (4 + i * 5)) % L.length]);
+const kit5 = h => KIT5.map((L, i) => L[(h >>> (4 + i * 5)) % L.length]);   // filet de sécurité pour un 5 ★ qui n'aurait pas son kit ci-dessous
+// Les kits des 5 ★. Chacun a sa mécanique, qu'aucun autre monstre ne possède ; les noms et les icônes des
+// sorts restent ceux de Dofus, mais ne servent que d'habillage. Format : [cible, recharge, effets, description].
+// Réglés sur des duels simulés pour que chacun gagne entre 40 et 60 % de ses combats contre les autres 5 ★.
+const KITS5 = {
+  // Tank qui force l'ennemi à le viser et se soigne en encaissant ; ses dégâts viennent de sa DEF et de ses PV.
+  'bouftou royal': [
+    ['enemy', 0, [{op:'dmg',mult:2.9,defK:1.6},{op:'debuff',type:'atkDown',turns:2,chance:40}], 'Frappe avec son ATK et sa DEF. 40 % de Faiblesse (2 t) : la cible frappe 40 % moins fort.'],
+    ['self', 3, [{op:'buff',type:'taunt',turns:2},{op:'buff',type:'defUp',turns:2},{op:'buff',type:'regen',turns:3}], 'Provocation (2 t) : les sorts monocibles ennemis doivent le viser. Armure (2 t) et Régénération (3 t) : 8 % de ses PV à chaque tour.'],
+    ['allEnemies', 4, [{op:'dmg',mult:1.8,hpK:.14},{op:'debuff',type:'stun',turns:1,chance:20}], 'Charge tous les ennemis ; les dégâts montent avec ses PV max. 20 % d\'Étourdi (1 t).'],
+  ],
+  // Tout repose sur sa vitesse : plus il est rapide, plus il frappe et plus il rejoue.
+  'wa wabbit': [
+    ['enemy', 0, [{op:'dmg',mult:2.9,spdK:1},{op:'atbSelf',amount:25}], 'Dégâts accrus par sa VIT au-delà de 100. Récupère aussitôt 25 % de barre d\'attaque.'],
+    ['allAllies', 3, [{op:'buff',type:'spdUp',turns:2},{op:'atb',amount:25}], 'Hâte sur les alliés (2 t) et +25 % de barre d\'attaque pour chacun.'],
+    ['enemy', 4, [{op:'dmg',mult:1.9,hits:3,onKill:{atb:100}}], '3 coups de 1,9× ATK. S\'il achève sa cible, il rejoue immédiatement.'],
+  ],
+  // Berserker : il paie ses coups avec ses PV, et frappe d'autant plus fort qu'il est blessé.
+  'bworker': [
+    ['enemy', 0, [{op:'dmg',mult:3.4,missing:1.2}], '3,4× ATK, +1,2 % de dégâts par % de PV qui lui manque.'],
+    ['enemy', 3, [{op:'selfDmg',pct:15},{op:'dmg',mult:6.2,ignoreDef:50}], 'Sacrifie 15 % de ses PV actuels pour un coup de 6,2× ATK qui ignore la moitié de la DEF.'],
+    ['self', 4, [{op:'buff',type:'endure',turns:2},{op:'buff',type:'atkUp',turns:2},{op:'heal',pct:15}], 'Ténacité (2 t) : ses PV ne peuvent pas descendre sous 1. Puissance (2 t), et se soigne de 15 %.'],
+  ],
+  // Ses sorts changent d'effet selon que son tour est pair ou impair.
+  'kimbo': [
+    ['enemy', 0, [{op:'dmg',mult:3.7},{op:'debuff',type:'defBreak',turns:2,chance:60,when:'pair'},{op:'atbSelf',amount:30,when:'impair'}], '3,7× ATK. Tour pair : 60 % de Fragilité (2 t). Tour impair : récupère 30 % de barre d\'attaque.'],
+    ['allEnemies', 3, [{op:'dmg',mult:2.8},{op:'debuff',type:'stun',turns:1,chance:45,when:'pair'},{op:'debuff',type:'slow',turns:2,chance:70,when:'impair'}], '2,8× ATK sur tous les ennemis. Tour pair : 45 % d\'Étourdi. Tour impair : 70 % de Ralentissement (2 t).'],
+    ['allAllies', 4, [{op:'heal',pct:22,when:'pair'},{op:'buff',type:'atkUp',turns:2,when:'impair'},{op:'buff',type:'immune',turns:1,when:'impair'}], 'Tour pair : soigne les alliés de 22 %. Tour impair : Puissance (2 t) et Immunité (1 t) sur les alliés.'],
+  ],
+  // Gèle puis brise : ses étourdissements ne prennent que sur les ennemis déjà ralentis.
+  'kolosso': [
+    ['enemy', 0, [{op:'dmg',mult:3.5},{op:'debuff',type:'slow',turns:2,chance:55}], '3,5× ATK. 55 % de Ralentissement (2 t).'],
+    ['allEnemies', 3, [{op:'dmg',mult:2.5},{op:'debuff',type:'stun',turns:1,chance:75,si:'slow'}], '2,5× ATK sur tous les ennemis. Ceux qui sont déjà ralentis ont 75 % de risque d\'être Étourdis (1 t).'],
+    ['self', 4, [{op:'shield',pct:30,turns:3},{op:'buff',type:'counter',turns:3}], 'Bouclier de 30 % de ses PV (3 t) et Riposte (3 t) : il rend à 2× ATK chaque sort monocible reçu.'],
+  ],
+  // Assassin : achève les blessés, et rejoue quand il tue.
+  'ombre': [
+    ['enemy', 0, [{op:'dmg',mult:3.2,exec:[.35,.6]}], '3,2× ATK, +60 % contre une cible sous 35 % de PV.'],
+    ['enemy', 3, [{op:'dmg',mult:4.6,ignoreDef:50,onKill:{atb:100}}], '4,6× ATK en ignorant la moitié de la DEF. S\'il tue, il rejoue immédiatement.'],
+    ['enemy', 4, [{op:'strip',n:2},{op:'debuff',type:'mark',turns:3,chance:100},{op:'dmg',mult:2.8}], 'Retire 2 bonus à la cible, la Marque (3 t : elle subit 30 % de dégâts en plus), puis frappe à 2,8× ATK.'],
+  ],
+  // Empoisonneur : il accumule les doses, puis les fait éclater.
+  'merkator': [
+    ['enemy', 0, [{op:'dmg',mult:2.5},{op:'dot',mult:.95,turns:3,chance:80}], '2,5× ATK. 80 % de Poison (3 t) : 0,95× ATK par tour, sans tenir compte de la DEF. Se cumule jusqu\'à 5 doses.'],
+    ['allEnemies', 3, [{op:'dmg',mult:1.5},{op:'dot',mult:.95,turns:3,n:2,chance:70}], '1,5× ATK sur tous les ennemis. 70 % de leur poser 2 doses de Poison (3 t).'],
+    ['enemy', 4, [{op:'dmg',mult:2.8},{op:'detonate',k:1.2}], '2,8× ATK, puis fait éclater tout le Poison de la cible : elle subit d\'un coup 120 % de ce qu\'il lui restait à subir.'],
+  ],
+  // Maître du temps : il rallonge les recharges adverses et raccourcit celles de ses alliés.
+  'comte harebourg': [
+    ['enemy', 0, [{op:'dmg',mult:3.6},{op:'cd',amount:1,chance:50}], '3,6× ATK. 50 % d\'allonger d\'un tour toutes les recharges de la cible.'],
+    ['allEnemies', 3, [{op:'dmg',mult:2.4},{op:'atb',amount:-35},{op:'debuff',type:'slow',turns:2,chance:50}], '2,4× ATK sur tous les ennemis, leur barre d\'attaque recule de 35 %. 50 % de Ralentissement (2 t).'],
+    ['allAllies', 4, [{op:'cd',amount:-2},{op:'atb',amount:30}], 'Raccourcit de 2 tours les recharges de tous les alliés, et avance leur barre d\'attaque de 30 %.'],
+  ],
+  // Pestiféré : il se soigne en frappant et refile ses propres malus.
+  'rat noir': [
+    ['enemy', 0, [{op:'dmg',mult:3.1,steal:50}], '3,1× ATK. Se soigne de 50 % des dégâts infligés.'],
+    ['enemy', 3, [{op:'transfer'},{op:'dmg',mult:4.2,perDebuff:.15}], 'Transmet tous ses malus à la cible, puis frappe à 4,2× ATK, +15 % par malus qu\'elle porte.'],
+    ['allEnemies', 4, [{op:'dmg',mult:2.3},{op:'debuff',type:'noheal',turns:3,chance:80}], '2,3× ATK sur tous les ennemis. 80 % d\'Entrave (3 t) : ils ne peuvent plus être soignés.'],
+  ],
+  // Mutant : il vole les bonus adverses et se rend intouchable.
+  'sphincter cell': [
+    ['enemy', 0, [{op:'dmg',mult:3.1},{op:'stealBuff',n:1,chance:60}], '3,1× ATK. 60 % de voler un bonus à la cible.'],
+    ['allEnemies', 3, [{op:'dmg',mult:2.2},{op:'strip',n:1,chance:70}], '2,2× ATK sur tous les ennemis. 70 % de retirer un bonus à chacun.'],
+    ['self', 4, [{op:'cleanse',n:3},{op:'buff',type:'regen',turns:3},{op:'buff',type:'immune',turns:2}], 'Se retire 3 malus, puis Régénération (3 t) et Immunité (2 t) : aucun malus ne peut plus lui être posé.'],
+  ],
+  // Artificière : des coups qui débordent sur les voisins, et un final qu'elle paie de ses PV.
+  'hell mina': [
+    ['enemy', 0, [{op:'dmg',mult:2.2,hits:2,critBonus:15}], '2 coups de 2,2× ATK, +15 % de taux critique.'],
+    ['enemy', 3, [{op:'dmg',mult:4.8,splash:.6}], '4,8× ATK sur la cible ; les autres ennemis subissent 60 % du coup.'],
+    ['allEnemies', 4, [{op:'selfDmg',pct:10},{op:'dmg',mult:4.2}], 'Sacrifie 10 % de ses PV actuels pour frapper tous les ennemis à 4,2× ATK.'],
+  ],
+  // Cheffe de meute : elle fait frapper ses alliés et prolonge leurs bonus.
+  'kanigroula': [
+    ['enemy', 0, [{op:'dmg',mult:2.3},{op:'assist',mult:1.5}], '2,3× ATK, puis un allié pris au hasard frappe la même cible à 1,5× son ATK.'],
+    ['allAllies', 3, [{op:'buff',type:'atkUp',turns:2},{op:'buff',type:'immune',turns:1}], 'Puissance (2 t) et Immunité (1 t) sur les alliés.'],
+    ['allAllies', 4, [{op:'heal',pct:8},{op:'extend',n:1}], 'Soigne les alliés de 8 % et prolonge d\'un tour tous leurs bonus.'],
+  ],
+  // Elle accumule des Charges, puis les dépense d'un coup.
+  'koumiho': [
+    ['enemy', 0, [{op:'dmg',mult:3.1},{op:'charge',n:1}], '3,1× ATK. Gagne une Charge (3 au plus).'],
+    ['allAllies', 3, [{op:'heal',pct:10},{op:'cleanse',n:1},{op:'charge',n:1}], 'Soigne les alliés de 10 %, leur retire un malus. Gagne une Charge.'],
+    ['allEnemies', 4, [{op:'dmg',mult:1.8,perCharge:.55,spend:true}], '1,8× ATK sur tous les ennemis, +55 % par Charge. Dépense toutes ses Charges.'],
+  ],
+  // Muraille : sa DEF fait ses dégâts, et il la prête à ses alliés.
+  'glourséleste': [
+    ['enemy', 0, [{op:'dmg',mult:1.7,defK:2.3}], 'Frappe surtout avec sa DEF : plus il est blindé, plus il cogne.'],
+    ['self', 3, [{op:'buff',type:'counter',turns:3},{op:'buff',type:'defUp',turns:3}], 'Riposte et Armure (3 t).'],
+    ['allAllies', 4, [{op:'shield',pct:14,turns:2},{op:'buff',type:'defUp',turns:2}], 'Bouclier sur tous les alliés, égal à 14 % de ses PV à lui (2 t), et Armure (2 t).'],
+  ],
+  // Avare : il prend les bonus des autres et garde tout pour son camp.
+  'coffre des forgerons': [
+    ['enemy', 0, [{op:'dmg',mult:3.1},{op:'debuff',type:'atkDown',turns:2,chance:35}], '3,1× ATK. 35 % de Faiblesse (2 t).'],
+    ['enemy', 3, [{op:'stealBuff',n:2},{op:'dmg',mult:3.8,steal:30}], 'Vole 2 bonus à la cible, puis frappe à 3,8× ATK et se soigne de 30 % des dégâts.'],
+    ['allAllies', 4, [{op:'shield',pct:10,turns:2},{op:'cd',amount:-1}], 'Bouclier sur tous les alliés, égal à 10 % de ses PV (2 t), et leurs recharges raccourcies d\'un tour.'],
+  ],
+  // Artilleur : il pose des bombes à retardement.
+  'sylargh': [
+    ['enemy', 0, [{op:'dmg',mult:3.7,ignoreDef:30}], '3,7× ATK en ignorant 30 % de la DEF.'],
+    ['enemy', 3, [{op:'dmg',mult:1.8},{op:'bomb',mult:5.5,turns:2}], '1,8× ATK et pose une Bombe : à la fin du 2ᵉ tour de la cible, elle explose pour 5,5× ATK, et 40 % sur ses alliés.'],
+    ['allEnemies', 4, [{op:'dmg',mult:2.8},{op:'debuff',type:'defBreak',turns:2,chance:60}], '2,8× ATK sur tous les ennemis. 60 % de Fragilité (2 t).'],
+  ],
+  // Soigneuse qui se nourrit de l'ennemi, et relève les morts.
+  'dantinéa': [
+    ['enemy', 0, [{op:'dmg',mult:2.9,steal:35,stealTo:'lowest'}], '2,9× ATK. 35 % des dégâts soignent l\'allié le plus mal en point.'],
+    ['allEnemies', 3, [{op:'dmg',mult:1.9},{op:'debuff',type:'atkDown',turns:2,chance:50}], '1,9× ATK sur tous les ennemis. 50 % de Faiblesse (2 t).'],
+    ['allAllies', 5, [{op:'revive',pct:30,sinon:15}], 'Relève un allié tombé avec 30 % de ses PV. Si personne n\'est tombé, soigne tous les alliés de 15 %.'],
+  ],
+  // Rayonnant : chaque bonus qu'il porte augmente ses dégâts.
+  'solar': [
+    ['enemy', 0, [{op:'dmg',mult:2.8,perBuff:.1}], '2,8× ATK, +10 % par bonus qu\'il porte.'],
+    ['allAllies', 3, [{op:'buff',type:'atkUp',turns:2},{op:'buff',type:'defUp',turns:2}], 'Puissance et Armure sur les alliés (2 t).'],
+    ['allEnemies', 4, [{op:'dmg',mult:1.6,random:4,perBuff:.1,puis:{type:'defBreak',turns:2,chance:35}}], '4 coups de 1,6× ATK répartis au hasard, +10 % par bonus qu\'il porte. Chaque coup a 35 % de poser Fragilité (2 t).'],
+  ],
+  // Balance : elle punit les cibles intactes, achève les mourantes et remet son équipe à égalité.
+  'misère': [
+    ['enemy', 0, [{op:'dmg',mult:2.6,full:[.7,.5]}], '2,6× ATK, +50 % contre une cible au-dessus de 70 % de PV.'],
+    ['allAllies', 3, [{op:'balance'},{op:'heal',pct:5}], 'Met tous les alliés au même pourcentage de PV, puis les soigne de 5 %.'],
+    ['allEnemies', 4, [{op:'dmg',mult:2.2,exec:[.3,.6]}], '2,2× ATK sur tous les ennemis, +60 % contre ceux qui sont sous 30 % de PV.'],
+  ],
+  // Deux poings : l'un fait taire, l'autre le soigne, et le troisième sort relance le second.
+  "l'éternel conflit": [
+    ['enemy', 0, [{op:'dmg',mult:3.4},{op:'debuff',type:'silence',turns:2,chance:45}], '3,4× ATK. 45 % de Silence (2 t) : la cible ne peut plus lancer que son premier sort.'],
+    ['enemy', 3, [{op:'dmg',mult:3},{op:'heal',pct:15,self:true},{op:'cleanse',n:1,self:true}], '3× ATK, puis se soigne de 15 % et se retire un malus.'],
+    ['allEnemies', 4, [{op:'dmg',mult:1.9,hits:2},{op:'cdReset',i:1}], '2 coups de 1,9× ATK sur tous les ennemis, et son deuxième sort est de nouveau prêt.'],
+  ],
+};
 const GEN_NAMES = {
   Attaquant:['Frappe','Assaut','Coup fatal'], Bagarreur:['Cogne','Cri de guerre','Charge'], Entraveur:['Morsure collante','Nuée','Croc-en-jambe'],
   Tank:['Coup sourd','Carapace','Onde de choc'], Soutien:['Piqûre','Élan','Rafale'], Soigneur:['Gifle','Soin collectif','Bouclier'], Boss:['Écrasement','Ravage','Rempart'],
@@ -2154,6 +2440,13 @@ function buildCatalog(cat){
   if (dgs.length){ DUNGEONS.length = 0; DUNGEONS.push(...dgs); }
   ITEM_SKINS = { normal:(cat.items || []).filter(i => i.t === 151), legend:(cat.items || []).filter(i => i.t === 23 || i.t === 217) };
   indexGear(cat.gear || []);
+  // Les 5 ★ reçoivent leur kit propre ; le nom et l'icône du sort Dofus restent en place.
+  for (const k in MONSTERS){
+    const m = MONSTERS[k], K = m.stars === 5 && /^m\d+$/.test(k) && KITS5[m.name.toLowerCase()]; if (!K) continue;
+    m.skills = K.map(([target, cd, ops, desc], i) => { const id = k + '_' + i, old = SKILLS[id] || SKILLS[m.skills[i]] || {};
+      SKILLS[id] = { name:old.name || GEN_NAMES.Boss[i], ic:old.ic || 0, cd, target, ops, desc }; return id; });
+    if (m.awaken) m.awaken = { ...m.awaken, swap:{} };
+  }
   gelKeys().forEach((k, i) => { if (k){ MONSTERS[k].stars = i + 1; MONSTERS[k].food = i + 1; } });   // les gelées : de la nourriture à XP, pas des recrues
   ROSTER = buildRoster(cat);
   CAT_MODE = 'dofusdb'; CAT = cat;
@@ -2207,7 +2500,7 @@ const TRASH = { hpMult:.45, atkMult:.7 }, WAVE_HEAL = 30;   // % des PV max rend
 // PV ×DIFF, ATK ×√DIFF — sinon les combats de fin de jeu se joueraient en un coup. Chaque rôle a sa part :
 // la piétaille des premières salles, les deux gardes du boss, le boss lui-même.
 const BAL = { trash:[.45, .7], garde:[.6, .8], boss:[1, 1], xp0:3, xpFin:60,
-  diff:[[10, .6], [20, 1.1], [30, 1.2], [40, 1.5], [60, 2.1], [70, 2.8], [80, 3], [90, 2.3], [100, 2.7], [150, 3.4], [200, 4.2]], fin:2 };   // [niveau du donjon, difficulté], interpolé entre deux points
+  diff:[[10, .6], [20, 1.1], [30, .75], [40, 1.5], [60, 2.1], [70, 2.8], [80, 3], [90, 2.3], [100, 2.7], [150, 3.4], [200, 4.2]], fin:2 };   // [niveau du donjon, difficulté], interpolé entre deux points
 const DIFF = L => { const T = BAL.diff; if (L <= T[0][0]) return T[0][1];
   for (let i = 1; i < T.length; i++) if (L <= T[i][0]){ const [a, x] = T[i-1], [b, y] = T[i]; return x + (y - x) * (L - a) / (b - a); }
   return T[T.length - 1][1]; };
@@ -3390,6 +3683,24 @@ function slotCell(mon, n){
   return `<button class="cell ${slotPick === n ? 'on' : ''} ${it ? 'r-' + it.rarity : ''}" data-act="slot" data-slot="${n}" title="${it ? `${itemName(it)} +${it.lvl}` : 'Emplacement ' + n + ' vide'}">
     ${it ? itemIcon(it) + `<span class="lv">+${it.lvl}</span>` : `<span class="ghost">${itemIcon({ main:SLOT_MAINS[n][0], rarity:n === 6 ? 'legendaire' : 'normal', lvl:0 })}</span>`}</button>`;
 }
+// Évoluer : on choisit soi-même les monstres sacrifiés, parmi ceux du même nombre d'étoiles hors équipe.
+let evoOn = false, evoSel = [];
+function evoModal(mon){
+  if (!evoOn) return '';
+  const c = Eco.awakenCost(mon), tous = Eco.fodder(save, mon).sort((a, b) => (MONSTERS[b.key].food || 0) - (MONSTERS[a.key].food || 0) || a.level - b.level);
+  evoSel = evoSel.filter(u => tous.some(x => x.uid === u));
+  const cases = tous.map(f => { const fm = MONSTERS[f.key], on = evoSel.includes(f.uid), porte = Object.keys(f.equip || {}).length + Object.keys(f.g || {}).length;
+    return `<button class="cell ${on ? 'on' : ''}" data-act="evoPick" data-uid="${f.uid}" aria-pressed="${on}" title="${esc(fm.name)} · niveau ${f.level}${porte ? ' · son équipement retourne au sac' : ''}">${portrait(f.key, 46, { badge:false })}<span class="st">${starsTxt(starsOf(f))}</span><span class="lv">niv. ${f.level}</span></button>`; }).join('');
+  return `<div class="over modal" data-act="evoOff"><div class="win" style="width:min(460px,100%)" data-stop>
+    <div class="wt"><h2>Évoluer en ${c.st + 1} ★</h2><button class="x" data-act="evoOff" aria-label="Fermer">×</button></div>
+    <div class="wb" style="display:grid; gap:8px">
+      <p class="hint" style="margin:0">Choisis les <b>${c.n} monstre${c.n > 1 ? 's' : ''} de ${c.st} ★</b> à sacrifier. Ils disparaissent ; ce qu'ils portent retourne dans ton sac. Ceux de tes équipes ne sont pas proposés.</p>
+      <div class="grid mgrid feedgrid">${cases}</div>
+      <div class="band slate"><span>${evoSel.length} / ${c.n} choisi${evoSel.length > 1 ? 's' : ''}</span><span>${kamaIcon(14)} ${fmt(c.kamas)} K</span></div>
+      <div class="row" style="justify-content:space-between"><button class="btn grey sm" data-act="evoAuto">Prendre les plus faibles</button>
+        <button class="btn" data-act="evoGo" ${evoSel.length === c.n ? '' : 'disabled'}>Sacrifier et évoluer</button></div>
+    </div></div></div>`;
+}
 // Nourrir : on coche les monstres à donner, le gain s'affiche avant de valider.
 let feedOn = false, feedSel = [];
 function feedModal(mon){
@@ -3431,10 +3742,10 @@ function monDetail(mon){
         <div class="ecol">${['coiffe','cape','anneau2'].map(sl => gearCell(mon, sl)).join('')}</div>
       </div>${picker}${volModal()}
       <div class="row"><button class="btn ${inTeam ? 'grey' : ''}" data-act="team">${inTeam ? 'Retirer de l\'équipe' : 'Ajouter à l\'équipe'}</button>
-        ${st >= MAX_STARS ? '<span class="ok">6 ★ · éveillé</span>' : `<button class="btn" data-act="awaken" ${canAw ? '' : 'disabled'} title="Sacrifie ${ac.n} monstre${ac.n > 1 ? 's' : ''} de ${st} ★ hors équipe">Évoluer en ${st + 1} ★ · ${ac.n} × ${st} ★ <span style="opacity:.75">(${nFod} dispo)</span> · ${fmt(ac.kamas)} K</button>`}
+        ${st >= MAX_STARS ? '<span class="ok">6 ★ · éveillé</span>' : `<button class="btn" data-act="evoOn" ${canAw ? '' : 'disabled'} title="Choisis les ${ac.n} monstre${ac.n > 1 ? 's' : ''} de ${st} ★ à sacrifier">Évoluer en ${st + 1} ★ · ${ac.n} × ${st} ★ <span style="opacity:.75">(${nFod} dispo)</span> · ${fmt(ac.kamas)} K</button>`}
         <button class="btn grey" data-act="feedOn" ${Eco.mangeables(save, mon).length ? '' : 'disabled'} title="Lui donner d'autres monstres à manger contre de l'expérience">Nourrir</button>
         ${confirmBtn('rel'+mon.uid, 'Relâcher', 'Confirmer', 'release')}</div>
-    </div></section>${feedModal(mon)}`;
+    </div></section>${feedModal(mon)}${evoModal(mon)}`;
 }
 // Caractéristiques et sorts : colonne de droite sur grand écran, sous l'équipement sinon
 function monStats(mon){
@@ -3472,11 +3783,18 @@ function gearCell(mon, sl){
     ${gearIcon(it, 42)}<span class="jt">${Math.round(it.jet*100)}</span><span class="sl">${GEAR_SHORT[sl]}</span></button>`;
 }
 // Une ligne d'effet : la valeur tirée, sa fourchette, et où elle se situe dedans
-function gearLineHtml(l){
-  const neg = l.v < 0, span = l.b - l.a, r = span ? (l.v - l.a) / span : 1;
-  // Les caractéristiques de Dofus qui n'existent pas ici (PA, PM, Force, Sagesse…) sont converties : on dit en quoi.
-  const vers = CHAR_MAP[l.c] ? STAT[CHAR_MAP[l.c][0]] : '';
-  return `<li class="${neg ? 'neg' : 'pos'}"><span>${neg ? '' : '+'}${l.v} ${CHAR_NAME[l.c] || ''}${vers && vers !== CHAR_NAME[l.c] ? ` <small class="muted" style="font-weight:normal">→ ${vers}</small>` : ''}</span>
+// Une ligne d'objet. Les caractéristiques de Dofus qui n'existent pas ici (PA, PM, Force, Sagesse…) sont
+// converties : la ligne dit en quoi et pour combien, et le détail du calcul est dans l'infobulle.
+function gearLineHtml(l, it, porteur){
+  const neg = l.v < 0, span = l.b - l.a, r = span ? (l.v - l.a) / span : 1, m = CHAR_MAP[l.c], nom = CHAR_NAME[l.c] || '';
+  let vers = '', aide = '';
+  if (m && it){
+    const lv = gearLvl(it), k = gearNorm(lv) * (GEAR_K[m[0]] ? GEAR_K[m[0]] * pwrAt(porteur ? Math.min(lv, porteur) : lv) : 1), un = m[1] * k, v = l.v * un;
+    const chiffre = x => Math.abs(x) >= 10 ? fmt(x) : String(Math.round(x * 10) / 10).replace('.', ',');
+    vers = ` <small class="muted" style="font-weight:normal">→ ${v > 0 ? '+' : ''}${chiffre(v)} ${STAT[m[0]]}</small>`;
+    aide = `1 ${nom} = ${chiffre(un)} ${STAT_LONG[m[0]]} sur cette pièce (niveau ${lv}${porteur && porteur < lv ? `, bridée au niveau ${porteur} du porteur` : ''}). ${l.v} ${nom} → ${chiffre(v)} ${STAT_LONG[m[0]]}.`;
+  } else if (!m) aide = `${nom || 'Cette caractéristique'} n'a pas d'équivalent dans le jeu : la ligne ne compte pas.`;
+  return `<li class="${neg ? 'neg' : 'pos'}" title="${esc(aide)}"${aide ? ' data-act="aideLigne"' : ''}><span>${neg ? '' : '+'}${l.v} ${nom}${vers}</span>
     <span class="rg">${l.a} à ${l.b}</span><span class="mini"><i style="width:${Math.round(r*100)}%"></i></span></li>`;
 }
 function gearDetail(it, mon, sl){
@@ -3491,7 +3809,7 @@ function gearDetail(it, mon, sl){
       <div class="gdicon"><span class="box ${JET_CLASS(it.jet)}">${gearIcon(it, 64)}</span>
         <span class="gdjet ${JET_CLASS(it.jet)}" style="color:inherit">Jet ${jp} % · ${JET_LABEL(it.jet)}</span></div>
       <div style="display:grid; gap:7px; min-width:0">
-        <ul class="gdlines">${(it.lines || []).map(gearLineHtml).join('')}</ul>
+        <ul class="gdlines">${(it.lines || []).map(l => gearLineHtml(l, it, porteur ? porteur.level : 0)).join('')}</ul>
         <span class="muted" style="font-size:11.5px">Apport : ${Object.entries(st).map(([k,v]) => `${v > 0 ? '+' : ''}${fmt(v)} ${STAT_LONG[k] || k}`).join(' · ') || 'aucun'}</span>
         ${bride ? `<span style="font-size:11.5px; color:var(--orange-dk)">Bridé au niveau ${porteur.level} de ${esc(MONSTERS[porteur.key].name)} : la pièce donnera davantage à mesure qu'il monte, jusqu'au niveau ${gearLvl(it)}.</span>` : ''}
         ${owner && !mine ? `<span class="muted" style="font-size:11.5px">Porté par ${esc(MONSTERS[owner.key].name)}</span>` : ''}
@@ -4091,7 +4409,7 @@ function hdvLigne(l, mien){
   const jours = Math.max(0, Math.ceil((new Date(l.expire_le) - Date.now()) / 864e5));
   // Les jets : ce que la pièce donne vraiment, ligne par ligne, avec sa fourchette possible.
   const jets = hdvVu !== l.id ? '' : `<div class="hdvjets">${g
-    ? `<ul class="gdlines">${(o.lines || []).map(gearLineHtml).join('')}</ul><span class="muted" style="font-size:11.5px">Jet ${Math.round(o.jet * 100)} % · ${JET_LABEL(o.jet)} · niveau ${l.niveau}</span>`
+    ? `<ul class="gdlines">${(o.lines || []).map(x => gearLineHtml(x, o, 0)).join('')}</ul><span class="muted" style="font-size:11.5px">Jet ${Math.round(o.jet * 100)} % · ${JET_LABEL(o.jet)} · niveau ${l.niveau}</span>`
     : `<ul class="gdlines">${itemBonuses(o).map((b, i) => `<li class="pos"><span>${fmtStat(b.s, b.v)}</span><span class="rg">${i ? 'bonus' : 'effet principal'}</span><span></span></li>`).join('')}</ul><span class="muted" style="font-size:11.5px">${RAR_LABEL[o.rarity]} · amélioration +${o.lvl}</span>`}</div>`;
   return `<div class="hdvrow ${hdvVu === l.id ? 'vu' : ''}">
     <button class="box ${g ? JET_CLASS(o.jet) : 'r-' + o.rarity}" data-act="hdvVoir" data-id="${l.id}" title="Voir les jets">${vis}</button>
@@ -4282,7 +4600,7 @@ const ACT = {
   endAll(){ endAll = true; paintEnd(); },
   nextStage(){ if (endData && endData.next != null) startCombat(endData.next); },
   flee(){ ACT.nav({ v:(curStage && curStage.back) || 'donjons' }); toast('Tu as fui le combat.'); },
-  selMon(d){ selMon = +d.uid; feedOn = false; feedSel = []; slotPick = null; gearPick = null; teamPick = null; volPick = null; swapOpen = false; confirmKey = null; render(); },
+  selMon(d){ selMon = +d.uid; feedOn = false; feedSel = []; evoOn = false; evoSel = []; slotPick = null; gearPick = null; teamPick = null; volPick = null; swapOpen = false; confirmKey = null; render(); },
   seeMon(d){ selMon = +d.uid; view = 'equipe'; render(); },
   team(){
     const i = save.team.indexOf(selMon);
@@ -4652,8 +4970,12 @@ function setAtb(id, atb, dur){
   const t = tls[id].querySelector('.at b'); t.style.setProperty('--dur', d); t.style.setProperty('--w', atb + '%');
 }
 function setFx(id, effects){
-  nodes[id].querySelector('.fx').innerHTML = effects.map(e => {
-    const E = EFFECTS[e.type]; return `<span class="${E.good ? 'good' : 'bad'}" title="${E.label} · ${e.turns} t">${E.short} ${e.turns}</span>`;
+  // Les effets qui se cumulent (poison, bombes, charges) tiennent sur une seule pastille, avec leur nombre.
+  const vus = [];
+  for (const e of effects){ const g = vus.find(x => x.type === e.type); if (g){ g.n++; g.turns = Math.max(g.turns, e.turns); } else vus.push({ type:e.type, turns:e.turns, n:1 }); }
+  nodes[id].querySelector('.fx').innerHTML = vus.map(e => {
+    const E = EFFECTS[e.type], fin = E.fixe ? '' : ' ' + e.turns;
+    return `<span class="${E.good ? 'good' : 'bad'}" title="${E.label}${e.n > 1 ? ' ×' + e.n : ''}${E.fixe ? '' : ' · ' + e.turns + ' t'}">${E.short}${e.n > 1 ? '×' + e.n : ''}${fin}</span>`;
   }).join('');
 }
 function setDead(id){ nodes[id].classList.add('dead'); tls[id].classList.add('dead'); }
@@ -4719,8 +5041,8 @@ function renderSkills(actor, locked){
   const who = mine ? actor : (state.A.find(x => x.alive) || state.A[0]);
   const showId = (pending && pending.skill) || hoverSkill || who.skills[0], sk = SKILLS[showId];
   $('#spellbar').innerHTML = who.skills.map((id, i) => {
-    const cd = who.cds[id] || 0, sel = pending && pending.skill === id;
-    return `<button class="spell ${cd ? 'oncd' : ''}" data-id="${id}" aria-pressed="${!!sel}" aria-label="${SKILLS[id].name}" ${(locked || !mine || cd) ? 'disabled' : ''}>
+    const cd = who.cds[id] || 0, sel = pending && pending.skill === id, muet = i > 0 && Engine.has(who, 'silence');
+    return `<button class="spell ${cd ? 'oncd' : ''}" data-id="${id}" aria-pressed="${!!sel}" aria-label="${SKILLS[id].name}" ${(locked || !mine || cd || muet) ? 'disabled' : ''}${muet ? ' title="Silence : seul le premier sort répond"' : ''}>
       ${spellIcon(id, who.el)}<span class="k">${i+1}</span>${cd ? `<span class="cdn">${cd}</span>` : ''}</button>`;
   }).join('') + `<div class="spdesc"><b>${sk.name}${sk.cd ? ` <span class="muted" style="font-weight:normal">· recharge ${sk.cd} t</span>` : ''}</b>${sk.desc}
     <p class="hint" id="hint" style="margin-top:4px">${mine && !locked ? (sk.target === 'enemy' ? 'Choisis un ennemi sur la carte.' : 'Clique une cible ou rappuie sur le sort.') : actor ? (mine ? 'Mode auto' : `Tour de ${actor.name}`) : 'Le combat commence…'}</p></div>`;
@@ -5064,6 +5386,9 @@ async function play(events, my){
         if (e.added){ statusFx(e.id, e.added); (EFFECTS[e.added].good ? SON.bonus : SON.malus)(); pop(e.id, EFFECTS[e.added].label, 'info'); log(`${uname(e.id)} : ${EFFECTS[e.added].label} (${e.turns} tours).`); await wait(nx && nx.t === 'fx' && nx.added ? 40 : 130); }
         if (e.cleansed){ pop(e.id, 'Malus retiré', 'info'); await wait(160); }
         break;
+      case 'note': if (!e.silent){ pop(e.id, e.text, 'info'); log(`${uname(e.id)} : ${e.text}.`); await wait(200); } break;
+      case 'revive': nodes[e.id].classList.remove('dead'); tls[e.id].classList.remove('dead'); setHp(e.id, e.hp); healFx(e.id); SON.soin();
+        pop(e.id, 'Relevé !', 'heal'); log(`${uname(e.id)} est relevé.`, 'heal'); renderOrder(); await wait(420); break;
       case 'resist': pop(e.id, 'Résisté', 'info'); log(`${uname(e.id)} résiste.`); await wait(220); break;
       case 'atb':
         setAtb(e.id, e.atb, e.reset ? 200 : 300);
@@ -5316,6 +5641,13 @@ Object.assign(ACT, {
   async hdvReprendre(d){ await hdvReprendre(+d.id); toast('Lot repris.'); render(); },
   hdvEncaisser(){ hdvEncaisser(); },
   chatSend(){ chatSend(); },
+  evoOn(){ evoOn = true; evoSel = []; render(); }, evoOff(){ evoOn = false; evoSel = []; render(); },
+  evoPick(d){ const u = +d.uid, n = Eco.awakenCost(Eco.monByUid(save, selMon)).n;
+    evoSel = evoSel.includes(u) ? evoSel.filter(x => x !== u) : evoSel.length < n ? evoSel.concat(u) : evoSel.slice(1).concat(u); render(); },   // au-delà du compte, le plus ancien choix cède sa place
+  evoAuto(){ const mon = Eco.monByUid(save, selMon); evoSel = Eco.fodder(save, mon).filter(f => !MONSTERS[f.key].food).sort((a, b) => a.level - b.level).slice(0, Eco.awakenCost(mon).n).map(f => f.uid); render(); },
+  evoGo(){ const r = Eco.awaken(save, Eco.monByUid(save, selMon), evoSel); if (r.err) return toast(r.err);
+    evoOn = false; evoSel = [];
+    persist(); toast(r.awakened ? `${r.st} ★ atteintes : le monstre s'éveille !` : `Évolué en ${r.st} ★.`); render(); },
   feedOn(){ feedOn = true; feedSel = []; render(); }, feedOff(){ feedOn = false; feedSel = []; render(); },
   feedPick(d){ const u = +d.uid; feedSel = feedSel.includes(u) ? feedSel.filter(x => x !== u) : feedSel.concat(u); render(); },
   feedPetits(){ const mon = Eco.monByUid(save, selMon); feedSel = Eco.mangeables(save, mon).filter(f => !MONSTERS[f.key].food && starsOf(f) <= 2).map(f => f.uid); render(); },
@@ -5323,6 +5655,7 @@ Object.assign(ACT, {
     const mon = Eco.monByUid(save, selMon), r = Eco.feed(save, mon, feedSel); if (r.err) return toast(r.err);
     feedOn = false; feedSel = []; persist();
     toast(`+${fmt(r.xp)} XP${r.ups ? ` · niveau ${mon.level}` : ''}${r.sorts ? ` · +${r.sorts} niveau${r.sorts > 1 ? 'x' : ''} de sort` : ''}.`); render(); },
+  aideLigne(d, el){ if (el.title) toast(el.title); },   // au doigt, pas de survol : un appui affiche l'équivalence
   tauxOn(){ tauxOn = true; render(); }, tauxOff(){ tauxOn = false; render(); },
   optOpen(){ optOn = true; optMsg = ''; optBusy = false; optPaint(); },
   optClose(){ if (optBusy) return; optOn = false; optPaint(); },
