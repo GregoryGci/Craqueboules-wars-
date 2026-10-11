@@ -107,6 +107,7 @@ Deux fichiers SQL complètent les tables ci-dessus. Chacun se colle tel quel dan
 
 | Fichier | Ce qu'il active |
 | --- | --- |
+| `INSTALLER.sql` | les deux ci-dessous d'un coup, relançable sans risque |
 | `CHAT.sql` | les messages privés (table `mp`) et l'annuaire des pseudos (table `joueurs`) |
 | `HDV.sql` | l'hôtel de vente entre joueurs (table `hdv`) |
 
