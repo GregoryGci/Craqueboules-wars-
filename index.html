@@ -1093,11 +1093,16 @@ function gearJet(lines){
 const JET_LABEL = j => j >= .97 ? 'Parfait' : j >= .8 ? 'Excellent' : j >= .6 ? 'Bon' : j >= .35 ? 'Correct' : 'Médiocre';
 const JET_CLASS = j => j >= .97 ? 'j-parfait' : j >= .8 ? 'j-excellent' : j >= .6 ? 'j-bon' : j >= .35 ? 'j-correct' : 'j-mediocre';
 // Apport d'un objet aux stats du jeu
+// Les valeurs d'un objet Dofus croissent avec son niveau — une coiffe de niveau 200 donne vingt-huit fois
+// plus de Vitalité qu'une de niveau 10 — alors que les stats d'un monstre ne font que tripler sur la même
+// plage. Sans correction, un set complet valait cinq fois le monstre en fin de jeu et le rendait accessoire.
+// Cette normalisation ramène l'apport à une part à peu près constante de ce que vaut la créature.
+const gearNorm = lv => 1.4 / (.6 + Math.max(4, lv) * .055);
 function gearStats(it){
-  const out = {};
+  const out = {}, n = gearNorm(gearLvl(it));
   for (const l of it.lines || []){
     const m = CHAR_MAP[l.c]; if (!m) continue;
-    out[m[0]] = (out[m[0]] || 0) + l.v * m[1];
+    out[m[0]] = (out[m[0]] || 0) + l.v * m[1] * n;
   }
   for (const k in out) out[k] = Math.round(out[k]);
   return out;
