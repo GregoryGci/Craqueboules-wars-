@@ -436,9 +436,25 @@ body.in-combat .tabs{display:none}
 #fxcv{z-index:4000; pointer-events:none}
 .field.quake{animation:quake .28s}
 @keyframes quake{20%{transform:translate(-4px,2px)} 45%{transform:translate(4px,-2px)} 70%{transform:translate(-2px,1px)}}
-.cast{position:absolute; left:50%; top:8px; transform:translateX(-50%); background:linear-gradient(var(--band), var(--band2)); color:#fff; border:1px solid #2a2926; border-radius:5px; padding:3px 14px; white-space:nowrap; opacity:0; transition:opacity .2s; pointer-events:none; z-index:4000; box-shadow:0 2px 6px #0006}
-.cast.show{opacity:1}
+/* Annonce de vague : brève, au centre, puis elle s'efface */
+.cast{position:absolute; left:50%; top:16%; transform:translateX(-50%); background:linear-gradient(var(--band), var(--band2)); color:#fff;
+  border:1px solid #2a2926; border-radius:5px; padding:4px 16px; white-space:nowrap; font-weight:bold; pointer-events:none; z-index:4000;
+  box-shadow:0 2px 10px #0008; animation:waveIn 1.8s ease-out forwards}
 .cast b{color:#ffcf6a}
+@keyframes waveIn{0%{opacity:0; transform:translate(-50%,8px) scale(.9)} 12%{opacity:1; transform:translate(-50%,0) scale(1)}
+  75%{opacity:1} 100%{opacity:0; transform:translate(-50%,-6px)}}
+
+/* Ordre des tours et sorts posés sur l'arène : assez lisibles pour servir, assez discrets pour ne pas
+   masquer le décor. Les monstres sont placés entre les deux bandes, jamais dessous (voir layoutField). */
+.field .timeline{position:absolute; left:6px; right:6px; top:6px; z-index:60; display:flex; gap:4px; padding:4px 5px; overflow-x:auto;
+  background:#14100ab8; border:1px solid #0007; border-radius:8px; backdrop-filter:blur(3px); scrollbar-width:none}
+.field .timeline::-webkit-scrollbar{display:none}
+.field .spellbar{position:absolute; left:6px; right:6px; bottom:6px; z-index:60; display:grid; gap:6px; padding:5px 6px;
+  grid-template-columns:repeat(3, 52px) minmax(0,1fr); align-items:center;
+  background:#14100ab8; border:1px solid #0007; border-radius:8px; backdrop-filter:blur(3px)}
+.field .spellbar .spdesc{color:#e9e4d8; font-size:11.5px; max-height:46px; overflow:hidden}
+.field .spellbar .spdesc b{color:#fff; font-size:12px}
+.field .spellbar .hint{color:#c9bfa9}
 .ftip{position:absolute; left:8px; top:8px; width:200px; z-index:3500; font-size:12px; box-shadow:0 3px 10px #0006}
 .ftip .wt{min-height:24px; padding:3px 10px; justify-content:flex-start}
 .ftip .wt h2{font-size:13px}
@@ -525,8 +541,6 @@ body.in-combat .tabs{display:none}
 .fctrl .seg button{font-size:11px; padding:3px 7px}
 .fctrl .btn.sm{min-height:22px; padding:2px 9px}
 /* Ordre des tours puis sorts, sous l'arène et sur toute sa largeur */
-.cwin .timeline{margin-top:6px}
-.spellwrap{margin-top:6px}
 /* Bandeau du bas (chat · portrait) */
 .hudbar{display:grid; grid-template-columns:minmax(0,1fr) 150px auto; gap:8px; align-items:stretch; margin-top:6px}
 .seedrow{display:grid; align-content:end; justify-items:end}
@@ -837,9 +851,10 @@ body.in-combat .tabs{display:none}
   .heart{right:-10px; width:46px; height:40px; font-size:9.5px}
   .vit{left:-6px; width:28px; height:28px; font-size:9px}
   /* sorts : trois grandes touches pleine largeur, description dessous */
-  .spellbar{grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px}
-  .spellbar .spell{width:100%; height:58px}
-  .spellbar .spdesc{grid-column:1 / -1}
+  .field .spellbar{grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px; left:4px; right:4px; bottom:4px}
+  .field .spellbar .spell{width:100%; height:52px}
+  .field .spellbar .spdesc{grid-column:1 / -1; max-height:34px; font-size:11px}
+  .field .timeline{left:4px; right:4px; top:4px; padding:3px 4px}
 
   /* menus */
   .doll .cell{width:46px; height:46px} .doll .cell svg, .doll .cell img{width:38px; height:38px}
@@ -865,17 +880,17 @@ body.in-combat .tabs{display:none}
   /* en paysage la hauteur manque : l'arène à gauche, l'ordre des tours et les sorts en colonne à droite */
   .cwin .wb{display:grid; grid-template-columns:minmax(0,1fr) clamp(214px, 30vw, 292px); gap:8px; align-items:start}
   .field{grid-row:1 / span 3; aspect-ratio:auto; height:calc(100vh - 96px); height:calc(100dvh - 96px); min-height:200px; max-height:460px}
-  .cwin .timeline, .spellwrap{margin-top:0}
   .hudbar{margin-top:0; display:flex; flex-direction:column; gap:6px; min-width:0}
   .hudbar .pcirc, .hudbar .seedrow{display:none}     /* pas la place ; les plaques portent déjà l'info */
   .hudbar .chat{height:72px; grid-column:auto; grid-row:auto}
   .ftip{display:none}
 
-  .timeline{padding:4px}
-  .tl{width:40px} .tl .por{--sz:34px}
-  .spellbar{grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px; padding:5px}
-  .spellbar .spell{width:100%; height:46px}
-  .spellbar .spell svg{width:36px; height:36px}
+  .tl{width:38px} .tl .por{--sz:32px}
+  .field .timeline{padding:3px 4px; left:4px; right:4px; top:4px}
+  .field .spellbar{grid-template-columns:repeat(3, 46px) minmax(0,1fr); gap:5px; padding:4px 5px; left:4px; right:4px; bottom:4px}
+  .field .spellbar .spell{width:46px; height:44px}
+  .field .spellbar .spell svg{width:34px; height:34px}
+  .field .spellbar .spdesc{max-height:40px; font-size:11px}
   .spdesc{grid-column:1 / -1; font-size:11.5px}
   .spdesc b{font-size:12px}
   .unit{width:68px} .plate{font-size:9px; padding:1px 3px 2px}
@@ -2412,6 +2427,7 @@ let view = 'jouer', selMon = null, selItem = null, slotPick = null, filt = { slo
 let swapOpen = false;
 let gearPick = null;   // emplacement d'équipement ouvert sur la fiche du monstre
 let teamPick = null;   // monstre en attente d'entrer dans l'équipe, quand elle est déjà pleine
+let volPick = null;    // objet porté par un autre monstre, en attente de confirmation avant transfert
 let selKind = 'i';     // inventaire : « i » trophée ou Dofus, « g » équipement   // dans la fiche du monstre : la liste « Changer » est dépliée sous l'objet équipé
 let upFx = null;   // sous-effet à animer après une amélioration : { s, added, v }
 let lastSummon = null, upMsg = null, confirmKey = null, inCombat = false, curDg = 0, curStage = null;
@@ -2723,6 +2739,27 @@ function viewEquipe(){
       <span class="muted" style="font-size:11.5px">« É » : dans l'équipe. Clique un monstre pour l'ouvrir, puis « Mettre dans l'équipe » pour l'échanger.</span>
       </div></section>` + teamModal();
 }
+// Objet déjà porté : on dit à qui on le prend avant de le faire, plutôt que de le déplacer en silence.
+function volModal(){
+  if (!volPick) return '';
+  const o = volPick.t === 'g' ? Eco.gearById(save, volPick.id) : Eco.itemById(save, volPick.id);
+  if (!o || o.owner == null) return '';
+  const ancien = Eco.monByUid(save, o.owner); if (!ancien) return '';
+  const am = MONSTERS[ancien.key], nom = volPick.t === 'g' ? gearName(o) : itemName(o);
+  const vis = volPick.t === 'g' ? gearIcon(o, 44) : itemIcon(o);
+  const detail = volPick.t === 'g'
+    ? `niveau ${gearLvl(o)} · jet ${Math.round(o.jet * 100)} %`
+    : `${RAR_LABEL[o.rarity]} +${o.lvl}`;
+  return `<div class="over modal" data-act="volNon"><div class="win" style="width:min(400px,100%)" data-stop>
+    <div class="wt"><h2>Le reprendre à ${esc(am.name)} ?</h2></div>
+    <div class="wb" style="display:grid; gap:10px">
+      <div class="fhead"><span class="cell" style="cursor:default">${vis}</span><div style="min-width:0">
+        <b>${esc(nom)}</b><br><span class="muted">${detail}</span></div></div>
+      <p style="margin:0">${esc(am.name)} le porte en ce moment. Si tu le prends, il se retrouvera sans rien à cet emplacement.</p>
+      <div class="row" style="justify-content:flex-end"><button class="btn grey" data-act="volNon">Laisser</button>
+        <button class="btn" data-act="volOui">Le prendre</button></div>
+    </div></div></div>`;
+}
 // Équipe pleine : au lieu de refuser, on demande qui remplacer
 // ---------- Chat public
 function chatPaint(){
@@ -2796,7 +2833,7 @@ function monDetail(mon){
         <div class="ecol">${['amulette','arme','anneau','ceinture','bottes'].map(sl => gearCell(mon, sl)).join('')}</div>
         <div class="dcenter"><div class="ring"></div>${portrait(mon.key,120,{badge:false})}</div>
         <div class="ecol">${['coiffe','cape','anneau2'].map(sl => gearCell(mon, sl)).join('')}</div>
-      </div>${picker}
+      </div>${picker}${volModal()}
       <div class="row"><button class="btn ${inTeam ? 'grey' : ''}" data-act="team">${inTeam ? 'Retirer de l\'équipe' : 'Ajouter à l\'équipe'}</button>
         ${st >= MAX_STARS ? '<span class="ok">6 ★ · éveillé</span>' : `<button class="btn" data-act="awaken" ${canAw ? '' : 'disabled'} title="Sacrifie ${ac.n} monstre${ac.n > 1 ? 's' : ''} de ${st} ★ hors équipe">Évoluer en ${st + 1} ★ · ${ac.n} × ${st} ★ <span style="opacity:.75">(${nFod} dispo)</span> · ${fmt(ac.kamas)} K</button>`}
         ${confirmBtn('rel'+mon.uid, 'Relâcher', 'Confirmer', 'release')}</div>
@@ -3445,14 +3482,14 @@ const ACT = {
   autoAgain(){ const a = autoRun; if (a && !a.on){ autoRun = null; autoStart(a.dg, a.total); } },
   autoClose(){ autoRun = null; renderAuto(); },
   claim(d){ const n = achClaim(save, ACHS.find(a => a.id === d.id)); if (!n) return; persist(); toast(`+${n} pierre${n > 1 ? 's' : ''} d'âme pleine${n > 1 ? 's' : ''}.`); render(); },
-  nav(d){ if (inCombat){ battleId++; inCombat = false; if (ro) ro.disconnect(); } view = d.v; slotPick = null; gearPick = null; teamPick = null; swapOpen = false; confirmKey = null; upMsg = null; upFx = null; render(); window.scrollTo(0,0); },
+  nav(d){ if (inCombat){ battleId++; inCombat = false; if (ro) ro.disconnect(); } view = d.v; slotPick = null; gearPick = null; teamPick = null; volPick = null; swapOpen = false; confirmKey = null; upMsg = null; upFx = null; render(); window.scrollTo(0,0); },
   fight(d){ startCombat(+d.i); },
   selDg(d){ selDg = +d.i; render(); },
   refight(){ startCombat(curStage); },
   endAll(){ endAll = true; paintEnd(); },
   nextStage(){ if (endData && endData.next != null) startCombat(endData.next); },
   flee(){ ACT.nav({ v:(curStage && curStage.back) || 'donjons' }); toast('Tu as fui le combat.'); },
-  selMon(d){ selMon = +d.uid; slotPick = null; gearPick = null; teamPick = null; swapOpen = false; confirmKey = null; render(); },
+  selMon(d){ selMon = +d.uid; slotPick = null; gearPick = null; teamPick = null; volPick = null; swapOpen = false; confirmKey = null; render(); },
   seeMon(d){ selMon = +d.uid; view = 'equipe'; render(); },
   team(){
     const i = save.team.indexOf(selMon);
@@ -3488,9 +3525,19 @@ const ACT = {
   gslot(d){ gearPick = gearPick === d.v ? null : d.v; slotPick = null; swapOpen = false; confirmKey = null; render(); },
   gequip(d){
     const g = Eco.gearById(save, +d.id); if (!g) return;
+    if (g.owner != null && g.owner !== selMon){ volPick = { t:'g', id:g.id, sl:d.v }; return render(); }   // porté ailleurs : on demande
     Eco.equipGear(save, Eco.monByUid(save, selMon), g, d.v);
     confirmKey = null; persist(); render();
   },
+  volOui(){
+    const v = volPick; volPick = null;
+    if (!v) return render();
+    const mon = Eco.monByUid(save, selMon);
+    if (v.t === 'g'){ const g = Eco.gearById(save, v.id); if (g) Eco.equipGear(save, mon, g, v.sl); }
+    else { const it = Eco.itemById(save, v.id); if (it){ Eco.equip(save, mon, it); selItem = it.id; swapOpen = false; } }
+    confirmKey = null; persist(); render();
+  },
+  volNon(){ volPick = null; render(); },
   gunequip(d){
     const mon = Eco.monByUid(save, selMon), id = mon && mon.g && mon.g[d.v];
     const g = id && Eco.gearById(save, id); if (!g) return;
@@ -3507,6 +3554,7 @@ const ACT = {
   },
   equip(d){
     const it = Eco.itemById(save, +d.id);
+    if (it && it.owner != null && it.owner !== selMon){ volPick = { t:'i', id:it.id }; return render(); }   // porté ailleurs : on demande
     Eco.equip(save, Eco.monByUid(save, selMon), it);
     selItem = it.id; swapOpen = false; upMsg = null; upFx = null;   // l'emplacement reste ouvert sur le nouvel objet
     persist(); render();
@@ -3637,14 +3685,14 @@ function startCombat(dg){
       <div class="wb">
         <section class="field" id="field" aria-label="Arène">
           <canvas id="mapcv" aria-hidden="true"></canvas><canvas id="fxcv" aria-hidden="true"></canvas>
-          <div class="cast" id="cast"></div><div class="win ftip" id="ftip"></div>
+          <div class="win ftip" id="ftip"></div>
           <div class="fctrl">
             <div class="seg" role="group" aria-label="Vitesse" id="speedSeg"><button data-s="1">×1</button><button data-s="2">×2</button><button data-s="3">×3</button></div>
             <button class="btn grey sm" id="autoBtn" aria-pressed="false">Auto</button>
           </div>
+          <div class="timeline" id="timeline" aria-label="Ordre des tours"></div>
+          <div class="spellbar" id="spellbar"></div>
         </section>
-        <div class="panel timeline" id="timeline" aria-label="Ordre des tours"></div>
-        <div class="panel spellwrap"><div class="spellbar" id="spellbar"></div></div>
         <div class="hudbar">
           <div class="chat" id="chat" aria-label="Journal du combat"><ol id="log"></ol></div>
           <div class="pcirc" id="pcirc"></div>
@@ -3673,9 +3721,14 @@ function paintCtrls(){
 function layoutField(){
   if (!field || !field.isConnected) return;
   const W = field.clientWidth, H = field.clientHeight, L = W < 560 ? CELLS.mob : CELLS.desk;
+  // L'ordre des tours et les sorts sont posés sur l'arène : on réserve leur bande pour que les monstres
+  // soient placés entre les deux, sans jamais passer dessous.
+  const hautBande = (() => { const e = $('#timeline'); return e ? e.offsetHeight + 10 : 0; })();
+  const basBande  = (() => { const e = $('#spellbar'); return e ? e.offsetHeight + 10 : 0; })();
+  const Hu = Math.max(120, H - hautBande - basBande);         // hauteur réellement jouable
   // Vraie map : la grille et les sprites sont calés sur la taille des cases de l'image, pour que les monstres soient à l'échelle du décor
   const dg = curStage, real = !!(dg.mapId && IMG_OK), zoom = real ? (W < 560 ? 1 : 1.5) : 1;
-  const tw = real ? Math.max(W, H*MAP_AR) * zoom / MAP_CELLS : W / L.tw, cx = W/2, cy = H/2 + tw*L.dy, cells = [];
+  const tw = real ? Math.max(W, Hu*MAP_AR) * zoom / MAP_CELLS : W / L.tw, cx = W/2, cy = hautBande + Hu/2 + tw*L.dy, cells = [];
   field.classList.toggle('real', real); fxSize();
   if (real) field.style.setProperty('--tok', tw*.78 + 'px'); else field.style.removeProperty('--tok');
   for (const u of Engine.all(state)){
@@ -3733,7 +3786,7 @@ async function nextWave(my){
   const ww = waveWord(dg);
   $('#wave').textContent = `${ww} ${waveIdx + 1} / ${n}`;
   log(`${ww} ${waveIdx + 1} / ${n}${boss ? ' : le boss arrive !' : '.'} L'équipe récupère ${heal} % de ses PV.`, 'sys');
-  const cast = $('#cast'); cast.innerHTML = `<b>${ww} ${waveIdx + 1} / ${n}</b>${boss ? ' · boss' : ''}`; cast.classList.add('show');
+  flashWave(`${ww} ${waveIdx + 1} / ${n}${boss ? ' · boss' : ''}`);
   await wait(800);
 }
 function setHp(id, hp){
@@ -3788,6 +3841,15 @@ function renderInfo(){
     </ul>`;
   const show = (state.actor && state.actor.side === 'A') ? state.actor : (state.A.find(x => x.alive) || state.A[0]);
   pcircFor(Engine.byId(state, hoverId) && Engine.byId(state, hoverId).side === 'A' ? Engine.byId(state, hoverId) : show);
+}
+// Annonce brève au centre de l'arène : nouvelle vague, arrivée du boss. Elle s'efface seule.
+function flashWave(txt){
+  if (!field) return;
+  const old = field.querySelector('.cast'); if (old) old.remove();
+  const e = document.createElement('div');
+  e.className = 'cast'; e.innerHTML = `<b>${txt}</b>`;
+  field.appendChild(e);
+  setTimeout(() => e.remove(), 2000 / speed);
 }
 function pop(id, text, cls){
   const s = document.createElement('span'); s.className = 'pop ' + (cls||''); s.textContent = text;
@@ -4119,7 +4181,6 @@ async function play(events, my){
     switch (e.t){
       case 'skill': {
         const a = Engine.byId(state, e.id), sk = SKILLS[e.skill]; curCaster = e.id;
-        const cast = $('#cast'); cast.innerHTML = `${a.name} lance <b>${sk.name}</b>`; cast.classList.add('show');
         log(`${a.name} lance ${sk.name}.`, 'sk');
         curLook = skillLook(e.skill, a.el);
         await wait(castFx(a, e.skill, e.targets)); break;
@@ -4152,7 +4213,6 @@ async function play(events, my){
         break;
     }
   }
-  const c = $('#cast'); if (c) c.classList.remove('show');
 }
 // Bilan de fin de combat. Les données sont figées à la fin du combat, l'affichage est repeint à la demande
 // (déplier la liste des perdants) sans toucher à l'état du jeu.
