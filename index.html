@@ -477,8 +477,9 @@ body.in-combat .tabs{display:none}
 
 /* Ordre des tours et sorts posés sur l'arène : assez lisibles pour servir, assez discrets pour ne pas
    masquer le décor. Les monstres sont placés entre les deux bandes, jamais dessous (voir layoutField). */
-.field .timeline{position:absolute; left:6px; right:6px; top:6px; z-index:60; display:flex; gap:4px; padding:4px 5px; overflow-x:auto;
-  background:#14100ab8; border:1px solid #0007; border-radius:8px; backdrop-filter:blur(3px); scrollbar-width:none}
+.field .ftop{position:absolute; left:6px; right:6px; top:6px; z-index:60; display:flex; gap:6px; align-items:center;
+  background:#14100ab8; border:1px solid #0007; border-radius:8px; backdrop-filter:blur(3px)}
+.field .timeline{flex:1; min-width:0; display:flex; gap:4px; padding:4px 5px; overflow-x:auto; scrollbar-width:none}
 .field .timeline::-webkit-scrollbar{display:none}
 .field .spellbar{position:absolute; left:6px; right:6px; bottom:6px; z-index:60; display:grid; gap:6px; padding:5px 6px;
   grid-template-columns:repeat(3, 52px) minmax(0,1fr); align-items:center;
@@ -566,9 +567,8 @@ body.in-combat .tabs{display:none}
 @keyframes lungeB{40%{transform:translate(-24px,0) scale(1.05)}}
 @keyframes shake{20%{transform:translateX(-6px)} 40%{transform:translateX(5px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(2px)}}
 
-/* Commandes posées dans l'arène, en haut à gauche */
-.fctrl{position:absolute; left:7px; top:7px; z-index:40; display:flex; gap:6px; align-items:center;
-  background:#1a140ebb; border:1px solid #0008; border-radius:7px; padding:4px 5px; backdrop-filter:blur(2px)}
+/* Vitesse, auto et son : à droite de l'ordre des tours, dans la même bande */
+.fctrl{flex:none; display:flex; gap:5px; align-items:center; padding-right:6px}
 .fctrl .seg button{font-size:11px; padding:3px 7px}
 .fctrl .btn.sm{min-height:22px; padding:2px 9px}
 /* Ordre des tours puis sorts, sous l'arène et sur toute sa largeur */
@@ -873,7 +873,11 @@ body.in-combat .tabs{display:none}
   .unit .tag{font-size:8px}
   .ftip{display:none}
   .hudbar{display:none}   /* portrait et journal : sur téléphone l'arène dit déjà tout, on lui laisse la place */
-  .fctrl{left:5px; top:5px; padding:3px 4px; gap:4px}
+  /* sur deux rangs, pour tenir à côté des portraits : vitesse au-dessus, auto et son dessous */
+  .fctrl{display:grid; grid-template-columns:1fr auto; gap:3px; padding-right:4px}
+  .fctrl .seg{grid-column:1 / -1}
+  .fctrl .seg button{flex:1; font-size:10.5px; padding:2px 6px; min-height:20px}
+  .fctrl .btn.sm{min-height:20px; padding:1px 7px; font-size:10.5px}
   .pcirc{grid-template-columns:auto 1fr; justify-items:start; text-align:left}
   .pcirc .face{width:66px; height:66px} .pcirc .face .por{--sz:66px}
   .heart{right:-10px; width:46px; height:40px; font-size:9.5px}
@@ -886,7 +890,8 @@ body.in-combat .tabs{display:none}
   .field .spellbar .spdesc{max-height:42px; font-size:10.5px; line-height:1.25}
   .field .spellbar .spdesc b{font-size:11px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .field .spellbar .hint{display:none}
-  .field .timeline{left:4px; right:4px; top:4px; padding:3px; gap:3px}
+  .field .ftop{left:4px; right:4px; top:4px; gap:4px}
+  .field .timeline{padding:3px; gap:3px}
   .tl{width:32px; padding:1px; gap:1px; border-width:1.5px} .tl .por{width:27px; height:27px}   /* la taille du portrait est posée en ligne : on fixe la boîte */
   /* les tout petits monstres (tofus, larves) restent lisibles sur un écran de téléphone */
   .token:has(.spr){--sp:calc(var(--tok) * 1.9 * max(var(--sz,1), .72))}
@@ -926,7 +931,8 @@ body.in-combat .tabs{display:none}
   .ftip{display:none}
 
   .tl{width:38px} .tl .por{width:32px; height:32px}
-  .field .timeline{padding:3px 4px; left:4px; right:4px; top:4px}
+  .field .ftop{left:4px; right:4px; top:4px}
+  .field .timeline{padding:3px 4px}
   .field .spellbar{grid-template-columns:repeat(3, 46px) minmax(0,1fr); gap:5px; padding:4px 5px; left:4px; right:4px; bottom:4px}
   .field .spellbar .spell{width:46px; height:44px}
   .field .spellbar .spell svg{width:34px; height:34px}
@@ -4178,12 +4184,14 @@ function startCombat(dg){
         <section class="field" id="field" aria-label="Arène">
           <canvas id="mapcv" aria-hidden="true"></canvas><canvas id="fxcv" aria-hidden="true"></canvas>
           <div class="win ftip" id="ftip"></div>
-          <div class="fctrl">
-            <div class="seg" role="group" aria-label="Vitesse" id="speedSeg"><button data-s="1">×1</button><button data-s="2">×2</button><button data-s="3">×3</button></div>
-            <button class="btn grey sm" id="autoBtn" aria-pressed="false">Auto</button>
-            <button class="btn grey sm" data-act="son" title="Couper ou remettre le son" aria-label="Son">${sonOn ? '♪' : '♪̸'}</button>
+          <div class="ftop" id="ftop">
+            <div class="timeline" id="timeline" aria-label="Ordre des tours"></div>
+            <div class="fctrl">
+              <div class="seg" role="group" aria-label="Vitesse" id="speedSeg"><button data-s="1">×1</button><button data-s="2">×2</button><button data-s="3">×3</button></div>
+              <button class="btn grey sm" id="autoBtn" aria-pressed="false">Auto</button>
+              <button class="btn grey sm" data-act="son" title="Couper ou remettre le son" aria-label="Son">${sonOn ? '♪' : '♪̸'}</button>
+            </div>
           </div>
-          <div class="timeline" id="timeline" aria-label="Ordre des tours"></div>
           <div class="spellbar" id="spellbar"></div>
         </section>
         <div class="hudbar">
@@ -4216,7 +4224,7 @@ function layoutField(){
   const W = field.clientWidth, H = field.clientHeight, L = W < 560 ? CELLS.mob : CELLS.desk;
   // L'ordre des tours et les sorts sont posés sur l'arène : on réserve leur bande pour que les monstres
   // soient placés entre les deux, sans jamais passer dessous.
-  const hautBande = (() => { const e = $('#timeline'); return e ? e.offsetHeight + 10 : 0; })();
+  const hautBande = (() => { const e = $('#ftop'); return e ? e.offsetHeight + 10 : 0; })();
   const basBande  = (() => { const e = $('#spellbar'); return e ? e.offsetHeight + 10 : 0; })();
   const Hu = Math.max(120, H - hautBande - basBande);         // hauteur réellement jouable
   // Vraie map : la grille et les sprites sont calés sur la taille des cases de l'image, pour que les monstres soient à l'échelle du décor
