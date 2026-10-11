@@ -172,6 +172,8 @@ body.in-combat .tabs{display:none}
 .dcard.locked .mini, .dcard.locked .foes{filter:grayscale(1); opacity:.5}
 
 .dsplit{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}
+.dgo{justify-content:flex-end; gap:6px}
+.dgo .btn{flex:1 1 130px}
 .dlist{max-height:540px; overflow:auto; display:grid; gap:2px; padding:4px; align-content:start}
 .drow{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:8px; align-items:center; text-align:left; background:var(--row); border:1px solid transparent; border-radius:5px; padding:3px 8px 3px 3px; cursor:pointer}
 .drow:nth-child(even){background:var(--row2)}
@@ -228,7 +230,7 @@ body.in-combat .tabs{display:none}
 .ecell .sl{position:absolute; left:0; bottom:0; font-size:8px; letter-spacing:.04em; text-transform:uppercase; color:#6b6657;
   background:#ffffffc4; border-radius:0 5px 0 6px; padding:0 3px; line-height:11px}
 .ecell .jt{position:absolute; right:2px; top:1px; font-size:9px; font-weight:bold; color:#fff; text-shadow:0 0 2px #000, 0 0 2px #000}
-.ecell.empty{opacity:.55} .ecell.empty .gh{font-size:9px; color:#6b6657; text-align:center; line-height:1.1; padding:0 2px}
+.ecell.empty{opacity:.55} .ecell.empty .gh{font-size:17px; color:#6b6657; text-align:center; line-height:1.1; padding:0 2px}
 /* détail d'un objet, comme le cartouche bleu du jeu */
 .gdet{margin-top:8px; border:1px solid var(--panel-line); border-radius:8px; overflow:hidden; background:var(--panel)}
 .gdhead{display:flex; align-items:baseline; gap:8px; padding:5px 10px; background:linear-gradient(#4f6f9a, #3b5679); color:#fff}
@@ -878,6 +880,8 @@ body.fs .cwin .hudbar{display:none}
 .restab td{padding:4px 6px; background:var(--row); vertical-align:middle}
 .restab tr:nth-child(even) td{background:var(--row2)}
 .restab .nmc{display:flex; align-items:center; gap:6px}
+.restab .xpbar{flex:1 1 30px; min-width:24px; max-width:90px}
+.restab td:last-child .row{min-width:0}
 .xpbar{width:90px; height:7px; border-radius:2px; background:#3d3c38; overflow:hidden}
 .xpbar b{display:block; height:100%; background:linear-gradient(#ffd27a, var(--orange2))}
 .lootrow{display:flex; flex-wrap:wrap; gap:6px; padding:8px}
@@ -926,6 +930,9 @@ body.fs .cwin .hudbar{display:none}
   .top .res{order:3; flex:1 1 100%; justify-content:space-between; margin-left:0}
   .outils{margin-left:auto}
   .wt{padding-inline:38px}
+  .cwin .wt{display:grid; justify-items:start; padding:5px 46px 5px 10px; gap:0}
+  .cwin .wt .lft{position:static; transform:none; order:2; font-size:10.5px}
+  .cwin .wt h2{font-size:15px; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%}
   .wb{padding:8px}
   /* onglets : une rangée qui défile, au lieu de trois rangées qui mangent la hauteur */
   .tabs{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-inline:-10px; padding-inline:10px}
@@ -1070,6 +1077,7 @@ body.fs .cwin .hudbar{display:none}
    Stats de base données au niveau 40 ; elles sont réduites aux bas niveaux.
    ===================================================================== */
 const ATB_RATE = 0.07;
+const FATIGUE = 60;     // tours d'une même salle au-delà desquels tous les dégâts montent de 4 % par tour : plus de combats sans fin
 const DMG_K = 0.45;   // calibré pour un coup d'environ 15 au niveau 1, et le même rythme de combat qu'avant
 const BEATS = { feu:'air', air:'terre', terre:'eau', eau:'feu' };
 const ELEM = { terre:'Terre', feu:'Feu', eau:'Eau', air:'Air' };
@@ -1352,7 +1360,7 @@ const Engine = (() => {
   }
   // Vague suivante : l'équipe A garde ses PV, effets et recharges ; de nouveaux ennemis remplacent les morts
   function nextWave(s, teamB, healPct = 0){
-    s.B = teamB.map((d,i) => makeUnit(d,'B',i)); s.over = false; s.winner = null; s.actor = null;
+    s.B = teamB.map((d,i) => makeUnit(d,'B',i)); s.over = false; s.winner = null; s.actor = null; s.wt = 0;
     for (const u of s.A) if (u.alive) u.hp = Math.min(u.stats.hp, Math.round(u.hp + u.stats.hp * healPct/100));
   }
   const all = s => s.A.concat(s.B);
@@ -1390,7 +1398,7 @@ const Engine = (() => {
   }
   function beginTurn(s, actor){
     const ev = [];
-    s.turn++; s.actor = actor; actor.nt = (actor.nt || 0) + 1;      // nt : ses tours à lui, pour les sorts pair / impair
+    s.turn++; s.wt = (s.wt || 0) + 1; s.actor = actor; actor.nt = (actor.nt || 0) + 1;      // nt : ses tours à lui, pour les sorts pair / impair
     for (const k in actor.cds) if (actor.cds[k] > 0) actor.cds[k]--;
     // Début de tour : la régénération soigne, puis chaque dose de poison fait son effet.
     if (has(actor,'regen')) soin(s, actor, actor.stats.hp * .08, ev);
@@ -1460,6 +1468,7 @@ const Engine = (() => {
     if (op.perBuff) dmg *= 1 + op.perBuff * att.effects.filter(e => EFFECTS[e.type].good && e.type !== 'charge').length;
     if (op.perCharge) dmg *= 1 + op.perCharge * pile(att,'charge');
     if (has(tgt,'mark')) dmg *= 1.3;
+    if (s.wt > FATIGUE && !tgt.bars && !att.bars) dmg *= 1 + (s.wt - FATIGUE) * .04;      // fatigue : un combat qui s'éternise finit par se décider
     if (att.side === 'A'){                       // bonus de classe, côté joueur seulement
       const C = clsFx();
       if (C.solo && op.nTargets === 1) dmg *= C.solo;
@@ -2174,13 +2183,13 @@ function shortOf(name){
 }
 const ROLE_W = [['Attaquant',30],['Bagarreur',20],['Entraveur',20],['Tank',12],['Soutien',10],['Soigneur',8]];
 const ROLE = {
-  Attaquant:{ hp:.9,  atk:1.12, def:.95, spd:2,  crit:10, acc:0,  res:0,  aw:{ atk:7, critDmg:12 } },
+  Attaquant:{ hp:.92, atk:1.2,  def:.95, spd:3,  crit:12, acc:0,  res:0,  aw:{ atk:7, critDmg:12 } },
   Bagarreur:{ hp:1.05,atk:1.02, def:1,   spd:0,  crit:5,  acc:0,  res:5,  aw:{ atk:5, hp:70 } },
-  Entraveur:{ hp:.95, atk:.98,  def:.95, spd:6,  crit:0,  acc:12, res:0,  aw:{ acc:15, spd:5 } },
+  Entraveur:{ hp:1.02,atk:1.06, def:1,   spd:7,  crit:0,  acc:20, res:0,  aw:{ acc:15, spd:5 } },
   Tank:     { hp:1.35,atk:.88,  def:1.3, spd:-4, crit:0,  acc:0,  res:12, aw:{ hp:140, def:6 } },
   Soutien:  { hp:1,   atk:.9,   def:1.05,spd:12, crit:0,  acc:5,  res:8,  aw:{ spd:10, res:10 } },
   Soigneur: { hp:1.12,atk:.85,  def:1.1, spd:3,  crit:0,  acc:0,  res:15, aw:{ hp:110, res:15 } },
-  Boss:     { hp:1.25,atk:1.08, def:1.15,spd:2,  crit:8,  acc:15, res:20, aw:{ atk:8, spd:6 } },
+  Boss:     { hp:1.12,atk:1.0,  def:1.05,spd:1,  crit:5,  acc:15, res:20, aw:{ atk:8, spd:6 } },
 };
 const KIT = {
   Attaquant:[['enemy',0,[{op:'dmg',mult:3.6}]],['enemy',3,[{op:'dmg',mult:4.4},{op:'debuff',type:'defBreak',turns:2,chance:50}]],['enemy',4,[{op:'dmg',mult:6,critBonus:30}]]],
@@ -2446,7 +2455,11 @@ function buildCatalog(cat){
     // imprenable. Un boss vaut désormais une étoile de plus que son niveau, sans jamais tomber sous deux.
     const parNiveau = c.l >= 150 ? 4 : c.l >= 90 ? 3 : c.l >= 40 ? 2 : 1;
     const stars = c.b ? Math.min(5, Math.max(2, parNiveau + 1)) : c.mb ? Math.min(4, parNiveau + 1) : parNiveau;
-    const ch = c.c || [0,0,0,0], mx = Math.max(...ch), el = mx > 0 ? ELS[ch.indexOf(mx)] : ELS[h0 % 4];
+    // L'élément vient de la caractéristique dominante du monstre. La plupart en ont plusieurs à égalité : on
+    // prenait alors la première, si bien que 82 % du bestiaire était de Terre et que les avantages d'élément
+    // ne jouaient presque jamais. À égalité, c'est maintenant l'identifiant du monstre qui tranche.
+    const ch = c.c || [0,0,0,0], mx = Math.max(...ch), hauts = ch.map((v, i) => v === mx ? i : -1).filter(i => i >= 0);
+    const el = mx > 0 ? ELS[hauts[h0 % hauts.length]] : ELS[h0 % 4];
     let role = c.b ? 'Boss' : null;
     if (!role && c.l && c.hp / c.l > 60) role = 'Tank';
     if (!role){ let r = h0 % 100; for (const [n, w] of ROLE_W){ if ((r -= w) < 0){ role = n; break; } } role = role || 'Attaquant'; }
@@ -2488,7 +2501,7 @@ function buildCatalog(cat){
   const fin = dgs.filter(d => d.lvl >= MAX_LVL);
   for (const d of dgs){
     const j = fin.indexOf(d); d.dur = j > 0 ? 1 + (BAL.fin - 1) * j / (fin.length - 1) : 1;
-    for (const e of d.enemies){ if (e.boss) Object.assign(e, ENN(d.lvl, 'boss', d.dur)); else if (e.garde) Object.assign(e, ENN(d.lvl, 'garde', d.dur)); }
+    for (const e of d.enemies){ if (e.boss) Object.assign(e, ennBoss(d.lvl, e.key, d.dur)); else if (e.garde) Object.assign(e, ENN(d.lvl, 'garde', d.dur)); }
   }
   if (dgs.length){ DUNGEONS.length = 0; DUNGEONS.push(...dgs); }
   ITEM_SKINS = { normal:(cat.items || []).filter(i => i.t === 151), legend:(cat.items || []).filter(i => i.t === 23 || i.t === 217) };
@@ -2556,12 +2569,16 @@ const TRASH = { hpMult:.45, atkMult:.7 }, WAVE_HEAL = 30;   // % des PV max rend
 // multiplicateurs, qui montent avec le niveau du donjon pour suivre ce qu'un joueur a accumulé à ce stade.
 // PV ×DIFF, ATK ×√DIFF — sinon les combats de fin de jeu se joueraient en un coup. Chaque rôle a sa part :
 // la piétaille des premières salles, les deux gardes du boss, le boss lui-même.
-const BAL = { trash:[.45, .7], garde:[.6, .8], boss:[1, 1], xp0:3, xpFin:60,
-  diff:[[10, .6], [20, 1.1], [30, .75], [40, 1.5], [60, 2.1], [70, 2.8], [80, 3], [90, 2.3], [100, 2.7], [150, 3.4], [200, 4.2]], fin:2 };   // [niveau du donjon, difficulté], interpolé entre deux points
+const BAL = { trash:[.45, .7], garde:[.6, .8], boss:[1, 1], xp0:3, xpFin:60, eh:.5, ea:.9,
+  diff:[[10, .6], [20, 1.1], [30, .75], [40, 1.5], [60, 2.1], [100, 2.7], [150, 3.4], [200, 4.2]], fin:2 };   // [niveau du donjon, difficulté], interpolé entre deux points
 const DIFF = L => { const T = BAL.diff; if (L <= T[0][0]) return T[0][1];
   for (let i = 1; i < T.length; i++) if (L <= T[i][0]){ const [a, x] = T[i-1], [b, y] = T[i]; return x + (y - x) * (L - a) / (b - a); }
   return T[T.length - 1][1]; };
-const ENN = (L, role, x = 1) => { const d = DIFF(L) * x, [h, a] = BAL[role]; return { hpMult:h * d, atkMult:a * Math.sqrt(d) }; };
+const ENN = (L, role, x = 1) => { const d = DIFF(L) * x, [h, a] = BAL[role]; return { hpMult:h * Math.pow(d, BAL.eh), atkMult:a * Math.pow(d, BAL.ea) }; };
+// Un boss ne vaut pas un autre : à multiplicateur égal, un 5 ★ avec son kit propre gagnait six fois plus
+// souvent qu'un boss 2 ★. Ce facteur ramène chaque rareté de boss à une difficulté comparable.
+const BOSS_ST = { 1:1.6, 2:1.6, 3:1.3, 4:.95, 5:.32 };
+const ennBoss = (L, key, x = 1) => ENN(L, 'boss', x * (BOSS_ST[MONSTERS[key] ? MONSTERS[key].stars : 3] || 1));
 // XP : généreuse sur les premiers donjons, pour que le début file, puis au tarif normal.
 const XPK = L => 1 + (BAL.xp0 - 1) * Math.max(0, 1 - (L - 10) / (BAL.xpFin - 10));
 const STAGES = { camp:[], gel:[], raid:[], dragon:[] };
@@ -2575,7 +2592,7 @@ function gelStages(){
   return [20, 60, 100, 140, 180].map((L, f) => {
     const m = ENN(L, 'trash'), g = ENN(L, 'garde');
     const salle = n => Array.from({ length:n }, (_, k) => ({ key:ks[(f + k) % 4], level:clampL(L - 1), ...m }));
-    const last = [{ key:ks[f % 4], level:L, ...g }, { key:ks[4], level:clampL(L + 1), boss:true, bossMult:1.3 + f * .15, ...ENN(L, 'boss') }, { key:ks[(f + 1) % 4], level:L, ...g }];
+    const last = [{ key:ks[f % 4], level:L, ...g }, { key:ks[4], level:clampL(L + 1), boss:true, bossMult:1.3 + f * .15, ...ennBoss(L, ks[4]) }, { key:ks[(f + 1) % 4], level:L, ...g }];
     return { id:`gel:${f + 1}`, mode:'gel', grp:'gel', gname:'Gelaxième Dimension', short:`Étage ${f + 1}`, name:`Gelaxième Dimension · étage ${f + 1}`,
       map:'fleurs', mapId:src ? src.mp || 0 : 0, maps:src ? src.mps || null : null, lvl:L, dofusLvl:0,
       desc:'Chaque victoire rapporte une gelée, à donner à manger à un monstre pour le faire monter.', enemies:last, waves:[salle(2), salle(3), last],
@@ -2622,7 +2639,7 @@ function bossStages(defs, mode, floors, lvStep, mult0, multStep, lv0 = 0){
     const place = src ? src.n : `Repaire de ${MONSTERS[bossK].name}`, bn = MONSTERS[bossK].name;
     for (let f = 1; f <= floors; f++){
       const L = clampL(lv0 + f * lvStep), id = `${mode}:${D.k}:${f}`;
-      const g = ENN(L, 'garde'), last = [{ key:pool[(f+1) % pool.length], level:clampL(L-1), ...g }, { key:bossK, level:clampL(L+1), boss:true, bossMult:mult0 + f*multStep, ...ENN(L, 'boss') }, { key:pool[(f+2) % pool.length], level:L, ...g }];
+      const g = ENN(L, 'garde'), last = [{ key:pool[(f+1) % pool.length], level:clampL(L-1), ...g }, { key:bossK, level:clampL(L+1), boss:true, bossMult:mult0 + f*multStep, ...ennBoss(L, bossK) }, { key:pool[(f+2) % pool.length], level:L, ...g }];
       const rw = rewardsFor(L), raid = mode === 'raid';
       out.push({ id, mode, grp:D.k, gname:place, short:`Étage ${f}`, name:`${place} · étage ${f}`, map:src ? themeFor(src.n, src.id) : 'grotte', mapId:src ? src.mp || 0 : 0, lvl:L, dofusLvl:0,
         desc: raid ? `${bn} lâche des ${D.tag}.` : `${bn} garde le ${DOFUS_NAMES[D.stat]} (${STAT_LONG[D.stat]}).`,
@@ -2715,7 +2732,7 @@ function arenaFoes(save){
     const lo = Math.min(4, 1 + Math.floor(r / 3)), hi = Math.min(5, 2 + Math.floor(r / 2.5));
     let pool = keys.filter(k => MONSTERS[k].stars >= lo && MONSTERS[k].stars <= hi); if (pool.length < 3) pool = keys;
     const lvl = clampL(A.base - 2 + Math.round(r * .7));
-    const team = [0,1,2].map(() => ({ key:pool[Math.floor(rng() * pool.length)], level:lvl, ...ENN(lvl, 'boss', .55 + r * .09) }));   // du plus tendre au plus coriace, à l'échelle de ce que porte un joueur de ce niveau
+    const team = [0,1,2].map(() => ({ key:pool[Math.floor(rng() * pool.length)], level:lvl, ...ENN(lvl, 'boss', .4 + r * .05) }));   // du plus tendre au plus coriace, à l'échelle de ce que porte un joueur de ce niveau
     return { r, name, lvl, team, gold:3 + Math.floor(r / 2), kamas:200 + r * 80, done:A.done.includes(r) };
   });
 }
@@ -3472,6 +3489,8 @@ function dgDetail(i){
   return `<section class="win"><div class="wt"><h2>${d.name}<small>niv. ${d.lvl}</small></h2></div>
     <div class="wb" style="display:grid; gap:8px">
       <canvas class="mini big" data-map data-i="${i}" aria-hidden="true"></canvas>
+      <div class="row dgo"><button class="btn grey" data-act="auto" data-i="${i}" ${un && team.length && !(autoRun && autoRun.on) ? '' : 'disabled'} title="Ton équipe enchaîne ${AUTO_N} combats en arrière-plan pendant que tu fais autre chose">Auto ×${AUTO_N}</button>
+        <button class="btn" data-act="fight" data-i="${i}" ${un && team.length ? '' : 'disabled'}>Combattre</button></div>
       <p style="margin:0">${d.desc}</p>
       ${d.waves.map((w, wi) => `<div class="band">${waveWord(d)} ${wi + 1} / ${d.waves.length}${w.some(e => e.boss) ? ' · boss' : ''}</div>
       <ul class="foes">${w.map(e => `<li>${portrait(e.key,44)}<span><b>${MONSTERS[e.key].name}</b>${e.boss ? ' <b class="bossb">Boss</b>' : ''}<br><span class="muted">niv. ${e.level} · ${ELEM[MONSTERS[e.key].el]} · <span class="stars">${starsTxt(MONSTERS[e.key].stars)}</span></span></span></li>`).join('')}</ul>`).join('')}
@@ -3551,11 +3570,11 @@ function viewEquipe(){
   const mon = selMon && Eco.monByUid(save, selMon);
   if (!mon) return eqTabs() + '<section class="win"><div class="wb muted">Invoque un monstre pour commencer.</div></section>';
   const barreEquipes = `<div class="teambar">
-    <span class="muted" style="font-size:11.5px">Équipe de</span>
+    <span style="font-size:11.5px; color:#d6cdb8">Équipe de</span>
     ${TEAM_MODES.map(([k, l]) => { const t = teamOf(k).filter(u => Eco.monByUid(save, u));
       return `<button class="btn ${teamCtx === k ? '' : 'grey'} sm" data-act="teamCtx" data-v="${k}" aria-pressed="${teamCtx === k}"
         title="${t.length ? t.map(u => MONSTERS[Eco.monByUid(save, u).key].name).join(', ') : 'aucune composition enregistrée'}">${l}${t.length ? ` <b class="tn">${t.length}</b>` : ''}</button>`; }).join('')}
-    <span class="muted" style="font-size:11px; margin-left:auto">Chaque mode garde sa composition.</span></div>`;
+    <span style="font-size:11px; margin-left:auto; color:#c9bfa9">Chaque mode garde sa composition.</span></div>`;
   return eqTabs() + barreEquipes + `<div class="split eqsplit">
       ${monDetail(mon)}
       ${monStats(mon)}
@@ -3807,9 +3826,10 @@ function monDetail(mon){
         <div class="ecol">${['coiffe','cape','anneau2'].map(sl => gearCell(mon, sl)).join('')}</div>
       </div>${picker}${volModal()}
       <div class="row"><button class="btn ${inTeam ? 'grey' : ''}" data-act="team">${inTeam ? 'Retirer de l\'équipe' : 'Ajouter à l\'équipe'}</button>
-        ${st >= MAX_STARS ? '<span class="ok">6 ★ · éveillé</span>' : `<button class="btn" data-act="evoOn" ${canAw ? '' : 'disabled'} title="Choisis les ${ac.n} monstre${ac.n > 1 ? 's' : ''} de ${st} ★ à sacrifier">Évoluer en ${st + 1} ★ · ${ac.n} × ${st} ★ <span style="opacity:.75">(${nFod} dispo)</span> · ${fmt(ac.kamas)} K</button>`}
+        ${st >= MAX_STARS ? '<span class="ok">6 ★ · éveillé</span>' : `<button class="btn" data-act="evoOn" ${canAw ? '' : 'disabled'} title="Choisis les ${ac.n} monstre${ac.n > 1 ? 's' : ''} de ${st} ★ à sacrifier">Évoluer en ${st + 1} ★</button>`}
         <button class="btn grey" data-act="feedOn" ${Eco.mangeables(save, mon).length ? '' : 'disabled'} title="Lui donner d'autres monstres à manger contre de l'expérience">Nourrir</button>
         ${confirmBtn('rel'+mon.uid, 'Relâcher', 'Confirmer', 'release')}</div>
+      ${st < MAX_STARS ? `<p class="hint" style="margin:0">Évoluer coûte ${ac.n} monstre${ac.n > 1 ? 's' : ''} de ${st} ★ (${nFod} disponible${nFod > 1 ? 's' : ''} hors équipe) et ${fmt(ac.kamas)} kamas.</p>` : ''}
     </div></section>${feedModal(mon)}${evoModal(mon)}`;
 }
 // Caractéristiques et sorts : colonne de droite sur grand écran, sous l'équipement sinon
@@ -3843,7 +3863,7 @@ function gearCell(mon, sl){
   const id = mon.g && mon.g[sl], it = id && Eco.gearById(save, id);
   const on = gearPick === sl ? ' on' : '';
   if (!it) return `<button class="ecell empty${on}" data-act="gslot" data-v="${sl}" title="${GEAR_LABEL[sl]} · vide">
-    <span class="gh">${GEAR_SHORT[sl]}</span><span class="sl">${GEAR_SHORT[sl]}</span></button>`;
+    <span class="gh">+</span><span class="sl">${GEAR_SHORT[sl]}</span></button>`;
   return `<button class="ecell${on} ${JET_CLASS(it.jet)}" data-act="gslot" data-v="${sl}" title="${esc(gearName(it))} · niveau ${gearLvl(it)} · jet ${Math.round(it.jet*100)} %">
     ${gearIcon(it, 42)}<span class="jt">${Math.round(it.jet*100)}</span><span class="sl">${GEAR_SHORT[sl]}</span></button>`;
 }
@@ -3997,8 +4017,8 @@ function viewTrophees(){
   const detail = !sel
     ? '<section class="win"><div class="wt"><h2>Objet</h2></div><div class="wb muted">Sélectionne un objet.</div></section>'
     : selKind === 'g'
-      ? `<section class="win"><div class="wt"><h2>Équipement</h2></div><div class="wb" style="padding:6px">${gearDetail(sel, null, sel.s)}
-          <div class="row" style="padding:0 10px 10px"><button class="btn grey sm" data-act="verrou">${estVerrou(sel) ? 'Déprotéger' : 'Protéger de la vente'}</button></div></div></section>`
+      ? `<section class="win"><div class="wt"><h2>Équipement</h2></div><div class="wb" style="padding:6px; display:grid; gap:8px">${gearDetail(sel, null, sel.s)}
+          <div class="row" style="padding:0 4px 4px"><button class="btn grey sm" data-act="verrou">${estVerrou(sel) ? 'Déprotéger' : 'Protéger de la vente'}</button></div></div></section>`
       : itemDetail(sel);
 
   // Vente groupée : tout ce qui est affiché, libre et non protégé
