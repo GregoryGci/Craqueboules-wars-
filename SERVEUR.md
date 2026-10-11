@@ -100,9 +100,20 @@ Remplis `const NET = {` dans `index.html` à la main, sans le commiter.
 - **Jouer sans compte** reste possible : le bouton est sur l'écran de compte, et
   la partie reste alors dans le navigateur, comme avant.
 
-## Reste à faire
+## Messages privés et hôtel de vente
 
-- Le **chat** : les tables sont prêtes, l'interface n'est pas encore branchée.
-- Le **RTA** (1 contre 1, équipes de 3, pick et ban) : c'est le plus gros
-  morceau, il demande un salon temps réel par match et un protocole d'échange
-  des actions. À faire une fois les comptes en service.
+Deux fichiers SQL complètent les tables ci-dessus. Chacun se colle tel quel dans
+**SQL Editor → New query → Run**, une seule fois :
+
+| Fichier | Ce qu'il active |
+| --- | --- |
+| `CHAT.sql` | les messages privés (table `mp`) et l'annuaire des pseudos (table `joueurs`) |
+| `HDV.sql` | l'hôtel de vente entre joueurs (table `hdv`) |
+
+Tant que `CHAT.sql` n'est pas passé, le chat monde fonctionne normalement et
+l'onglet « Messages privés » indique qu'il n'est pas encore activé.
+
+Tout l'historique est gardé en base : le jeu charge les soixante derniers
+messages, puis remonte par pages avec « Messages plus anciens ». Un message
+privé n'est lisible que par son expéditeur et son destinataire — c'est la base
+qui l'impose, pas le jeu.

@@ -333,7 +333,7 @@ body.in-combat .tabs{display:none}
 .teambar{display:flex; flex-wrap:wrap; gap:5px; align-items:center; margin-bottom:8px}
 .teambar .tn{display:inline-grid; place-items:center; min-width:15px; height:15px; padding:0 3px; border-radius:8px;
   background:#ffffff40; font-size:10px; line-height:1}
-/* Chat public */
+/* Chat : monde et messages privés */
 .chatlist{list-style:none; margin:0; padding:7px 9px; display:grid; gap:4px; align-content:start;
   height:min(52vh, 420px); overflow:auto; background:var(--panel); border:1px solid var(--panel-line); border-radius:7px; box-shadow:inset 0 1px 3px #0002}
 .chatlist li{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:7px; align-items:baseline; font-size:13px; padding:2px 0}
@@ -344,6 +344,17 @@ body.in-combat .tabs{display:none}
 .chatlist .hh{font-size:10.5px; color:var(--ink2); font-variant-numeric:tabular-nums}
 .chatlist .vide{color:var(--ink2); font-style:italic; grid-template-columns:1fr}
 .chatsend{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px}
+.chatlist button.qui{background:none; border:0; padding:0; font:inherit; font-weight:bold; cursor:pointer; text-align:left}
+.chatlist button.qui:hover{text-decoration:underline}
+.chatlist li.plus{grid-template-columns:1fr; justify-items:center; background:none}
+.mplist{display:grid; gap:5px; max-height:min(46vh, 380px); overflow:auto; padding:2px}
+.mplist:empty{display:none}
+.mprow{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:1px 9px; align-items:baseline; width:100%; text-align:left;
+  padding:6px 9px; background:var(--row2); border:1px solid var(--panel-line); border-radius:6px; font:inherit; color:inherit; cursor:pointer}
+.mprow:hover{border-color:var(--orange-dk)}
+.mprow b{font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.mprow .sub{grid-column:1 / -1; font-size:11.5px; color:var(--ink2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.mprow .hh{font-size:10.5px; color:var(--ink2); font-variant-numeric:tabular-nums}
 .uptiers{gap:4px; margin-top:-2px}
 .uptiers .btn{min-width:38px; padding:3px 8px}
 .upmsg{transition:none}
@@ -856,7 +867,7 @@ body.in-combat .tabs{display:none}
   .search, .sel, .foot textarea{font-size:16px}   /* en dessous de 16 px, iOS zoome tout seul au focus */
 
   /* combat */
-  .field{aspect-ratio:3/4; max-height:min(56vh, 520px)}
+  .field{aspect-ratio:3/4; max-height:min(62vh, 560px)}
   .unit{width:76px} .plate{font-size:9.5px; padding:1px 3px 2px}
   .nm small{display:none}
   .unit .tag{font-size:8px}
@@ -870,11 +881,23 @@ body.in-combat .tabs{display:none}
   .pcirc .face{width:66px; height:66px} .pcirc .face .por{--sz:66px}
   .heart{right:-10px; width:46px; height:40px; font-size:9.5px}
   .vit{left:-6px; width:28px; height:28px; font-size:9px}
-  /* sorts : trois grandes touches pleine largeur, description dessous */
-  .field .spellbar{grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px; left:4px; right:4px; bottom:4px}
-  .field .spellbar .spell{width:100%; height:52px}
-  .field .spellbar .spdesc{grid-column:1 / -1; max-height:34px; font-size:11px}
-  .field .timeline{left:4px; right:4px; top:4px; padding:3px 4px}
+  /* sorts et ordre des tours : deux bandes fines, pour laisser l'arène aux monstres */
+  .field .spellbar{grid-template-columns:repeat(3, 42px) minmax(0,1fr); gap:5px; padding:4px 5px; left:4px; right:4px; bottom:4px}
+  .field .spellbar .spell{width:42px; height:42px}
+  .field .spellbar .spell svg{width:32px; height:32px}
+  .field .spellbar .spell .cdn{font-size:15px}
+  .field .spellbar .spdesc{max-height:42px; font-size:10.5px; line-height:1.25}
+  .field .spellbar .spdesc b{font-size:11px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .field .spellbar .hint{display:none}
+  .field .timeline{left:4px; right:4px; top:4px; padding:3px; gap:3px}
+  .tl{width:32px; padding:1px; gap:1px; border-width:1.5px} .tl .por{width:27px; height:27px}   /* la taille du portrait est posée en ligne : on fixe la boîte */
+  /* les tout petits monstres (tofus, larves) restent lisibles sur un écran de téléphone */
+  .token:has(.spr){--sp:calc(var(--tok) * 1.9 * max(var(--sz,1), .72))}
+  .tl .hp, .tl .at{height:3px}
+  .tl.now{transform:none}
+  .field.real .plate{width:calc(var(--tok) * 1.2); min-width:40px}
+  .field.real .bar{height:5px} .field.real .bar.atb{height:2px}
+  .fx{gap:1px} .fx span{font-size:7.5px; line-height:9px; padding:0 2px}
 
   /* menus */
   .doll .cell{width:46px; height:46px} .doll .cell svg, .doll .cell img{width:38px; height:38px}
@@ -905,7 +928,7 @@ body.in-combat .tabs{display:none}
   .hudbar .chat{height:72px; grid-column:auto; grid-row:auto}
   .ftip{display:none}
 
-  .tl{width:38px} .tl .por{--sz:32px}
+  .tl{width:38px} .tl .por{width:32px; height:32px}
   .field .timeline{padding:3px 4px; left:4px; right:4px; top:4px}
   .field .spellbar{grid-template-columns:repeat(3, 46px) minmax(0,1fr); gap:5px; padding:4px 5px; left:4px; right:4px; bottom:4px}
   .field .spellbar .spell{width:46px; height:44px}
@@ -1967,7 +1990,7 @@ function buildCatalog(cat){
     // rejoués, une équipe nue au niveau du donjon ne la passait jamais. Leur malus s'atténue avec le niveau,
     // ce qui rend le début abordable sans équipement et la fin impossible sans.
     const g = GARDE(L), enemies = bossK
-      ? [{ key:pickN(0), level:Math.max(1, L-1), ...g }, { key:bossK, level:Math.min(MAX_LVL, L+1), boss:true, bossMult:Math.min(2.4, 1.3 + L/150) }, { key:pickN(1), level:L, ...g }]
+      ? [{ key:pickN(0), level:Math.max(1, L-1), ...g }, { key:bossK, level:Math.min(MAX_LVL, L+1), boss:true, bossMult:Math.min(2.4, 1.3 + L/150), ...DEBUT(L) }, { key:pickN(1), level:L, ...g }]
       : [{ key:pickN(0), level:Math.max(1, L-1) }, { key:pickN(1), level:L }, { key:pickN(2), level:L }];
     dgs.push({ id:'d' + d.id, map:themeFor(d.n, d.id), mapId:d.mp || 0, maps:d.mps || [], pool:normals, name:d.n, lvl:L, dofusLvl:d.l,
       desc: bossK ? `Boss : ${MONSTERS[bossK].name}. Niveau Dofus conseillé : ${d.l}.` : `Niveau Dofus conseillé : ${d.l}.`, enemies, ...rewardsFor(L) });
@@ -2032,7 +2055,14 @@ const TRASH = { hpMult:.45, atkMult:.7 }, WAVE_HEAL = 30;   // % des PV max rend
 // Gardes du boss en campagne : aussi faibles que la piétaille au niveau 1, presque à pleine puissance au
 // niveau 200. La progression au carré laisse le début et le milieu abordables, puis durcit nettement la fin.
 const GARDE = L => { const r = Math.pow(Math.min(1, L / MAX_LVL), 2);
-  return { hpMult: .45 + r * .45, atkMult: .70 + r * .25 }; };
+  const d = .7 + .3 * DEBUT_T(L);
+  return { hpMult: (.45 + r * .45) * d, atkMult: (.70 + r * .25) * d }; };
+// Boss du début de campagne. Les donjons montent de dix niveaux d'un coup alors qu'une équipe n'en gagne
+// qu'un ou deux par donjon : le boss du deuxième, niveau 21, se présentait devant une équipe de niveau 10
+// et ne tombait que 3 fois sur 100 sur des combats rejoués. Ses PV et sa frappe sont donc allégés, de
+// beaucoup au niveau 10 (PV ×0,35) à plus du tout au niveau 90, où l'équipement fait la différence.
+const DEBUT_T = L => Math.min(1, Math.max(0, (L - 10) / 80));
+const DEBUT = L => { const t = DEBUT_T(L); return { hpMult: .35 + .65 * t, atkMult: .55 + .45 * t }; };
 const STAGES = { camp:[], raid:[], dragon:[] };
 const MODE_LABEL = { camp:'Campagne', raid:'Raids', dragon:'Dragons' };
 // boss : nom du monstre dans le catalogue · mains : effets principaux des trophées lâchés
@@ -2248,7 +2278,7 @@ async function netSignIn(mail, pass){
   me = data.user; netState = 'on';
   return { ok:true };
 }
-async function netSignOut(){ if (sb) try { await sb.auth.signOut(); } catch(e){} me = null; netState = sb ? 'anon' : 'off'; }
+async function netSignOut(){ if (sb) try { if (mpSub) sb.removeChannel(mpSub); await sb.auth.signOut(); } catch(e){} mpSub = null; mpFils = []; mpAvec = null; mpMsgs = []; me = null; netState = sb ? 'anon' : 'off'; }
 const netErr = e => {
   const m = (e && e.message || '').toLowerCase();
   if (m.includes('invalid login')) return 'Adresse ou mot de passe incorrect.';
@@ -2490,13 +2520,28 @@ function rtaFight(){
     } });
 }
 
-// ---- Chat public. Lecture ouverte à tous, écriture réservée aux comptes.
-let chatMsgs = [], chatSub = null, chatSending = false, chatErr = '';
-async function chatLoad(){
+// ---- Chat. Deux canaux : le monde, ouvert à la lecture de tous, et les messages privés entre deux comptes.
+// Tout est gardé en base : on charge la dernière page, puis on remonte l'historique à la demande.
+const CHAT_PAGE = 60;
+let chatMsgs = [], chatSub = null, chatSending = false, chatErr = '', chatFin = false, chatUnread = 0;
+let chatTab = 'monde';              // monde · mp
+let mpOk = true;                    // faux tant que CHAT.sql n'a pas été passé sur le serveur
+let mpFils = [];                    // conversations : { id, nom, dernier, nonLus }, la plus récente d'abord
+let mpAvec = null, mpMsgs = [], mpFin = false;   // conversation ouverte
+let mpQ = '', mpTrouves = [], mpT = null, mpSub = null;
+const mpNonLus = () => mpFils.reduce((t, f) => t + f.nonLus, 0);
+const monNom = () => (save && save.player && save.player.name) || 'Invocateur';
+
+async function chatLoad(ancien){
   if (!sb) return;
   try {
-    const { data } = await sb.from('chat').select('id,nom,texte,cree_le').order('cree_le', { ascending:false }).limit(60);
-    chatMsgs = (data || []).reverse();
+    let q = sb.from('chat').select('id,user_id,nom,texte,cree_le').order('id', { ascending:false }).limit(CHAT_PAGE);
+    if (ancien && chatMsgs.length) q = q.lt('id', chatMsgs[0].id);
+    const { data, error } = await q;
+    if (error) throw error;
+    const lot = (data || []).reverse();
+    chatFin = lot.length < CHAT_PAGE;
+    chatMsgs = ancien ? lot.concat(chatMsgs) : lot;
   } catch(e){ chatErr = 'Impossible de charger le chat.'; }
 }
 // Abonnement permanent : les messages arrivent même quand on est ailleurs dans le jeu.
@@ -2506,25 +2551,112 @@ function chatWatch(){
     .on('postgres_changes', { event:'INSERT', schema:'public', table:'chat' }, p => {
       if (chatMsgs.some(m => m.id === p.new.id)) return;     // notre propre message, déjà affiché
       chatMsgs.push(p.new);
-      if (chatMsgs.length > 120) chatMsgs.shift();
-      if (view === 'chat') chatPaint(); else chatUnread++;
+      if (view === 'chat' && chatTab === 'monde') chatPaint(); else chatUnread++;
       renderTop();
     })
     .subscribe();
 }
-let chatUnread = 0;
+
+// ---- Annuaire : le pseudo de chaque compte, pour pouvoir écrire à quelqu'un qui n'a jamais parlé en public.
+async function netAnnoncer(){
+  if (!netOn()) return;
+  try { await sb.from('joueurs').upsert({ user_id:me.id, nom:monNom(), vu_le:new Date().toISOString() }, { onConflict:'user_id' }); }
+  catch(e){}
+}
+async function mpChercher(){
+  const q = mpQ.trim();
+  if (!netOn() || q.length < 2){ mpTrouves = []; return; }
+  try {
+    const { data } = await sb.from('joueurs').select('user_id,nom').ilike('nom', '%' + q.replace(/[\\%_]/g, '\\$&') + '%')
+      .neq('user_id', me.id).order('vu_le', { ascending:false }).limit(12);
+    mpTrouves = data || [];
+  } catch(e){ mpTrouves = []; }
+}
+
+// ---- Messages privés. La base ne montre à chacun que ses propres échanges (voir CHAT.sql).
+async function mpCharger(){
+  if (!netOn()) return;
+  try {
+    const { data, error } = await sb.from('mp').select('*').or(`de.eq.${me.id},a.eq.${me.id}`).order('id', { ascending:false }).limit(400);
+    if (error){ mpOk = false; return; }
+    mpOk = true;
+    const fils = new Map();
+    for (const m of data || []){                              // du plus récent au plus ancien
+      const moi = m.de === me.id, id = moi ? m.a : m.de;
+      if (!fils.has(id)) fils.set(id, { id, nom: moi ? m.a_nom : m.de_nom, dernier:m, nonLus:0 });
+      if (!moi && !m.lu) fils.get(id).nonLus++;
+    }
+    mpFils = [...fils.values()];
+  } catch(e){ mpOk = false; }
+}
+// Remonte la conversation en tête de liste, avec son dernier message.
+function mpNoter(id, nom, m){
+  const f = mpFils.find(x => x.id === id) || { id, nom, nonLus:0 };
+  f.nom = nom; f.dernier = m;
+  mpFils = [f, ...mpFils.filter(x => x !== f)];
+  return f;
+}
+async function mpFil(ancien){
+  const o = mpAvec; if (!o || !netOn()) return;
+  try {
+    let q = sb.from('mp').select('*').or(`and(de.eq.${me.id},a.eq.${o.id}),and(de.eq.${o.id},a.eq.${me.id})`)
+      .order('id', { ascending:false }).limit(CHAT_PAGE);
+    if (ancien && mpMsgs.length) q = q.lt('id', mpMsgs[0].id);
+    const { data, error } = await q;
+    if (error) throw error;
+    if (mpAvec !== o) return;                                 // on a changé de conversation entre-temps
+    const lot = (data || []).reverse();
+    mpFin = lot.length < CHAT_PAGE;
+    mpMsgs = ancien ? lot.concat(mpMsgs) : lot;
+  } catch(e){ chatErr = 'Impossible de charger la conversation.'; }
+}
+async function mpOuvrir(id, nom){
+  if (!netOn() || !id || id === me.id) return;
+  mpAvec = { id, nom }; mpMsgs = []; mpFin = false; chatTab = 'mp'; chatErr = ''; view = 'chat';
+  render();
+  await mpFil(false);
+  chatPaint(); mpLu(id);
+}
+async function mpLu(id){
+  const f = mpFils.find(x => x.id === id); if (!f || !f.nonLus) return;
+  f.nonLus = 0; renderTop();
+  try { await sb.rpc('mp_lire', { p_de:id }); } catch(e){}
+}
+function mpRecu(m){
+  const f = mpNoter(m.de, m.de_nom, m);
+  const dedans = mpAvec && mpAvec.id === m.de;
+  if (dedans && !mpMsgs.some(x => x.id === m.id)) mpMsgs.push(m);
+  if (dedans && view === 'chat' && chatTab === 'mp' && !inCombat){ chatPaint(); mpLu(m.de); }
+  else { f.nonLus++; toast(`Message privé de ${m.de_nom}`); if (view === 'chat') chatPaint(); }
+  renderTop();
+}
+function mpWatch(){
+  if (!netOn() || mpSub || !mpOk) return;
+  mpSub = sb.channel('mp-' + me.id)
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'mp', filter:'a=eq.' + me.id }, p => mpRecu(p.new))
+    .subscribe();
+}
+
 async function chatSend(){
   const el = $('#chatIn'); if (!el || chatSending) return;
   const texte = (el.value || '').trim().slice(0, 300);
   if (!texte) return;
   if (!netOn()){ chatErr = 'Il faut un compte pour écrire.'; return chatPaint(); }
+  const vers = chatTab === 'mp' ? mpAvec : null;
+  if (chatTab === 'mp' && !vers) return;
   chatSending = true; chatErr = ''; el.value = ''; chatPaint();
   try {
-    const nom = (save.player && save.player.name) || 'Invocateur';
-    const { error } = await sb.from('chat').insert({ user_id:me.id, nom, texte });
-    if (error) chatErr = 'Message refusé par le serveur.';
+    if (vers){
+      const { data, error } = await sb.from('mp').insert({ de:me.id, de_nom:monNom(), a:vers.id, a_nom:vers.nom, texte }).select().single();
+      if (error) chatErr = 'Message refusé par le serveur.';
+      else { mpNoter(vers.id, vers.nom, data); if (mpAvec === vers) mpMsgs.push(data); }
+    } else {
+      const { error } = await sb.from('chat').insert({ user_id:me.id, nom:monNom(), texte });
+      if (error) chatErr = 'Message refusé par le serveur.';
+    }
   } catch(e){ chatErr = 'Le serveur n\'a pas répondu.'; }
   chatSending = false; chatPaint();
+  const again = $('#chatIn'); if (again) again.focus();
 }
 
 const SAVE_KEY = 'idd-save-v3';
@@ -2678,7 +2810,8 @@ function renderTop(){
   const tabs = [['jouer','Jouer'],['equipe','Équipe'],['trophees','Inventaire'],['invocation','Invocation'],
     ['succes','Succès' + (ready ? ` <b class="tabn">${ready}</b>` : '')]];
   if (sb) tabs.push(['hdv', 'Hôtel de vente' + (hdvGains.length ? ` <b class="tabn">${hdvGains.length}</b>` : '')]);
-  if (sb) tabs.push(['chat', 'Chat' + (chatUnread ? ` <b class="tabn">${chatUnread}</b>` : '')]);
+  const nonLus = chatUnread + mpNonLus();
+  if (sb) tabs.push(['chat', 'Chat' + (nonLus ? ` <b class="tabn">${nonLus}</b>` : '')]);
   const cur = ['donjons','arene','boss'].includes(view) ? 'jouer' : view;   // ces vues sont des enfants du hub
   $('#tabs').innerHTML = tabs.map(([v,l]) => `<button data-act="nav" data-v="${v}" ${cur === v ? 'aria-current="page"' : ''}>${l}</button>`).join('');
 }
@@ -2894,33 +3027,73 @@ function volModal(){
     </div></div></div>`;
 }
 // Équipe pleine : au lieu de refuser, on demande qui remplacer
-// ---------- Chat public
-function chatPaint(){
-  const box = $('#chatList'); if (!box) return;
-  box.innerHTML = chatMsgs.map(m => {
-    const mien = save.player && m.nom === save.player.name;
-    const h = new Date(m.cree_le);
-    const hh = isNaN(h) ? '' : `${String(h.getHours()).padStart(2,'0')}:${String(h.getMinutes()).padStart(2,'0')}`;
-    return `<li class="${mien ? 'mien' : ''}"><span class="qui">${esc(m.nom)}</span><span class="txt">${esc(m.texte)}</span><span class="hh">${hh}</span></li>`;
-  }).join('') || '<li class="vide">Personne n\'a encore parlé. Lance-toi.</li>';
-  box.scrollTop = box.scrollHeight;
+// ---------- Chat : monde et messages privés
+const chatHeure = iso => {
+  const h = new Date(iso); if (isNaN(h)) return '';
+  const p = n => String(n).padStart(2, '0'), hm = `${p(h.getHours())}:${p(h.getMinutes())}`;
+  return h.toDateString() === new Date().toDateString() ? hm : `${p(h.getDate())}/${p(h.getMonth() + 1)} ${hm}`;
+};
+const mpLigne = (id, nom, sub, hh, n) => `<button class="mprow" data-act="mpOuvrir" data-id="${id}" data-nom="${esc(nom)}">
+  <b>${esc(nom)}${n ? ` <span class="tabn">${n}</span>` : ''}</b><span class="hh">${hh}</span><span class="sub">${sub}</span></button>`;
+// garde : on vient d'ajouter des messages anciens au-dessus, la lecture ne doit pas sauter.
+function chatPaint(garde){
   const e = $('#chatErr'); if (e) e.textContent = chatErr;
+  const tr = $('#mpTrouves');
+  if (tr) tr.innerHTML = mpTrouves.map(j => mpLigne(j.user_id, j.nom, 'Écrire un message', '', 0)).join('')
+    || (mpQ.trim().length >= 2 ? '<span class="muted">Aucun joueur à ce nom.</span>' : '');
+  const fils = $('#mpFils');
+  if (fils) fils.innerHTML = mpFils.map(f => mpLigne(f.id, f.nom,
+      (f.dernier.de === me.id ? 'Toi : ' : '') + esc(f.dernier.texte), chatHeure(f.dernier.cree_le), f.nonLus)).join('')
+    || '<span class="muted">Aucune conversation. Cherche un pseudo, ou touche un nom dans le chat monde.</span>';
+  const box = $('#chatList'); if (!box) return;
+  const mp = chatTab === 'mp', msgs = mp ? mpMsgs : chatMsgs, fin = mp ? mpFin : chatFin;
+  const bas = box.scrollHeight - box.scrollTop;
+  const plus = msgs.length && !fin ? '<li class="plus"><button class="btn grey sm" data-act="chatPlus">Messages plus anciens</button></li>' : '';
+  box.innerHTML = plus + msgs.map(m => {
+    const de = mp ? m.de : m.user_id, nom = mp ? m.de_nom : m.nom;
+    const mien = !!me && de === me.id;
+    const qui = !mp && me && !mien && de && mpOk
+      ? `<button class="qui" data-act="mpOuvrir" data-id="${de}" data-nom="${esc(nom)}" title="Envoyer un message privé">${esc(nom)}</button>`
+      : `<span class="qui">${esc(nom)}</span>`;
+    return `<li class="${mien ? 'mien' : ''}">${qui}<span class="txt">${esc(m.texte)}</span><span class="hh">${chatHeure(m.cree_le)}</span></li>`;
+  }).join('') || `<li class="vide">${mp ? 'Aucun message encore. Écris le premier.' : 'Personne n\'a encore parlé. Lance-toi.'}</li>`;
+  box.scrollTop = garde ? box.scrollHeight - bas : box.scrollHeight;
 }
 function viewChat(){
-  chatUnread = 0;
   const peut = netOn();
-  setTimeout(chatPaint, 0);
-  return `<section class="win"><div class="wt"><h2>Chat<small>${sb ? 'en direct' : 'hors ligne'}</small></h2></div>
-    <div class="wb" style="display:grid; gap:8px">
-      ${!sb ? '<p class="hint" style="margin:0">Le chat demande une connexion au serveur, qui n\'est pas configurée.</p>' : ''}
-      <ul class="chatlist" id="chatList"></ul>
-      <div class="chatsend">
-        <input class="search" id="chatIn" maxlength="300" placeholder="${peut ? 'Ton message…' : 'Crée un compte pour écrire'}" ${peut ? '' : 'disabled'} aria-label="Message">
-        <button class="btn" data-act="chatSend" ${peut ? '' : 'disabled'}>Envoyer</button>
-      </div>
-      <div class="upmsg ko" id="chatErr"></div>
-      ${peut ? '' : '<p class="hint" style="margin:0">Tu lis le chat sans compte, mais il en faut un pour écrire. Crée-le depuis le launcher.</p>'}
-    </div></section>`;
+  if (!peut) chatTab = 'monde';
+  if (chatTab === 'monde') chatUnread = 0;
+  else if (mpAvec) mpLu(mpAvec.id);
+  setTimeout(() => { chatPaint(); renderTop(); }, 0);
+  const nl = mpNonLus();
+  const onglets = peut ? `<div class="row modes">
+    <button class="btn grey sm" data-act="chatTab" data-v="monde" aria-pressed="${chatTab === 'monde'}">Monde${chatUnread ? ` <b class="tabn">${chatUnread}</b>` : ''}</button>
+    <button class="btn grey sm" data-act="chatTab" data-v="mp" aria-pressed="${chatTab === 'mp'}">Messages privés${nl ? ` <b class="tabn">${nl}</b>` : ''}</button></div>` : '';
+  const win = (titre, sous, c) => `<section class="win"><div class="wt"><h2>${titre}<small>${sous}</small></h2></div>
+    <div class="wb" style="display:grid; gap:8px">${c}</div></section>`;
+  const saisie = (ok, ph) => `<div class="chatsend">
+      <input class="search" id="chatIn" maxlength="300" placeholder="${ph}" ${ok ? '' : 'disabled'} aria-label="Message">
+      <button class="btn" data-act="chatSend" ${ok ? '' : 'disabled'}>Envoyer</button>
+    </div>
+    <div class="upmsg ko" id="chatErr"></div>`;
+
+  if (chatTab === 'mp' && !mpOk) return onglets + win('Messages privés', 'indisponibles',
+    '<p style="margin:0">Les messages privés ne sont pas encore activés sur le serveur : il reste à passer <b>CHAT.sql</b> dans Supabase.</p>');
+  if (chatTab === 'mp' && mpAvec) return onglets + win(esc(mpAvec.nom), 'message privé', `
+    <div class="row"><button class="btn grey sm" data-act="mpRetour">‹ Conversations</button></div>
+    <ul class="chatlist" id="chatList"></ul>
+    ${saisie(true, 'Ton message à ' + esc(mpAvec.nom) + '…')}`);
+  if (chatTab === 'mp') return onglets + win('Messages privés', `${mpFils.length} conversation${mpFils.length > 1 ? 's' : ''}`, `
+    <input class="search" id="mpQ" placeholder="Écrire à un joueur : son pseudo" value="${esc(mpQ)}" aria-label="Chercher un joueur">
+    <div class="mplist" id="mpTrouves"></div>
+    <div class="band"><span>Conversations</span></div>
+    <div class="mplist" id="mpFils"></div>
+    <div class="upmsg ko" id="chatErr"></div>`);
+  return onglets + win('Chat monde', sb ? 'en direct' : 'hors ligne', `
+    ${!sb ? '<p class="hint" style="margin:0">Le chat demande une connexion au serveur, qui n\'est pas configurée.</p>' : ''}
+    <ul class="chatlist" id="chatList"></ul>
+    ${saisie(peut, peut ? 'Ton message…' : 'Crée un compte pour écrire')}
+    ${peut ? '' : '<p class="hint" style="margin:0">Tu lis le chat sans compte, mais il en faut un pour écrire. Crée-le depuis le launcher.</p>'}`);
 }
 function teamModal(){
   if (teamPick == null) return '';
@@ -3955,6 +4128,7 @@ document.addEventListener('change', e => {
 document.addEventListener('input', e => {
   if (e.target.id === 'fSeuil'){ filt.seuil = +e.target.value; render(); }
   if (e.target.id === 'hdvQ'){ hdvQ = e.target.value; clearTimeout(hdvT); hdvT = setTimeout(() => hdvCharger().then(render), 350); }
+  if (e.target.id === 'mpQ'){ mpQ = e.target.value; clearTimeout(mpT); mpT = setTimeout(() => mpChercher().then(() => chatPaint()), 300); }
   if (e.target.id === 'dq'){ dq = e.target.value; $('#dlist').innerHTML = dgListHtml(); }
   if (e.target.id === 'eq'){
     ency.q = e.target.value; ency.n = 60;
@@ -3987,7 +4161,7 @@ const CELLS = {
   // alliés à gauche, ennemis à droite, en miroir : les sprites (tournés vers la droite, ennemis retournés) se regardent
   // A10 : placement à 10 (boss mondial), sur deux rangs
   desk: { tw:12, dy:.55, A:[[-3,0],[-3,3],[-3,6]], B:[[0,-3],[3,-3],[6,-3]], A10:[[-3,-2],[-3,0],[-3,2],[-3,4],[-3,6],[-5,-1],[-5,1],[-5,3],[-5,5],[-5,7]] },
-  mob:  { tw:8,  dy:.3,  A:[[-5,-2],[-3,2],[1,4]], B:[[-2,-5],[2,-3],[4,1]], A10:[[-4,-2],[-2,0],[0,2],[2,4],[4,6],[-5,-1],[-3,1],[-1,3],[1,5],[3,7]] },
+  mob:  { tw:8,  dy:1,  A:[[-5,-2],[-3,2],[1,4]], B:[[-2,-5],[2,-3],[4,1]], A10:[[-4,-2],[-2,0],[0,2],[2,4],[4,6],[-5,-1],[-3,1],[-1,3],[1,5],[3,7]] },
 };
 
 // dg : un niveau (ou son index dans le mode affiché), ou un combat spécial (arène, boss mondial) avec ses propres règles :
@@ -4049,8 +4223,11 @@ function layoutField(){
   const basBande  = (() => { const e = $('#spellbar'); return e ? e.offsetHeight + 10 : 0; })();
   const Hu = Math.max(120, H - hautBande - basBande);         // hauteur réellement jouable
   // Vraie map : la grille et les sprites sont calés sur la taille des cases de l'image, pour que les monstres soient à l'échelle du décor
-  const dg = curStage, real = !!(dg.mapId && IMG_OK), zoom = real ? (W < 560 ? 1 : 1.5) : 1;
-  const tw = real ? Math.max(W, Hu*MAP_AR) * zoom / MAP_CELLS : W / L.tw, cx = W/2, cy = hautBande + Hu/2 + tw*L.dy, cells = [];
+  const dg = curStage, real = !!(dg.mapId && IMG_OK), zoom = real ? (W < 560 ? 1.3 : 1.5) : 1;
+  // Le décor remplit toute l'arène, bandes comprises : c'est sur cette échelle-là que se règle la taille d'une case.
+  // Au format téléphone, on plafonne pour que les deux colonnes de trois tiennent entre les bandes.
+  const twMap = Math.max(W, H*MAP_AR) * zoom / MAP_CELLS;
+  const tw = real ? (W < 560 ? Math.min(twMap, Hu / 5, W / 6.6) : twMap) : W / L.tw, cx = W/2, cy = hautBande + Hu/2 + tw*L.dy, cells = [];
   field.classList.toggle('real', real); fxSize();
   if (real) field.style.setProperty('--tok', tw*.78 + 'px'); else field.style.removeProperty('--tok');
   for (const u of Engine.all(state)){
@@ -4734,6 +4911,7 @@ function lauStart(){
   $('#wrap').hidden = false;
   render(); window.scrollTo(0,0);
   if (sb) chatLoad().then(() => { chatWatch(); if (view === 'chat') chatPaint(); });
+  if (netOn()){ netAnnoncer(); mpCharger().then(() => { mpWatch(); renderTop(); if (view === 'chat') chatPaint(); }); }
   if (sb) hdvCharger().then(renderTop);   // pour la pastille des ventes conclues
 }
 
@@ -4765,6 +4943,10 @@ Object.assign(ACT, {
   async hdvReprendre(d){ await hdvReprendre(+d.id); toast('Lot repris.'); render(); },
   hdvEncaisser(){ hdvEncaisser(); },
   chatSend(){ chatSend(); },
+  chatTab(d){ chatTab = d.v; chatErr = ''; render(); },
+  async chatPlus(){ await (chatTab === 'mp' ? mpFil(true) : chatLoad(true)); chatPaint(true); },
+  mpOuvrir(d){ mpQ = ''; mpTrouves = []; mpOuvrir(d.id, d.nom); },
+  mpRetour(){ mpAvec = null; mpMsgs = []; chatErr = ''; render(); },
   voirGear(d){ const g = GEAR.find(x => x.id === +d.id); if (g){ apercu = { t:'g', def:g }; render(); } },
   voirTro(d){ const i = (ITEM_SKINS.normal.concat(ITEM_SKINS.legend)).find(x => x.id === +d.id);
     if (i){ apercu = { t:'i', def:i, legend:ITEM_SKINS.legend.includes(i) }; render(); } },
