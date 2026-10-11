@@ -569,6 +569,14 @@ body.in-combat .tabs{display:none}
 
 /* Vitesse, auto et son : à droite de l'ordre des tours, dans la même bande */
 .fctrl{flex:none; display:flex; gap:5px; align-items:center; padding-right:6px}
+/* Plein écran : la fenêtre de combat recouvre la page. Fait en CSS, car Safari sur iPhone n'ouvre pas
+   le vrai plein écran du navigateur pour autre chose qu'une vidéo. */
+body.fs{overflow:hidden}
+body.fs .cwin{position:fixed; inset:0; z-index:1000; margin:0; border-radius:0; display:flex; flex-direction:column;
+  height:100vh; height:100dvh; padding-top:env(safe-area-inset-top, 0px)}
+body.fs .cwin .wb{flex:1; min-height:0; padding:0; display:block}
+body.fs .cwin .field{aspect-ratio:auto; height:100%; max-height:none; min-height:0; border:0; border-radius:0}
+body.fs .cwin .hudbar{display:none}
 .fctrl .seg button{font-size:11px; padding:3px 7px}
 .fctrl .btn.sm{min-height:22px; padding:2px 9px}
 /* Ordre des tours puis sorts, sous l'arène et sur toute sa largeur */
@@ -874,7 +882,7 @@ body.in-combat .tabs{display:none}
   .ftip{display:none}
   .hudbar{display:none}   /* portrait et journal : sur téléphone l'arène dit déjà tout, on lui laisse la place */
   /* sur deux rangs, pour tenir à côté des portraits : vitesse au-dessus, auto et son dessous */
-  .fctrl{display:grid; grid-template-columns:1fr auto; gap:3px; padding-right:4px}
+  .fctrl{display:grid; grid-template-columns:auto 1fr auto; gap:3px; padding-right:4px}
   .fctrl .seg{grid-column:1 / -1}
   .fctrl .seg button{flex:1; font-size:10.5px; padding:2px 6px; min-height:20px}
   .fctrl .btn.sm{min-height:20px; padding:1px 7px; font-size:10.5px}
@@ -2678,8 +2686,8 @@ let volPick = null;    // objet porté par un autre monstre, en attente de confi
 let selKind = 'i';     // inventaire : « i » trophée ou Dofus, « g » équipement   // dans la fiche du monstre : la liste « Changer » est dépliée sous l'objet équipé
 let upFx = null;   // sous-effet à animer après une amélioration : { s, added, v }
 let lastSummon = null, upMsg = null, confirmKey = null, inCombat = false, curDg = 0, curStage = null;
-let speed = 1, auto = false;
-try { speed = Number(localStorage.getItem('idd-speed')) || 1; auto = localStorage.getItem('idd-auto') === '1'; } catch(e){}
+let speed = 1, auto = false, plein = false;
+try { speed = Number(localStorage.getItem('idd-speed')) || 1; auto = localStorage.getItem('idd-auto') === '1'; plein = localStorage.getItem('idd-fs') === '1'; } catch(e){}
 
 // Version de la sauvegarde. La porter à 3 met tout le monde à neuf : le passage à deux cents niveaux,
 // la courbe de puissance et la campagne réordonnée rendent les anciennes parties incohérentes.
@@ -2822,6 +2830,7 @@ function render(){
   if (!save) return;
   renderTop();
   document.body.classList.toggle('in-combat', inCombat);
+  if (!inCombat) document.body.classList.remove('fs');
   if (inCombat) return;
   const main = $('#main');
   if (view === 'hdv') main.innerHTML = viewHdv();
@@ -4188,7 +4197,8 @@ function startCombat(dg){
             <div class="timeline" id="timeline" aria-label="Ordre des tours"></div>
             <div class="fctrl">
               <div class="seg" role="group" aria-label="Vitesse" id="speedSeg"><button data-s="1">×1</button><button data-s="2">×2</button><button data-s="3">×3</button></div>
-              <button class="btn grey sm" id="autoBtn" aria-pressed="false">Auto</button>
+              <button class="btn grey sm" id="fsBtn" aria-pressed="false" title="Plein écran" aria-label="Plein écran">⛶</button>
+            <button class="btn grey sm" id="autoBtn" aria-pressed="false">Auto</button>
               <button class="btn grey sm" data-act="son" title="Couper ou remettre le son" aria-label="Son">${sonOn ? '♪' : '♪̸'}</button>
             </div>
           </div>
@@ -4208,6 +4218,9 @@ function startCombat(dg){
     auto = !auto; paintCtrls(); try { localStorage.setItem('idd-auto', auto ? '1' : '0'); } catch(e){}
     if (auto && pending){ const c = Engine.aiChoose(state, pending.actor); resolvePending(c.skill, c.target); }
   });
+  $('#fsBtn').addEventListener('click', () => {
+    plein = !plein; paintCtrls(); try { localStorage.setItem('idd-fs', plein ? '1' : '0'); } catch(e){}
+  });
   paintCtrls(); buildField(); setActive(null); renderSkills(null, true);
   log(`Combat engagé : ${dg.name}.`, 'sys');
   if (ro) ro.disconnect();
@@ -4218,6 +4231,8 @@ function startCombat(dg){
 function paintCtrls(){
   document.querySelectorAll('#speedSeg button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.s === speed)));
   const a = $('#autoBtn'); if (a) a.setAttribute('aria-pressed', String(auto));
+  const f = $('#fsBtn'); if (f) f.setAttribute('aria-pressed', String(plein));
+  document.body.classList.toggle('fs', plein && inCombat);
 }
 function layoutField(){
   if (!field || !field.isConnected) return;
