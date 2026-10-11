@@ -9,5 +9,5 @@
 
 ## En attente d'une image
 
-- **Icônes de l'ogrine et de l'encyclopédie.** Celles du bandeau sont dessinées à la main et ne sont pas
-  les vraies icônes de l'interface Dofus 2. Les remplacer dès qu'on a les images d'origine.
+- **Icône de l'encyclopédie.** Celle du bandeau est dessinée à la main et n'est pas la vraie icône de
+  l'interface Dofus 2. La remplacer dès qu'on a l'image d'origine (l'ogrine, elle, est la vraie).
