@@ -551,6 +551,12 @@ body.in-combat .tabs{display:none}
 .unit.targetable.adv .tag{display:block; background:#d3ebbf; color:#24470d}
 .unit.targetable.dis .tag{display:block; background:#f5cbbf; color:#7d1f0f}
 .unit.dead{filter:grayscale(1) brightness(.8); opacity:.45}
+/* Boss à plusieurs barres : le compteur, et une barre qui rougit à mesure qu'on les brise */
+.barn{position:absolute; right:-4px; top:6%; z-index:4; min-width:22px; padding:1px 5px; border-radius:9px; background:#8c1b0b; color:#fff;
+  border:1px solid #fff; font-size:11px; line-height:14px; text-shadow:none; box-shadow:0 1px 3px #0008}
+.unit[style*="--barc"] .bar.hp i{background:var(--barc)}
+/* Encerclement : les alliés placés à droite du boss se retournent vers lui */
+.unit.sideA.flip .spr{transform:scaleX(-1); animation-name:idleB}
 .unit.dead .token{transform:rotate(-80deg) scale(.85)}
 .unit.lungeA .token{animation:lungeA .35s ease-out}
 .unit.lungeB .token{animation:lungeB .35s ease-out}
@@ -993,7 +999,8 @@ body.fs .cwin .hudbar{display:none}
   <main id="main" style="display:grid; gap:12px"></main>
   <footer class="foot">
     <span class="credit">Invocateurs des Douze · fan game non officiel · données et images © Ankama, usage privé</span>
-    <span>Sauvegarde automatique dans ce navigateur.</span>
+    <span id="saveNote">Sauvegarde automatique dans ce navigateur.</span>
+    <button class="btn grey sm" data-act="optOpen">Compte</button>
     <button class="btn grey sm" data-act="copySave">Copier ma sauvegarde</button>
     <button class="btn grey sm" data-act="toggleImport">Importer</button>
     <button class="btn grey sm" data-act="resetSave" id="resetBtn">Nouvelle partie</button>
@@ -1003,6 +1010,7 @@ body.fs .cwin .hudbar{display:none}
       <div class="row"><button class="btn" data-act="doImport">Charger</button></div>
     </div>
   </footer>
+  <div id="optBox"></div>
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
@@ -1022,11 +1030,15 @@ const DMG_K = 0.45;   // calibré pour un coup d'environ 15 au niveau 1, et le m
 const BEATS = { feu:'air', air:'terre', terre:'eau', eau:'feu' };
 const ELEM = { terre:'Terre', feu:'Feu', eau:'Eau', air:'Air' };
 const MAX_LVL = 200;   // aligné sur les niveaux d'objets de Dofus : un donjon niveau 60 lâche de l'équipement niveau 60
-// Courbe de puissance : tout ce qui est brut — PV, ATK, DEF, apports d'objets — est multiplié par ce facteur.
-// Au niveau 1 il vaut 1, au niveau 40 environ 333 000, ce qui porte les coups de ~15 à ~5 millions.
-// Le rapport entre les forces ne bouge pas : il faut toujours le même nombre de coups pour abattre une cible.
-const POW_STEP = Math.pow(333000, 1 / (MAX_LVL - 1));
+// Courbe de puissance : tout ce qui est brut — PV, ATK, DEF, apports d'objets — gagne 2,5 % par niveau,
+// soit ×1,28 tous les dix niveaux et ×136 au niveau 200. Elle est volontairement douce : c'est la rareté,
+// l'équipement et les trophées qui font la force d'un monstre, le niveau ne fait qu'accompagner.
+// Repère : un 3 ★ de niveau 15 (×1,41) reste sous un 5 ★ de niveau 1 (voir NAT_K).
+const POW_STEP = 1.025;
 const pwrAt = lv => Math.pow(POW_STEP, Math.max(0, (lv || 1) - 1));
+// Étoiles naturelles : +12 % de PV, d'ATK et de DEF par étoile autour de 3 ★, en plus de l'écart déjà
+// inscrit dans les stats de base. Un 5 ★ vaut ainsi environ une fois et demie un 3 ★ du même niveau.
+const NAT_K = st => Math.pow(1.12, (st || 3) - 3);
 const SK_MAX = 5, SK_STEP = .08;   // niveaux de sort : +8 % d'effet par niveau, recharge −1 au niveau max
 
 const EFFECTS = {
@@ -1162,16 +1174,21 @@ function gearJet(lines){
 const JET_LABEL = j => j >= .97 ? 'Parfait' : j >= .8 ? 'Excellent' : j >= .6 ? 'Bon' : j >= .35 ? 'Correct' : 'Médiocre';
 const JET_CLASS = j => j >= .97 ? 'j-parfait' : j >= .8 ? 'j-excellent' : j >= .6 ? 'j-bon' : j >= .35 ? 'j-correct' : 'j-mediocre';
 // Apport d'un objet aux stats du jeu
-// Les valeurs d'un objet Dofus croissent avec son niveau — une coiffe de niveau 200 donne vingt-huit fois
-// plus de Vitalité qu'une de niveau 10 — alors que les stats d'un monstre ne font que tripler sur la même
-// plage. Sans correction, un set complet valait cinq fois le monstre en fin de jeu et le rendait accessoire.
-// Cette normalisation ramène l'apport à une part à peu près constante de ce que vaut la créature.
+// Les valeurs d'un objet Dofus croissent avec son niveau, mais pas au rythme de nos monstres : gearNorm les
+// ramène d'abord à une part comparable d'un niveau à l'autre, puis l'objet reçoit la puissance de SON niveau.
+// C'est donc le niveau de la pièce qui compte, pas celui du porteur : un set du niveau du monstre lui apporte
+// en gros la moitié de ses PV et de son ATK en plus au début, le double en fin de jeu ; le même set gardé
+// quarante niveaux trop longtemps n'en apporte plus qu'un tiers. Changer d'équipement se sent.
+// Comme dans Dofus, une pièce au-dessus du niveau du porteur ne donne pas tout : elle est bridée à son
+// niveau à lui (porteur), et se libère à mesure qu'il monte. Sans ça, un monstre de niveau 14 habillé en
+// niveau 40 traversait la campagne sans jamais avoir besoin de progresser.
 const gearNorm = lv => 1.4 / (.6 + Math.max(4, lv) * .055);
-function gearStats(it){
-  const out = {}, n = gearNorm(gearLvl(it));
+const GEAR_K = { hp:1.6, atk:2 };   // poids de l'équipement face aux stats de base
+function gearStats(it, porteur){
+  const out = {}, lv = gearLvl(it), n = gearNorm(lv), pw = pwrAt(porteur ? Math.min(lv, porteur) : lv);
   for (const l of it.lines || []){
     const m = CHAR_MAP[l.c]; if (!m) continue;
-    out[m[0]] = (out[m[0]] || 0) + l.v * m[1] * n;
+    out[m[0]] = (out[m[0]] || 0) + l.v * m[1] * n * (GEAR_K[m[0]] ? GEAR_K[m[0]] * pw : 1);
   }
   for (const k in out) out[k] = Math.round(out[k]);
   return out;
@@ -1202,21 +1219,22 @@ const fmtStat = (s,v) => `${STAT[s]} +${v}${PCT.has(s) ? ' %' : ''}`;
 const xpNeed = l => 80 + l*35;
 
 function computeStats(m, def){
-  const lv = def.level || 1, pwr = pwrAt(lv), k = (.55 + .45 * (lv - 1) / (MAX_LVL - 1)) * pwr;
-  const sk = def.starK || 1;   // étoiles gagnées par évolution
+  const lv = def.level || 1, k = pwrAt(lv);
+  const sk = (def.starK || 1) * NAT_K(m.stars);   // étoiles gagnées par évolution, et étoiles de naissance
   const b = { ...m.base }; b.hp *= k * sk; b.atk *= k * sk; b.def *= k * sk;
   if (def.awakened && m.awaken) for (const [s,v] of Object.entries(m.awaken.stats)) b[s] += v;
   if (def.boss){ const bm = def.bossMult || 2.4; b.hp *= bm; b.atk *= 1 + (bm - 1) * .07; }
   if (def.hpMult){ b.hp *= def.hpMult; b.atk *= def.atkMult || 1; }   // monstres des premières vagues
   const flat = { hp:0, atk:0, def:0, spd:0, crit:0, critDmg:0, acc:0, res:0 }, pct = { hp:0, atk:0, def:0 };
-  // Les apports chiffrés (PV, ATK, DEF, VIT) suivent la même courbe que les stats de base, sinon un trophée
-  // ou une pièce d'équipement ne pèserait plus rien passé les premiers niveaux. Les pourcentages, eux, ne bougent pas.
-  const SCALED = { hp:1, atk:1, def:1, spd:1 };
+  // Les apports chiffrés d'un trophée (PV, ATK, DEF) suivent la courbe du monstre qui le porte, sinon il ne
+  // pèserait plus rien passé les premiers niveaux. La vitesse, elle, ne suit aucune courbe — celle des monstres
+  // ne bouge pas avec le niveau — et les pourcentages non plus.
+  const SCALED = { hp:1, atk:1, def:1 };
   for (const it of def.items || []) for (const st of itemBonuses(it)){
     if (st.s.endsWith('Pct')) pct[st.s.slice(0,-3)] += st.v;
     else flat[st.s] += st.v * (SCALED[st.s] ? k : 1);
   }
-  for (const g of def.gear || []){ const st = gearStats(g); for (const q in st) if (q in flat) flat[q] += st[q] * (SCALED[q] ? k : 1); }
+  for (const g of def.gear || []){ const st = gearStats(g, lv); for (const q in st) if (q in flat) flat[q] += st[q]; }   // déjà à l'échelle du niveau de l'objet
   // Bonus de classe : ils ne valent que pour les monstres du joueur, jamais pour l'adversaire.
   if (def.mine){
     const C = clsFx();
@@ -1248,7 +1266,7 @@ const Engine = (() => {
     const swap = (def.awakened && m.awaken && m.awaken.swap) || {};
     const skills = m.skills.map(s => swap[s] || s), skl = {};
     skills.forEach((id, k) => { skl[id] = (def.sk && def.sk[k]) || 1; });
-    return { id: side + i, side, key: def.key, name: m.name, short: m.short, el: m.el, role: m.role, boss: !!def.boss,
+    return { id: side + i, side, key: def.key, name: m.name, short: m.short, el: m.el, role: m.role, boss: !!def.boss, bars: def.bars || null, bar: 0,
       level: def.level, awakened: !!def.awakened, gear: def.items || [], pos: POS[side][i], stats, hp: stats.hp,
       atb: 0, alive: true, effects: [], cds: {}, skills, skl };
   }
@@ -1334,7 +1352,14 @@ const Engine = (() => {
     dmg = Math.round(dmg * (.95 + rng()*.1));
     tgt.hp = Math.max(0, tgt.hp - dmg);
     ev.push({ t:'dmg', id:tgt.id, amount:dmg, crit, glance, adv, dis, hp:tgt.hp });
-    if (tgt.hp <= 0){ tgt.alive = false; tgt.atb = 0; tgt.effects = []; ev.push({ t:'death', id:tgt.id }); }
+    if (tgt.hp <= 0 && tgt.bars && tgt.bar < tgt.bars.n - 1){
+      // Boss à plusieurs barres de vie : la suivante est plus longue, et il frappe plus fort.
+      tgt.bar++;
+      tgt.stats = { ...tgt.stats, hp:Math.round(tgt.stats.hp * tgt.bars.hp), atk:Math.round(tgt.stats.atk * tgt.bars.atk) };
+      tgt.hp = tgt.stats.hp;
+      ev.push({ t:'bar', id:tgt.id, bar:tgt.bar, hp:tgt.hp });
+    }
+    else if (tgt.hp <= 0){ tgt.alive = false; tgt.atb = 0; tgt.effects = []; ev.push({ t:'death', id:tgt.id }); }
   }
   function resolveTargets(s, actor, sk, targetId){
     if (sk.target === 'enemy')      return [byId(s,targetId) || foes(s,actor)[0]].filter(u => u && u.alive && u.side !== actor.side);
@@ -1609,7 +1634,7 @@ const Eco = (() => {
     for (const uid of team || save.team){ const m = monByUid(save, uid); if (m){ const ups = addXp(m, Math.round(dg.xp * (C.xp || 1))); out.xp.push({ key:m.key, name:MONSTERS[m.key].name, ups, level:m.level }); } }
     // Chaque mode a son butin, et un seul : la campagne l'équipement, les raids les trophées,
     // les dragons leur Dofus (rare) accompagné de quelques pièces d'équipement.
-    const n = 1 + (R() < (dg.mode === 'camp' ? .4 : .5) * (C.drop || 1) ? 1 : 0), ilvl = dg.dofusLvl || dg.lvl;
+    const n = dg.mode === 'xp' ? 0 : 1 + (R() < (dg.mode === 'camp' ? .4 : .5) * (C.drop || 1) ? 1 : 0), ilvl = dg.dofusLvl || dg.lvl;
     out.gear = [];
     const dropGear = () => { const g = genGear(save, dg.lvl); if (g){ save.gear = save.gear || []; save.gear.push(g); out.gear.push(g); } };
     for (let i = 0; i < n; i++){
@@ -1936,7 +1961,7 @@ function themeFor(name, id){
 function rewardsFor(L){
   const rarity = L < 40 ? { normal:60, magique:30, rare:10 } : L < 80 ? { normal:35, magique:40, rare:20, heroique:5 } : L < 120 ? { normal:15, magique:40, rare:35, heroique:10 }
     : L < 150 ? { magique:35, rare:40, heroique:25 } : L < 180 ? { rare:45, heroique:55 } : { rare:30, heroique:70 };
-  return { kamas:[100 + L*6, 160 + L*8], xp:50 + L*9, stone:Math.min(.75, .3 + L/450), perfect:L >= 75 ? Math.min(.3, (L-60)/600) : 0, rarity };
+  return { kamas:[100 + L*6, 160 + L*8], xp:Math.round((50 + L*9) * XPK(L)), stone:Math.min(.75, .3 + L/450), perfect:L >= 75 ? Math.min(.3, (L-60)/600) : 0, rarity };
 }
 function buildCatalog(cat){
   const hand = {};
@@ -1996,12 +2021,8 @@ function buildCatalog(cat){
     if (!bossK && !normals.length) continue;
     const L = Math.max(2, Math.min(MAX_LVL, d.l));   // le niveau du donjon est celui du vrai jeu
     const pickN = i => normals.length ? normals[i % normals.length] : bossK;
-    // Les deux gardes du boss étaient à pleine puissance, là où toute la piétaille des salles précédentes
-    // est affaiblie : la dernière salle faisait donc un bond que rien n'annonçait. Mesuré sur des combats
-    // rejoués, une équipe nue au niveau du donjon ne la passait jamais. Leur malus s'atténue avec le niveau,
-    // ce qui rend le début abordable sans équipement et la fin impossible sans.
-    const g = GARDE(L), enemies = bossK
-      ? [{ key:pickN(0), level:Math.max(1, L-1), ...g }, { key:bossK, level:Math.min(MAX_LVL, L+1), boss:true, bossMult:Math.min(2.4, 1.3 + L/150), ...DEBUT(L) }, { key:pickN(1), level:L, ...g }]
+    const enemies = bossK
+      ? [{ key:pickN(0), level:Math.max(1, L-1), garde:true }, { key:bossK, level:Math.min(MAX_LVL, L+1), boss:true, bossMult:Math.min(2.4, 1.3 + L/150) }, { key:pickN(1), level:L, garde:true }]
       : [{ key:pickN(0), level:Math.max(1, L-1) }, { key:pickN(1), level:L }, { key:pickN(2), level:L }];
     dgs.push({ id:'d' + d.id, map:themeFor(d.n, d.id), mapId:d.mp || 0, maps:d.mps || [], pool:normals, name:d.n, lvl:L, dofusLvl:d.l,
       desc: bossK ? `Boss : ${MONSTERS[bossK].name}. Niveau Dofus conseillé : ${d.l}.` : `Niveau Dofus conseillé : ${d.l}.`, enemies, ...rewardsFor(L) });
@@ -2013,6 +2034,14 @@ function buildCatalog(cat){
   const bossHp = d => { const b = (d.enemies || []).find(e => e.boss) || (d.enemies || [])[0];
     return (b && MONSTERS[b.key] && MONSTERS[b.key].base.hp) || 0; };
   dgs.sort((a, b) => a.lvl - b.lvl || bossHp(a) - bossHp(b) || a.name.localeCompare(b.name, 'fr'));
+  // Gardes et boss reçoivent leur part de la difficulté du niveau (voir ENN). Le dernier palier compte à lui
+  // seul des dizaines de donjons de niveau 200 : il continue de durcir de l'un à l'autre, jusqu'à ×BAL.fin,
+  // pour que la fin de campagne reste une progression — celle de l'équipement et des trophées.
+  const fin = dgs.filter(d => d.lvl >= MAX_LVL);
+  for (const d of dgs){
+    const j = fin.indexOf(d); d.dur = j > 0 ? 1 + (BAL.fin - 1) * j / (fin.length - 1) : 1;
+    for (const e of d.enemies){ if (e.boss) Object.assign(e, ENN(d.lvl, 'boss', d.dur)); else if (e.garde) Object.assign(e, ENN(d.lvl, 'garde', d.dur)); }
+  }
   if (dgs.length){ DUNGEONS.length = 0; DUNGEONS.push(...dgs); }
   ITEM_SKINS = { normal:(cat.items || []).filter(i => i.t === 151), legend:(cat.items || []).filter(i => i.t === 23 || i.t === 217) };
   indexGear(cat.gear || []);
@@ -2063,19 +2092,37 @@ function starterKeys(){
    ===================================================================== */
 let CAT = null;
 const TRASH = { hpMult:.45, atkMult:.7 }, WAVE_HEAL = 30;   // % des PV max rendus aux survivants entre deux vagues
-// Gardes du boss en campagne : aussi faibles que la piétaille au niveau 1, presque à pleine puissance au
-// niveau 200. La progression au carré laisse le début et le milieu abordables, puis durcit nettement la fin.
-const GARDE = L => { const r = Math.pow(Math.min(1, L / MAX_LVL), 2);
-  const d = .7 + .3 * DEBUT_T(L);
-  return { hpMult: (.45 + r * .45) * d, atkMult: (.70 + r * .25) * d }; };
-// Boss du début de campagne. Les donjons montent de dix niveaux d'un coup alors qu'une équipe n'en gagne
-// qu'un ou deux par donjon : le boss du deuxième, niveau 21, se présentait devant une équipe de niveau 10
-// et ne tombait que 3 fois sur 100 sur des combats rejoués. Ses PV et sa frappe sont donc allégés, de
-// beaucoup au niveau 10 (PV ×0,35) à plus du tout au niveau 90, où l'équipement fait la différence.
-const DEBUT_T = L => Math.min(1, Math.max(0, (L - 10) / 80));
-const DEBUT = L => { const t = DEBUT_T(L); return { hpMult: .35 + .65 * t, atkMult: .55 + .45 * t }; };
-const STAGES = { camp:[], raid:[], dragon:[] };
-const MODE_LABEL = { camp:'Campagne', raid:'Raids', dragon:'Dragons' };
+// Difficulté de la campagne. Les ennemis ne portent ni équipement ni trophées : leur force vient de ces
+// multiplicateurs, qui montent avec le niveau du donjon pour suivre ce qu'un joueur a accumulé à ce stade.
+// PV ×DIFF, ATK ×√DIFF — sinon les combats de fin de jeu se joueraient en un coup. Chaque rôle a sa part :
+// la piétaille des premières salles, les deux gardes du boss, le boss lui-même.
+const BAL = { trash:[.45, .7], garde:[.6, .8], boss:[1, 1], xp0:3, xpFin:60,
+  diff:[[10, .6], [20, 1.1], [30, 1.2], [40, 1.5], [60, 2.1], [70, 2.8], [80, 3], [90, 2.3], [100, 2.7], [150, 3.4], [200, 4.2]], fin:2 };   // [niveau du donjon, difficulté], interpolé entre deux points
+const DIFF = L => { const T = BAL.diff; if (L <= T[0][0]) return T[0][1];
+  for (let i = 1; i < T.length; i++) if (L <= T[i][0]){ const [a, x] = T[i-1], [b, y] = T[i]; return x + (y - x) * (L - a) / (b - a); }
+  return T[T.length - 1][1]; };
+const ENN = (L, role, x = 1) => { const d = DIFF(L) * x, [h, a] = BAL[role]; return { hpMult:h * d, atkMult:a * Math.sqrt(d) }; };
+// XP : généreuse sur les premiers donjons, pour que le début file, puis au tarif normal.
+const XPK = L => 1 + (BAL.xp0 - 1) * Math.max(0, 1 - (L - 10) / (BAL.xpFin - 10));
+const STAGES = { camp:[], xp:[], raid:[], dragon:[] };
+const MODE_LABEL = { camp:'Campagne', xp:'Dojo', raid:'Raids', dragon:'Dragons' };
+// Dojo : le mode d'entraînement. Trois salles de piétaille, sans boss ni butin, pour trois fois l'expérience
+// d'un donjon du même niveau. C'est là qu'on monte un monstre fraîchement invoqué ou une équipe en retard,
+// plutôt qu'en refaisant vingt fois le même donjon.
+const DOJO_XP = 3;
+function dojoStages(){
+  const out = [];
+  for (let L = 10; L <= MAX_LVL; L += 10){
+    const src = STAGES.camp.filter(d => d.lvl <= L).pop() || STAGES.camp[0]; if (!src) break;
+    const pool = [...new Set(src.waves.flat().filter(e => !e.boss).map(e => e.key))], m = ENN(L, 'trash');
+    const salle = (i, n) => Array.from({ length:n }, (_, k) => ({ key:pool[(i + k) % pool.length], level:clampL(L - 1), ...m }));
+    const waves = [salle(0, 2), salle(1, 3), salle(2, 3)];
+    out.push({ id:`xp:${L}`, mode:'xp', grp:'dojo', gname:'Dojo', short:`Niveau ${L}`, name:`Dojo · niveau ${L}`, map:src.map, mapId:src.mapId || 0, maps:null, lvl:L, dofusLvl:0,
+      desc:'Entraînement : beaucoup d\'expérience, aucun butin.', enemies:waves[2], waves, req:L > 10 ? `xp:${L - 10}` : null,
+      kamas:[20 + L, 40 + 2 * L], xp:Math.round((50 + L * 9) * DOJO_XP), rarity:{} });
+  }
+  return out;
+}
 // boss : nom du monstre dans le catalogue · mains : effets principaux des trophées lâchés
 const RAID_DEFS = [
   { k:'meulou', boss:/^meulou$/,      mains:['atk','atkPct','crit','critDmg'], tag:'trophées offensifs (ATK, critiques)' },
@@ -2095,9 +2142,9 @@ const DRAGON_DEFS = [
 ];
 const clampL = l => Math.max(1, Math.min(MAX_LVL, l));
 // rooms : nombre de vagues, la dernière étant `last`. En donjon (5 salles), les deux premières salles n'ont que 2 monstres.
-function wavesFor(pool, L, last, rooms = 3){
+function wavesFor(pool, L, last, rooms = 3, mult = TRASH){
   const p = pool.length ? pool : [last[0].key], n = rooms - 1;
-  const w = i => Array.from({ length: rooms > 3 && i < 2 ? 2 : 3 }, (_, k) => ({ key:p[(i+k) % p.length], level:clampL(L - (i < n/2 ? 2 : 1)), ...TRASH }));
+  const w = i => Array.from({ length: rooms > 3 && i < 2 ? 2 : 3 }, (_, k) => ({ key:p[(i+k) % p.length], level:clampL(L - (i < n/2 ? 2 : 1)), ...mult }));
   return [...Array.from({ length:n }, (_, i) => w(i)), last];
 }
 const ROOMS = 5;
@@ -2116,11 +2163,11 @@ function bossStages(defs, mode, floors, lvStep, mult0, multStep, lv0 = 0){
     const place = src ? src.n : `Repaire de ${MONSTERS[bossK].name}`, bn = MONSTERS[bossK].name;
     for (let f = 1; f <= floors; f++){
       const L = clampL(lv0 + f * lvStep), id = `${mode}:${D.k}:${f}`;
-      const last = [{ key:pool[(f+1) % pool.length], level:clampL(L-1) }, { key:bossK, level:clampL(L+1), boss:true, bossMult:mult0 + f*multStep }, { key:pool[(f+2) % pool.length], level:L }];
+      const g = ENN(L, 'garde'), last = [{ key:pool[(f+1) % pool.length], level:clampL(L-1), ...g }, { key:bossK, level:clampL(L+1), boss:true, bossMult:mult0 + f*multStep, ...ENN(L, 'boss') }, { key:pool[(f+2) % pool.length], level:L, ...g }];
       const rw = rewardsFor(L), raid = mode === 'raid';
       out.push({ id, mode, grp:D.k, gname:place, short:`Étage ${f}`, name:`${place} · étage ${f}`, map:src ? themeFor(src.n, src.id) : 'grotte', mapId:src ? src.mp || 0 : 0, lvl:L, dofusLvl:0,
         desc: raid ? `${bn} lâche des ${D.tag}.` : `${bn} garde le ${DOFUS_NAMES[D.stat]} (${STAT_LONG[D.stat]}).`,
-        enemies:last, waves:wavesFor(pool, L, last), req:f > 1 ? `${mode}:${D.k}:${f-1}` : null,
+        enemies:last, waves:wavesFor(pool, L, last, 3, ENN(L, 'trash')), req:f > 1 ? `${mode}:${D.k}:${f-1}` : null,
         kamas:rw.kamas.map(k => Math.round(k*1.5)), xp:rw.xp,
         rarity: !raid ? { rare:50, heroique:50 } : f <= 3 ? { normal:30, magique:45, rare:25 } : f <= 6 ? { magique:35, rare:45, heroique:20 } : f <= 8 ? { rare:50, heroique:50 } : { rare:25, heroique:75 },
         mains:raid ? D.mains : null, dofus:raid ? null : D.stat, dofusRate:raid ? 0 : .02 + .008*f });   // un Dofus doit se raconter : de 2,8 % au premier étage à 8,4 % au dernier
@@ -2137,10 +2184,11 @@ function finalizeStages(){
     const pool = d.pool && d.pool.length ? d.pool : [...new Set(d.enemies.filter(e => !e.boss).map(e => e.key))];
     const id = `camp:${d.id}`;
     camp.push({ id, mode:'camp', grp:d.id, gname:d.name, short:d.name, name:d.name, lvl:d.lvl, dofusLvl:d.dofusLvl || 0, map:d.map, mapId:d.mapId || 0, maps:d.maps || null,
-      desc:d.desc, enemies:d.enemies, waves:wavesFor(pool, d.lvl, d.enemies, ROOMS), req:prev, kamas:d.kamas, xp:d.xp, rarity:d.rarity });
+      desc:d.desc, enemies:d.enemies, waves:wavesFor(pool, d.lvl, d.enemies, ROOMS, ENN(d.lvl, 'trash', d.dur || 1)), req:prev, kamas:d.kamas, xp:d.xp, rarity:d.rarity });
     prev = id;
   }
   STAGES.camp = camp;
+  STAGES.xp = dojoStages();
   STAGES.raid = bossStages(RAID_DEFS, 'raid', 10, 19, 1.25, .12, 10);   // 1er étage au niveau 29 : il faut avoir fait un bout de campagne et s'être équipé
   STAGES.dragon = bossStages(DRAGON_DEFS, 'dragon', 5, 40, 1.1, .22);
 }
@@ -2198,7 +2246,7 @@ function daily(save){
     const top = topMons(save, 3);
     save.arena = { day, base:Math.max(1, Math.round(top.reduce((t, m) => t + m.level, 0) / (top.length || 1))), done:[] };
   }
-  if (!save.wb || save.wb.day !== day) save.wb = { day, tries:0, best:(save.wb && save.wb.best) || 0, today:0 };
+  if (!save.wb || save.wb.day !== day) save.wb = { day, tries:0, bb:(save.wb && save.wb.bb) || 0, today:0 };   // bb : record en barres brisées
   return save;
 }
 // Les 10 adversaires du jour, du plus faible au plus fort : identiques toute la journée
@@ -2208,26 +2256,34 @@ function arenaFoes(save){
     const lo = Math.min(4, 1 + Math.floor(r / 3)), hi = Math.min(5, 2 + Math.floor(r / 2.5));
     let pool = keys.filter(k => MONSTERS[k].stars >= lo && MONSTERS[k].stars <= hi); if (pool.length < 3) pool = keys;
     const lvl = clampL(A.base - 2 + Math.round(r * .7));
-    const team = [0,1,2].map(() => ({ key:pool[Math.floor(rng() * pool.length)], level:lvl, hpMult:1 + r * .05, atkMult:1 + r * .02 }));
+    const team = [0,1,2].map(() => ({ key:pool[Math.floor(rng() * pool.length)], level:lvl, ...ENN(lvl, 'boss', .55 + r * .09) }));   // du plus tendre au plus coriace, à l'échelle de ce que porte un joueur de ce niveau
     return { r, name, lvl, team, gold:3 + Math.floor(r / 2), kamas:200 + r * 80, done:A.done.includes(r) };
   });
 }
-// Boss mondial : les 10 meilleurs monstres du joueur contre un boss increvable ; seul le total de dégâts compte
-const WB_TRIES = 3, WB_TEAM = 10, WB_TURNS = 160, WB_HP = 4000;
-const WB_TIERS = [   // dégâts minimum → rang et récompenses
-  { min:0,      rank:'D',  gold:2,  kamas:500,   stones:0 },
-  { min:3000,   rank:'C',  gold:5,  kamas:1500,  stones:0 },
-  { min:8000,   rank:'B',  gold:8,  kamas:3000,  stones:1 },
-  { min:16000,  rank:'A',  gold:12, kamas:6000,  stones:1 },
-  { min:30000,  rank:'S',  gold:18, kamas:10000, stones:2 },
-  { min:50000,  rank:'SS', gold:25, kamas:15000, stones:3 },
+// Boss mondial : les 10 meilleurs monstres du joueur l'encerclent. Il a WB_BARS barres de vie, chacune plus
+// longue que la précédente, et il frappe plus fort à chaque barre brisée : l'assaut commence doucement et se
+// durcit, au lieu de coucher l'équipe au premier tour. Il est du niveau moyen de l'équipe engagée, donc
+// jouable dès le début ; c'est le nombre de barres brisées qui fait le rang.
+const WB_TRIES = 3, WB_TEAM = 10, WB_TURNS = 300, WB_BARS = 10;
+const WB = { hp:5, atk:1.2, barHp:1.2, barAtk:1.6 };
+const WB_TIERS = [   // barres brisées → rang et récompenses
+  { min:0,  rank:'D',  gold:2,  kamas:500,   stones:0 },
+  { min:1,  rank:'C',  gold:5,  kamas:1500,  stones:0 },
+  { min:3,  rank:'B',  gold:8,  kamas:3000,  stones:1 },
+  { min:5,  rank:'A',  gold:12, kamas:6000,  stones:1 },
+  { min:7,  rank:'S',  gold:18, kamas:10000, stones:2 },
+  { min:9,  rank:'SS', gold:25, kamas:15000, stones:3 },
 ];
-const wbTier = dmg => WB_TIERS.filter(t => dmg >= t.min).pop();
+const wbTier = barres => WB_TIERS.filter(t => barres >= t.min).pop();
+const wbTxt = sc => sc.toFixed(1).replace('.', ',');
+const wbScore = boss => boss.bar + (boss.alive ? 1 - boss.hp / boss.stats.hp : 1);   // barres brisées, la dernière comptée au prorata
 function wbBoss(){
   const keys = Object.keys(MONSTERS), k = keys.filter(x => /^comte harebourg$/i.test(MONSTERS[x].name)).sort((a,b) => (MONSTERS[a].dofusLvl || 0) - (MONSTERS[b].dofusLvl || 0))[0]
     || keys.slice().sort((a,b) => MONSTERS[b].stars - MONSTERS[a].stars)[0];
   const src = CAT && CAT.dungeons.find(d => (d.b || []).some(id => 'm' + id === k));
-  return { key:k, mapId:src ? src.mp || 0 : 0, def:{ key:k, level:MAX_LVL, boss:true, bossMult:1, hpMult:WB_HP, atkMult:1.25 } };
+  const team = save ? topMons(save, WB_TEAM) : [], lvl = clampL(Math.round(team.reduce((t, m) => t + m.level, 0) / (team.length || 1)) || 1);
+  return { key:k, lvl, mapId:src ? src.mp || 0 : 0, def:{ key:k, level:lvl, boss:true, bossMult:1, hpMult:WB.hp, atkMult:WB.atk,
+    bars:{ n:WB_BARS, hp:WB.barHp, atk:WB.barAtk } } };
 }
 
 /* =====================================================================
@@ -2317,8 +2373,29 @@ async function netPush(force){
     return;
   }
   lastPush = now; clearTimeout(pushT); pushT = null;
+  save.uid = me.id;                                             // à qui appartient cette partie (voir netAdopter)
   try { await sb.from('saves').upsert({ user_id:me.id, data:save, updated_at:new Date().toISOString() }, { onConflict:'user_id' }); }
   catch(e){}
+}
+
+// ---- Changer de compte. Une partie locale porte l'identifiant du compte auquel elle appartient (save.uid) ;
+// sans identifiant, c'est une partie jouée sans compte. À la connexion :
+//   · le compte a déjà une partie en ligne → c'est elle qu'on charge (sauf si la copie locale du même compte est plus récente) ;
+//   · le compte est vide et la partie locale n'est à personne → elle devient celle de ce compte ;
+//   · le compte est vide et la partie locale est celle d'un autre compte → nouveau départ, sans rien écraser.
+// La partie qu'on quitte est mise de côté dans le navigateur, sous une clé à son nom, par sécurité.
+const cleDe = uid => SAVE_KEY + ':' + uid;
+async function netAdopter(){
+  if (!netOn()) return;
+  const ecrire = s => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch(e){} };
+  const remote = await netPull(), rOk = remote && saveOk(remote.data) && remote.data.player, rAt = rOk ? Date.parse(remote.updated_at) || 0 : 0;
+  const local = save && save.player ? save : null, aMoi = local && local.uid === me.id, aAutre = local && local.uid && !aMoi;
+  if (aAutre) try { localStorage.setItem(cleDe(local.uid), JSON.stringify(local)); } catch(e){}
+  let cote = null; try { cote = JSON.parse(localStorage.getItem(cleDe(me.id)) || 'null'); } catch(e){}
+  const cands = [rOk && { s:remote.data, at:rAt }, aMoi && { s:local, at:local.at || 0 }, saveOk(cote) && cote.player && { s:cote, at:cote.at || 0 }].filter(Boolean).sort((a, b) => b.at - a.at);
+  if (cands.length){ save = cands[0].s; save.uid = me.id; ecrire(save); if (cands[0].s !== (rOk && remote.data)) await netPush(true); }
+  else if (local && !local.uid){ save.uid = me.id; ecrire(save); await netPush(true); }
+  else { save = null; try { localStorage.removeItem(SAVE_KEY); } catch(e){} }
 }
 
 // ---- Hôtel de vente. Reprend les règles du jeu : vingt emplacements par compte, taxe prélevée à la mise
@@ -2709,6 +2786,7 @@ function loadSave(){
 const saveOk = s => !!(s && s.v === SAVE_V && s.cat === CAT_MODE && Array.isArray(s.monsters));
 
 function persist(){ if (save) save.at = Date.now();   // horodatage : arbitre entre la partie locale et celle du compte
+  if (save && netOn()) save.uid = me.id;
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch(e){}
   if (netOn()) netPush(); }
 let toastT = null;
@@ -2741,7 +2819,7 @@ const starSvg = `<svg viewBox="0 0 34 34" aria-hidden="true"><path d="M17 1.5l4.
 const teamMons = () => save.team.map(uid => Eco.monByUid(save, uid)).filter(Boolean);
 // Une équipe mémorisée par mode : on ne refait pas sa composition à chaque fois qu'on change de contenu.
 // save.team reste l'équipe qui part au combat ; les autres sont rangées dans save.teams.
-const TEAM_MODES = [['camp','Campagne'],['raid','Raids'],['dragon','Dragons'],['arene','Arène'],['rta','Arène en direct']];
+const TEAM_MODES = [['camp','Campagne'],['xp','Dojo'],['raid','Raids'],['dragon','Dragons'],['arene','Arène'],['rta','Arène en direct']];
 let teamCtx = 'camp';   // mode dont on modifie l'équipe dans l'onglet Équipe
 const teamOf = m => { save.teams = save.teams || {}; return save.teams[m] || []; };
 // Charge l'équipe du mode avant d'y jouer ; si elle est vide, on garde celle en place
@@ -2943,6 +3021,7 @@ const stageBoss = d => {
 };
 const MODE_CARD = {
   camp:   { t:'Campagne', s:'Donjons, équipement et progression',  col:'#5c8a35', u:'niveaux' },
+  xp:     { t:'Dojo',     s:'Entraînement : triple expérience, sans butin', col:'#2f7f8f', u:'paliers' },
   raid:   { t:'Raids',    s:'La seule source de trophées',         col:'#c25e0a', u:'étages' },
   dragon: { t:'Dragons',  s:'Les Dofus, gardés par leurs dragons', col:'#7a3fb0', u:'étages' },
 };
@@ -2971,7 +3050,7 @@ function viewJouer(){
   const W = daily(save).wb, B = wbBoss();
   cards.push(modeCard({ t:'Boss mondial', s:'Trois assauts par jour, récompense au score', col:'#2f7bc8', act:'nav', v:'boss',
     art: portrait(B.key, 56, { badge:false }), r: W.tries / WB_TRIES,
-    n: `${W.tries} / ${WB_TRIES} assauts${W.best ? ` · record ${fmt(W.best)}` : ''}` }));
+    n: `${W.tries} / ${WB_TRIES} assauts${W.bb ? ` · record ${wbTxt(W.bb)} barres` : ''}` }));
   return `<section class="win"><div class="wt"><h2>Jouer</h2></div>
     <div class="wb" style="display:grid; gap:10px">
       ${team.length ? '' : '<p class="hint" style="margin:0">Ajoute au moins un monstre à ton équipe avant de partir au combat.</p>'}
@@ -3039,6 +3118,48 @@ function volModal(){
     </div></div></div>`;
 }
 // Équipe pleine : au lieu de refuser, on demande qui remplacer
+// ---------- Compte : se connecter, se déconnecter, changer de compte
+let optOn = false, optMsg = '', optBusy = false;
+function optPaint(){
+  const box = $('#optBox'); if (!box) return;
+  const note = $('#saveNote');
+  if (note) note.textContent = netOn() ? 'Sauvegarde automatique sur ton compte, avec une copie dans ce navigateur.' : 'Sauvegarde automatique dans ce navigateur seulement.';
+  if (!optOn){ box.innerHTML = ''; return; }
+  const corps = !sb ? '<p style="margin:0">Le serveur en ligne n\'est pas configuré : la partie reste dans ce navigateur.</p>'
+    : me ? `<ul class="rows"><li><span>Compte</span><b style="overflow:hidden; text-overflow:ellipsis">${esc(me.email || 'connecté')}</b></li>
+        <li><span>Sauvegarde</span><b>en ligne + ce navigateur</b></li></ul>
+      <p class="hint" style="margin:0">Ta partie est envoyée sur ton compte à chaque changement : tu la retrouves sur n'importe quel appareil en te connectant.
+        Te déconnecter l'envoie une dernière fois, puis te laisse te connecter à un autre compte.</p>
+      <div class="row" style="justify-content:flex-end"><button class="btn" data-act="optOut" ${optBusy ? 'disabled' : ''}>Se déconnecter</button></div>`
+    : `<p class="hint" style="margin:0">Tu joues sans compte : la partie n'existe que dans ce navigateur. Connecte-toi pour charger la partie d'un compte ;
+        si le compte est neuf, c'est ta partie actuelle qui y sera rangée.</p>
+      <input class="search" id="optM" type="email" autocomplete="email" placeholder="Adresse électronique" aria-label="Adresse électronique">
+      <input class="search" id="optP" type="password" autocomplete="current-password" placeholder="Mot de passe" aria-label="Mot de passe">
+      <div class="row" style="justify-content:flex-end"><button class="btn grey" data-act="optNew" ${optBusy ? 'disabled' : ''}>Créer un compte</button>
+        <button class="btn" data-act="optIn" ${optBusy ? 'disabled' : ''}>Se connecter</button></div>`;
+  box.innerHTML = `<div class="over modal" data-act="optClose"><div class="win" style="width:min(420px,100%)" data-stop>
+    <div class="wt"><h2>Compte</h2><button class="x" data-act="optClose" aria-label="Fermer">×</button></div>
+    <div class="wb" style="display:grid; gap:9px">${corps}<div class="upmsg ko">${esc(optMsg)}</div></div></div></div>`;
+}
+async function optLogin(creer){
+  const mail = ($('#optM').value || '').trim(), pass = $('#optP').value || '';
+  if (!mail || !pass){ optMsg = 'Remplis les deux champs.'; return optPaint(); }
+  optBusy = true; optMsg = ''; optPaint();
+  const r = creer ? await netSignUp(mail, pass) : await netSignIn(mail, pass);
+  if (r.err || r.confirm){
+    optBusy = false; optMsg = r.err || 'Compte créé. Confirme ton adresse par courriel, puis reviens te connecter.';
+    optPaint(); const m = $('#optM'); if (m) m.value = mail; return;
+  }
+  await netAdopter();
+  location.reload();      // on repart du launcher, avec la bonne partie et les bons abonnements
+}
+async function optLogout(){
+  optBusy = true; optPaint();
+  if (save && save.player){ clearTimeout(pushT); await netPush(true); }      // dernier envoi avant de partir
+  await netSignOut();
+  location.reload();
+}
+
 // ---------- Chat : monde et messages privés
 const chatHeure = iso => {
   const h = new Date(iso); if (isNaN(h)) return '';
@@ -3199,7 +3320,9 @@ function gearLineHtml(l){
     <span class="rg">${l.a} à ${l.b}</span><span class="mini"><i style="width:${Math.round(r*100)}%"></i></span></li>`;
 }
 function gearDetail(it, mon, sl){
-  const d = gearDef(it), st = gearStats(it), owner = it.owner != null && Eco.monByUid(save, it.owner);
+  const owner = it.owner != null && Eco.monByUid(save, it.owner), porteur = mon || owner;
+  // L'apport affiché est celui que reçoit le porteur : une pièce au-dessus de son niveau est bridée (voir gearStats).
+  const d = gearDef(it), st = gearStats(it, porteur ? porteur.level : 0), bride = porteur && gearLvl(it) > porteur.level;
   const jp = Math.round(it.jet * 100);
   const mine = mon && mon.g && mon.g[sl] === it.id;
   return `<div class="gdet">
@@ -3210,6 +3333,7 @@ function gearDetail(it, mon, sl){
       <div style="display:grid; gap:7px; min-width:0">
         <ul class="gdlines">${(it.lines || []).map(gearLineHtml).join('')}</ul>
         <span class="muted" style="font-size:11.5px">Apport : ${Object.entries(st).map(([k,v]) => `${v > 0 ? '+' : ''}${fmt(v)} ${STAT_LONG[k] || k}`).join(' · ') || 'aucun'}</span>
+        ${bride ? `<span style="font-size:11.5px; color:var(--orange-dk)">Bridé au niveau ${porteur.level} de ${esc(MONSTERS[porteur.key].name)} : la pièce donnera davantage à mesure qu'il monte, jusqu'au niveau ${gearLvl(it)}.</span>` : ''}
         ${owner && !mine ? `<span class="muted" style="font-size:11.5px">Porté par ${esc(MONSTERS[owner.key].name)}</span>` : ''}
       </div>
     </div>
@@ -3904,28 +4028,28 @@ function wbFight(){
   const W = daily(save).wb; if (W.tries >= WB_TRIES) return toast('Tes 3 assauts du jour sont faits.');
   const B = wbBoss(), bn = MONSTERS[B.key].name;
   W.tries++; persist();   // l'assaut est compté dès le départ : fuir le consomme
-  startCombat({ id:'wb', mode:'wb', name:`Boss mondial · ${bn}`, map:'grotte', mapId:B.mapId, lvl:MAX_LVL, enemies:[B.def], waves:[[B.def]], back:'boss',
+  startCombat({ id:'wb', mode:'wb', name:`Boss mondial · ${bn}`, map:'grotte', mapId:B.mapId, lvl:B.lvl, enemies:[B.def], waves:[[B.def]], back:'boss',
     forceAuto:true, turnCap:WB_TURNS, endLabel:'Assaut terminé', team:() => topMons(save, WB_TEAM),
     finish(){
-      const boss = state.B[0], dmg = Math.max(0, boss.stats.hp - boss.hp), t = wbTier(dmg), W2 = daily(save).wb;
-      W2.today = Math.max(W2.today, dmg); W2.best = Math.max(W2.best, dmg);
+      const sc = wbScore(state.B[0]), t = wbTier(sc), W2 = daily(save).wb;
+      W2.today = Math.max(W2.today, sc); W2.bb = Math.max(W2.bb || 0, sc);
       save.gold += t.gold; save.kamas += t.kamas; save.stones += t.stones;
-      return `<div class="band">Dégâts infligés : ${fmt(dmg)} · rang ${t.rank}</div><div class="lootrow"><span class="cell r-legendaire" title="Parchemins dorés">${resIcon(GOLD_ICON, 36)}<span class="q">${t.gold}</span></span>
+      return `<div class="band">Barres brisées : ${wbTxt(sc)} / ${WB_BARS} · rang ${t.rank}</div><div class="lootrow"><span class="cell r-legendaire" title="Parchemins dorés">${resIcon(GOLD_ICON, 36)}<span class="q">${t.gold}</span></span>
         <span class="cell" title="Kamas">${kamaIcon(34)}<span class="lv">${fmt(t.kamas)}</span></span>${t.stones ? `<span class="cell r-heroique" title="Pierres d'âme pleines">${gemIcon('perfect', 36)}<span class="q">${t.stones}</span></span>` : ''}</div>`;
     } });
 }
 function viewBoss(){
   const W = daily(save).wb, B = wbBoss(), m = MONSTERS[B.key], team = topMons(save, WB_TEAM), cur = wbTier(W.today);
   return backToModes + `<div class="split"><section class="win"><div class="wt"><h2>${esc(m.name)}<small>boss mondial</small></h2></div><div class="wb" style="display:grid; gap:8px">
-      <div class="ehead">${portrait(B.key, 110, { badge:false })}<div><b>${ELEM[m.el]}</b> · increvable<br><span class="muted">L'assaut dure ${WB_TURNS} tours ou jusqu'à la chute de ton équipe. Seul le total de dégâts compte.</span></div></div>
-      <ul class="rows"><li><span>Assauts du jour</span><b>${W.tries} / ${WB_TRIES}</b></li><li><span>Meilleur du jour</span><b>${fmt(W.today)}${W.tries ? ` · rang ${cur.rank}` : ''}</b></li><li><span>Record personnel</span><b>${fmt(W.best)}</b></li></ul>
+      <div class="ehead">${portrait(B.key, 110, { badge:false })}<div><b>${ELEM[m.el]}</b> · niveau ${B.lvl} · ${WB_BARS} barres de vie<br><span class="muted">Chaque barre brisée en révèle une plus longue, et il frappe plus fort à chaque fois. L'assaut dure ${WB_TURNS} tours ou jusqu'à la chute de ton équipe : c'est le nombre de barres brisées qui fait ton rang.</span></div></div>
+      <ul class="rows"><li><span>Assauts du jour</span><b>${W.tries} / ${WB_TRIES}</b></li><li><span>Meilleur du jour</span><b>${wbTxt(W.today)} barre${W.today >= 2 ? 's' : ''}${W.tries ? ` · rang ${cur.rank}` : ''}</b></li><li><span>Record personnel</span><b>${wbTxt(W.bb || 0)} barre${(W.bb || 0) >= 2 ? 's' : ''}</b></li></ul>
       <div class="band">Ton équipe (${team.length} / ${WB_TEAM})</div>
       <div class="fchips">${team.map(x => `<span class="fchip" title="${esc(MONSTERS[x.key].name)}, niveau ${x.level}">${portrait(x.key, 40, { badge:false })}</span>`).join('') || '<span class="muted">Aucun monstre.</span>'}</div>
-      <p class="hint" style="margin:0">Tes 10 meilleurs monstres (étoiles puis niveau) partent automatiquement ; le combat se joue tout seul.</p>
+      <p class="hint" style="margin:0">Tes 10 meilleurs monstres (étoiles puis niveau) l'encerclent automatiquement ; le combat se joue tout seul. Le boss est du niveau moyen de cette équipe.</p>
       <footer class="row" style="justify-content:flex-end"><button class="btn" data-act="wbFight" ${W.tries < WB_TRIES && team.length ? '' : 'disabled'}>Lancer l'assaut</button></footer></div></section>
     <section class="win"><div class="wt"><h2>Récompenses</h2></div><div class="wb" style="display:grid; gap:8px">
-      <table class="restab"><thead><tr><th>Rang</th><th>Dégâts</th><th>Parchemins dorés</th><th>Kamas</th><th>Pierres</th></tr></thead><tbody>
-      ${WB_TIERS.slice().reverse().map(t => `<tr><td><b>${t.rank}</b></td><td>${fmt(t.min)}+</td><td>${t.gold}</td><td>${fmt(t.kamas)}</td><td>${t.stones || '—'}</td></tr>`).join('')}</tbody></table>
+      <table class="restab"><thead><tr><th>Rang</th><th>Barres</th><th>Parchemins dorés</th><th>Kamas</th><th>Pierres</th></tr></thead><tbody>
+      ${WB_TIERS.slice().reverse().map(t => `<tr><td><b>${t.rank}</b></td><td>${t.min}+</td><td>${t.gold}</td><td>${fmt(t.kamas)}</td><td>${t.stones || '—'}</td></tr>`).join('')}</tbody></table>
       <p class="hint" style="margin:0">Chaque assaut est récompensé selon son rang. Le classement entre joueurs et le boss partagé demandent un serveur en ligne : pour l'instant chacun affronte sa propre instance.</p></div></section></div>`;
 }
 
@@ -4247,11 +4371,18 @@ function layoutField(){
   // Le décor remplit toute l'arène, bandes comprises : c'est sur cette échelle-là que se règle la taille d'une case.
   // Au format téléphone, on plafonne pour que les deux colonnes de trois tiennent entre les bandes.
   const twMap = Math.max(W, H*MAP_AR) * zoom / MAP_CELLS;
-  const tw = real ? (W < 560 ? Math.min(twMap, Hu / 5, W / 6.6) : twMap) : W / L.tw, cx = W/2, cy = hautBande + Hu/2 + tw*L.dy, cells = [];
+  const cercle = dg.mode === 'wb';   // dix monstres autour du boss : des cases un peu plus petites sur téléphone, pour que le cercle tienne
+  const tw = real ? (W < 560 ? Math.min(twMap, Hu / 5, W / 6.6) * (cercle ? .8 : 1) : twMap) : W / L.tw, cx = W/2, cy = hautBande + Hu/2 + tw*L.dy, cells = [];
   field.classList.toggle('real', real); fxSize();
   if (real) field.style.setProperty('--tok', tw*.78 + 'px'); else field.style.removeProperty('--tok');
+  // Boss mondial : il est au centre et l'équipe l'encercle. Le cercle est une ellipse à l'écran (deux fois
+  // plus large que haute, comme les cases), ramenée ici aux coordonnées de la grille.
+  const R = cercle ? Math.min(W / tw * .5 - .95, Hu / tw - 1.4) : 0;
+  const autour = k => { const a = -Math.PI / 2 + (k + .5) * 2 * Math.PI / state.A.length; return [R * (Math.cos(a) + Math.sin(a)), R * (Math.sin(a) - Math.cos(a)), Math.cos(a) > .15]; };
   for (const u of Engine.all(state)){
-    const idx = +u.id.slice(1), [i,j] = u.side === 'A' ? (state.A.length > 3 ? L.A10 : L.A)[idx] : state.B.length === 1 ? L.B[1] : L.B[idx];
+    const idx = +u.id.slice(1), [i,j,flip] = cercle ? (u.side === 'A' ? autour(idx) : [.55, .55]) : u.side === 'A' ? (state.A.length > 3 ? L.A10 : L.A)[idx] : state.B.length === 1 ? L.B[1] : L.B[idx];
+    if (cercle) nodes[u.id].classList.toggle('flip', !!flip);
+    if (cercle && u.side === 'B') nodes[u.id].style.setProperty('--sz', Math.max(1.7, MONSTERS[u.key].sz || 1));   // au centre du cercle, il doit dominer
     const x = cx + (i-j)*tw/2, y = cy + (i+j)*tw/4, n = nodes[u.id];
     n.style.left = x + 'px'; n.style.top = (y + tw*.12) + 'px'; n.style.zIndex = Math.round(y);
     cells.push({ x, y, color: u.side === 'A' ? '#2b7bd6' : '#d8402b' });
@@ -4276,7 +4407,7 @@ function addUnit(u){
     n.innerHTML = `
       <div class="plate"><div class="nm"><span>${u.name}${u.awakened ? ' ✦' : ''}</span><small>${u.level}</small></div>
         <div class="bar hp"><i></i><span></span></div><div class="bar atb"><i></i></div><div class="fx"></div></div>
-      <button class="token" aria-label="${u.name}"><i class="ini">${u.short}</i>${elBadge(u.el)}${img ? `<img class="spr" src="${img}" alt="" data-fb>` : ''}<span class="tag"></span></button>
+      <button class="token" aria-label="${u.name}">${u.bars ? `<b class="barn" title="Barres de vie restantes">×${u.bars.n - u.bar}</b>` : ''}<i class="ini">${u.short}</i>${elBadge(u.el)}${img ? `<img class="spr" src="${img}" alt="" data-fb>` : ''}<span class="tag"></span></button>
       <div class="ring"></div>`;
     n.querySelector('.token').addEventListener('click', () => onUnitClick(u.id));
     n.addEventListener('mouseenter', () => { hoverId = u.id; renderInfo(); });
@@ -4427,6 +4558,7 @@ function onUnitClick(id){
 }
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target && e.target.id === 'chatIn'){ e.preventDefault(); return chatSend(); }
+  if (e.key === 'Enter' && e.target && e.target.id === 'optP'){ e.preventDefault(); return optLogin(false); }
   if (!inCombat || !pending || !['1','2','3'].includes(e.key)) return;
   const id = pending.actor.skills[+e.key - 1];
   if (id && !(pending.actor.cds[id] > 0)) onSkillClick(id);
@@ -4712,6 +4844,14 @@ async function play(events, my){
         pop(e.id, '−' + fmtC(e.amount), e.crit ? 'crit' : e.glance ? 'glance' : '');
         log(`${uname(e.id)} perd ${fmt(e.amount)} PV${e.crit ? ' (coup critique)' : e.glance ? ' (effleuré)' : ''}.`, 'dmg');
         await wait(nx && nx.t === 'dmg' && nx.id !== e.id ? 55 : 230); break;   // une zone touche toutes ses cibles presque en même temps
+      case 'bar': {
+        const u = Engine.byId(state, e.id), b = nodes[e.id].querySelector('.barn');
+        if (b) b.textContent = '×' + (u.bars.n - e.bar);
+        nodes[e.id].style.setProperty('--barc', `hsl(${Math.max(0, 28 - e.bar * 4)} 85% ${Math.max(30, 52 - e.bar * 2)}%)`);
+        setHp(e.id, e.hp); SON.critique(); pop(e.id, 'Barre brisée !', 'crit');
+        log(`${uname(e.id)} perd une barre de vie (${e.bar} / ${u.bars.n}) : il frappe plus fort.`, 'kill');
+        await wait(420); break;
+      }
       case 'heal':
         if (curCaster) tal(curCaster).heal += e.amount;
         setHp(e.id, e.hp); if (e.amount > 0){ healFx(e.id); SON.soin(); pop(e.id, '+' + fmtC(e.amount), 'heal'); log(`${uname(e.id)} récupère ${fmt(e.amount)} PV.`, 'heal'); }
@@ -4931,6 +5071,7 @@ function lauStart(){
   $('#wrap').hidden = false;
   render(); window.scrollTo(0,0);
   if (sb) chatLoad().then(() => { chatWatch(); if (view === 'chat') chatPaint(); });
+  optPaint();
   if (netOn()){ netAnnoncer(); mpCharger().then(() => { mpWatch(); renderTop(); if (view === 'chat') chatPaint(); }); }
   if (sb) hdvCharger().then(renderTop);   // pour la pastille des ventes conclues
 }
@@ -4963,6 +5104,9 @@ Object.assign(ACT, {
   async hdvReprendre(d){ await hdvReprendre(+d.id); toast('Lot repris.'); render(); },
   hdvEncaisser(){ hdvEncaisser(); },
   chatSend(){ chatSend(); },
+  optOpen(){ optOn = true; optMsg = ''; optBusy = false; optPaint(); },
+  optClose(){ if (optBusy) return; optOn = false; optPaint(); },
+  optIn(){ optLogin(false); }, optNew(){ optLogin(true); }, optOut(){ optLogout(); },
   chatTab(d){ chatTab = d.v; chatErr = ''; render(); },
   async chatPlus(){ await (chatTab === 'mp' ? mpFil(true) : chatLoad(true)); chatPaint(true); },
   mpOuvrir(d){ mpQ = ''; mpTrouves = []; mpOuvrir(d.id, d.nom); },
@@ -5060,11 +5204,13 @@ fetch('catalogue.json', { cache:'no-cache' })
         if (me){
           const remote = await netPull();
           const localAt = (save && save.at) || 0, remoteAt = remote ? Date.parse(remote.updated_at) || 0 : 0;
-          if (remote && saveOk(remote.data) && remoteAt > localAt){   // plus récente ET de cette version
+          const autre = !!(save && save.uid && save.uid !== me.id);   // la partie de ce navigateur est celle d'un autre compte
+          if (remote && saveOk(remote.data) && (autre || remoteAt > localAt)){   // plus récente ET de cette version
             save = remote.data;
             try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch(e){}
             lauTo(98, 'Partie récupérée depuis ton compte.');
-          } else lauTo(98, 'Compte connecté.');
+          } else if (autre){ save = Eco.newSave(); lauTo(98, 'Compte connecté : nouvelle partie.'); }
+          else lauTo(98, 'Compte connecté.');
         } else lauTo(98, 'Prêt à créer un compte.');
       }
       lauPan();
