@@ -1922,8 +1922,12 @@ function buildCatalog(cat){
     if (!bossK && !normals.length) continue;
     const L = Math.max(2, Math.min(MAX_LVL, d.l));   // le niveau du donjon est celui du vrai jeu
     const pickN = i => normals.length ? normals[i % normals.length] : bossK;
-    const enemies = bossK
-      ? [{ key:pickN(0), level:Math.max(1, L-1) }, { key:bossK, level:Math.min(MAX_LVL, L+1), boss:true, bossMult:Math.min(2.4, 1.3 + L/150) }, { key:pickN(1), level:L }]
+    // Les deux gardes du boss étaient à pleine puissance, là où toute la piétaille des salles précédentes
+    // est affaiblie : la dernière salle faisait donc un bond que rien n'annonçait. Mesuré sur des combats
+    // rejoués, une équipe nue au niveau du donjon ne la passait jamais. Leur malus s'atténue avec le niveau,
+    // ce qui rend le début abordable sans équipement et la fin impossible sans.
+    const g = GARDE(L), enemies = bossK
+      ? [{ key:pickN(0), level:Math.max(1, L-1), ...g }, { key:bossK, level:Math.min(MAX_LVL, L+1), boss:true, bossMult:Math.min(2.4, 1.3 + L/150) }, { key:pickN(1), level:L, ...g }]
       : [{ key:pickN(0), level:Math.max(1, L-1) }, { key:pickN(1), level:L }, { key:pickN(2), level:L }];
     dgs.push({ id:'d' + d.id, map:themeFor(d.n, d.id), mapId:d.mp || 0, maps:d.mps || [], pool:normals, name:d.n, lvl:L, dofusLvl:d.l,
       desc: bossK ? `Boss : ${MONSTERS[bossK].name}. Niveau Dofus conseillé : ${d.l}.` : `Niveau Dofus conseillé : ${d.l}.`, enemies, ...rewardsFor(L) });
@@ -1985,6 +1989,10 @@ function starterKeys(){
    ===================================================================== */
 let CAT = null;
 const TRASH = { hpMult:.45, atkMult:.7 }, WAVE_HEAL = 30;   // % des PV max rendus aux survivants entre deux vagues
+// Gardes du boss en campagne : aussi faibles que la piétaille au niveau 1, presque à pleine puissance au
+// niveau 200. La progression au carré laisse le début et le milieu abordables, puis durcit nettement la fin.
+const GARDE = L => { const r = Math.pow(Math.min(1, L / MAX_LVL), 2);
+  return { hpMult: .45 + r * .45, atkMult: .70 + r * .25 }; };
 const STAGES = { camp:[], raid:[], dragon:[] };
 const MODE_LABEL = { camp:'Campagne', raid:'Raids', dragon:'Dragons' };
 // boss : nom du monstre dans le catalogue · mains : effets principaux des trophées lâchés
