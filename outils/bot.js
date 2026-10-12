@@ -67,7 +67,7 @@ function resume(log){
 
 // Joueur de référence au niveau l : les trois monstres de départ (3 ★), un set d'équipement de son niveau,
 // et les trophées qu'on a raisonnablement à ce stade.
-const troPlan = l => l < 30 ? ['magique', 2, 3] : l < 60 ? ['magique', 4, 6] : l < 100 ? ['rare', 6, 6] : l < 150 ? ['rare', 9, 6] : ['heroique', 11, 6];
+const troPlan = l => l < 30 ? ['magique', 2, 3] : l < 60 ? ['magique', 4, 4] : l < 100 ? ['rare', 6, 4] : l < 150 ? ['rare', 9, 4] : ['heroique', 11, 4];
 function refTeam(l){
   const sv = Eco.newSave(); sv.gear = []; sv.items = [];
   const [rar, up, n] = troPlan(l);

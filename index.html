@@ -189,6 +189,7 @@ body.in-combat .tabs{display:none}
 .cell svg, .cell img{width:42px; height:42px; object-fit:contain}
 .cell .iimg{position:absolute; inset:4px; width:calc(100% - 8px); height:calc(100% - 8px); object-fit:contain; background:linear-gradient(var(--slot-hi), var(--slot)); border-radius:6px; z-index:1}
 .cell .q, .cell .lv, .cell .own, .cell .team, .cell .st{z-index:2}
+.cell.tslot .sl{position:absolute; left:0; bottom:0; z-index:2; font-size:8px; letter-spacing:.03em; text-transform:uppercase; color:#4a463c; background:#ffffffc4; border-radius:0 5px 0 6px; padding:0 3px; line-height:11px}
 .cell .q{position:absolute; left:0; top:0; min-width:16px; padding:0 3px; border-radius:7px 0 5px 0; background:#5a5953; color:#fff; font-size:10px; font-weight:bold; line-height:15px; text-align:center}
 .cell .lv{position:absolute; right:2px; bottom:0; font-size:10px; font-weight:bold; color:#fff; text-shadow:0 0 2px #000, 0 0 2px #000}
 .cell .own{position:absolute; right:3px; top:3px; width:7px; height:7px; border-radius:50%; background:var(--ally); box-shadow:0 0 0 1px #fff}
@@ -1149,7 +1150,10 @@ body.fs .cwin .hudbar{display:none}
 const ATB_RATE = 0.07;
 const FATIGUE = 60;     // tours d'une même salle au-delà desquels tous les dégâts montent de 4 % par tour : plus de combats sans fin
 const DMG_K = 0.45;   // calibré pour un coup d'environ 15 au niveau 1, et le même rythme de combat qu'avant
-const BEATS = { feu:'air', air:'terre', terre:'eau', eau:'feu' };
+// Eau (Chance) bat Feu (Intelligence), qui bat Terre (Force), qui bat Air (Agilité), qui bat Eau.
+// Contre l'élément qu'on bat : dégâts ×1,5. Contre celui qui nous bat : ×0,5. Sinon ×1.
+const BEATS = { eau:'feu', feu:'terre', terre:'air', air:'eau' };
+const ELEM_FORT = 1.5, ELEM_FAIBLE = .5;
 const ELEM = { terre:'Terre', feu:'Feu', eau:'Eau', air:'Air' };
 const MAX_LVL = 200;   // aligné sur les niveaux d'objets de Dofus : un donjon niveau 60 lâche de l'équipement niveau 60
 // Courbe de puissance : tout ce qui est brut — PV, ATK, DEF, apports d'objets — gagne 2,5 % par niveau,
@@ -1274,7 +1278,30 @@ const STAT = { hp:'PV', atk:'ATK', def:'DEF', spd:'VIT', crit:'Taux crit', critD
 const PCT = new Set(['hpPct','atkPct','defPct','crit','critDmg','acc','res']);
 const MAIN = { atk:[2,16], def:[2,16], hp:[36,245], spd:[7,42], atkPct:[11,63], defPct:[11,63], hpPct:[11,63], crit:[7,58], critDmg:[11,80], acc:[12,64], res:[12,64] };
 const SUB  = { hp:[14,38], atk:[1,2], def:[1,2], spd:[4,6], atkPct:[5,8], defPct:[5,8], hpPct:[5,8], crit:[4,6], critDmg:[4,7], acc:[4,8], res:[4,8] };
-const SLOT_MAINS = { 1:['atk'], 2:['spd','atkPct','hpPct','defPct'], 3:['def'], 4:['crit','critDmg','atkPct','hpPct','defPct'], 5:['hp'], 6:['acc','res','atkPct','hpPct','defPct'] };
+// Trophées : quatre emplacements, un par élément, et deux emplacements réservés aux Dofus.
+// Chaque emplacement a ses effets principaux possibles, comme les runes de Summoners War.
+const DOFUS_M = ['atk','def','hp','spd','crit','critDmg','acc','res'];
+const SLOT_MAINS = { 1:['hp','hpPct','def','defPct'], 2:['atk','atkPct','critDmg'], 3:['acc','res','hpPct','defPct'], 4:['spd','crit','atkPct'], 5:DOFUS_M, 6:DOFUS_M };
+const SLOT_NOM = { 1:'Terre', 2:'Feu', 3:'Eau', 4:'Air', 5:'Dofus', 6:'Dofus' };
+// Palier d'un trophée : mineur (niveau 50, vert), normal (100, bleu), majeur (150, violet), Prysmaradite (200, orange).
+// Il fixe le nombre d'effets secondaires (RAR_SUBS) et la force de l'effet principal.
+const TIER_K = { normal:.5, magique:.6, rare:.8, heroique:1, legendaire:1.15 }, DOFUS_K = 1.3;
+const TIER_NOM = { magique:'mineur', rare:'', heroique:'majeur' };
+// Sets : porter p trophées de la même famille donne son bonus (deux fois avec quatre pièces d'un set à deux).
+const SETS = {
+  rempart:    { n:'Rempart',    p:2, fx:{ hpPct:15 },   d:'PV +15 %' },
+  cuirasse:   { n:'Cuirassé',   p:2, fx:{ defPct:15 },  d:'DEF +15 %' },
+  joueur:     { n:'Joueur',     p:2, fx:{ crit:12 },    d:'Taux critique +12 %' },
+  tacleur:    { n:'Tacleur',    p:2, fx:{ acc:20 },     d:'Précision +20 %' },
+  adamantin:  { n:'Adamantin',  p:2, fx:{ res:20 },     d:'Résistance +20 %' },
+  ravageur:   { n:'Ravageur',   p:4, fx:{ atkPct:30 },  d:'ATK +30 %' },
+  initiateur: { n:'Initiateur', p:4, fx:{ spdPct:25 },  d:'VIT +25 %' },
+  pousseur:   { n:'Pousseur',   p:4, fx:{ critDmg:40 }, d:'Dégâts critiques +40 %' },
+  fuyard:     { n:'Fuyard',     p:4, fx:{ rejoue:18 },  d:'18 % de chance de rejouer aussitôt' },
+  soigneur:   { n:'Soigneur',   p:4, fx:{ vol:25 },     d:'Se soigne de 25 % des dégâts infligés' },
+};
+const setsDe = items => { const c = {}; for (const it of items || []) if (it.set && SETS[it.set]) c[it.set] = (c[it.set] || 0) + 1;
+  return Object.keys(c).map(k => ({ k, n:c[k], fois:Math.floor(c[k] / SETS[k].p) })); };
 // ---------- Équipement : les vrais objets Dofus, lâchés en campagne, avec leur jet tiré au drop.
 // Rien ne s'améliore ici — un objet vaut ce que son jet lui a donné, comme à la sortie d'un craft.
 const GEAR_SLOTS = ['coiffe', 'amulette', 'arme', 'cape', 'anneau', 'anneau2', 'ceinture', 'bottes'];
@@ -1348,7 +1375,7 @@ const DOFUS_NAMES  = { atk:'Dofus Ébène', def:'Dofus Ivoire', hp:'Dofus Émera
 // seule vaut des dizaines de monstres ordinaires. Un monstre ordinaire rapporte selon ses étoiles et son niveau ;
 // de la même espèce que celui qui mange, il rapporte le double et lui monte un sort d'un niveau.
 const GELEES = ['gelée bleuet', 'gelée menthe', 'gelée fraise', 'gelée citron', 'gelée royale citron'];   // de 1 ★ à 5 ★
-const GEL_XP = { 1:1800, 2:4500, 3:9000, 4:16000, 5:30000 };
+const GEL_XP = { 1:900, 2:2250, 3:4500, 4:8000, 5:15000 };
 const gelKeys = () => GELEES.map(n => Object.keys(MONSTERS).find(k => MONSTERS[k].name.toLowerCase() === n));
 function foodXp(f, mon){
   const fm = MONSTERS[f.key];
@@ -1363,9 +1390,9 @@ const SUMMON = { label:'Pierre d\'âme pleine', rates:{1:22, 2:38, 3:27, 4:10, 5
 /* =====================================================================
    2. RÈGLES PARTAGÉES — petites fonctions pures sur les objets.
    ===================================================================== */
-const itemMainVal = it => { const [a,b] = MAIN[it.main]; return Math.round(a + (b-a) * it.lvl / 15); };
+const itemMainVal = it => { const [a,b] = MAIN[it.main]; return Math.round((a + (b-a) * it.lvl / 15) * (it.dofus ? DOFUS_K : TIER_K[it.rarity] || 1)); };
 const itemBonuses = it => [{ s:it.main, v:itemMainVal(it) }, ...it.subs];
-const itemName = it => it.sn || (it.rarity === 'legendaire' ? DOFUS_NAMES : TROPHY_NAMES)[it.main.replace('Pct','')];
+const itemName = it => it.sn || (it.dofus ? DOFUS_NAMES : TROPHY_NAMES)[it.main.replace('Pct','')];
 const fmtStat = (s,v) => `${STAT[s]} +${v}${PCT.has(s) ? ' %' : ''}`;
 const xpNeed = l => 80 + l*35;
 
@@ -1385,6 +1412,13 @@ function computeStats(m, def){
     if (st.s.endsWith('Pct')) pct[st.s.slice(0,-3)] += st.v;
     else flat[st.s] += st.v * (SCALED[st.s] ? k : 1);
   }
+  const extra = {};
+  for (const S of setsDe(def.items)) for (let f = 0; f < S.fois; f++) for (const [q, v] of Object.entries(SETS[S.k].fx)){
+    if (q.endsWith('Pct') && q !== 'spdPct') pct[q.slice(0, -3)] += v;
+    else if (q === 'spdPct') flat.spd += b.spd * v / 100;
+    else if (q in flat) flat[q] += v;
+    else extra[q] = (extra[q] || 0) + v;                       // rejoue, vol : lus par le moteur de combat
+  }
   for (const g of def.gear || []){ const st = gearStats(g, lv); for (const q in st) if (q in flat) flat[q] += st[q]; }   // déjà à l'échelle du niveau de l'objet
   // Bonus de classe : ils ne valent que pour les monstres du joueur, jamais pour l'adversaire.
   if (def.mine){
@@ -1397,7 +1431,7 @@ function computeStats(m, def){
     if (C.accFlat) flat.acc += C.accFlat;
     if (C.resFlat) flat.res += C.resFlat;
   }
-  return {
+  return { ...extra,
     hp: Math.round(b.hp*(1+pct.hp/100) + flat.hp), atk: Math.round(b.atk*(1+pct.atk/100) + flat.atk),
     def: Math.round(b.def*(1+pct.def/100) + flat.def), spd: Math.round(b.spd + flat.spd),
     crit: Math.min(100, b.crit + flat.crit), critDmg: b.critDmg + flat.critDmg, acc: b.acc + flat.acc, res: b.res + flat.res,
@@ -1548,11 +1582,11 @@ const Engine = (() => {
     }
     const adv = isAdv(att,tgt), dis = isDis(att,tgt);
     let crit = false, glance = false;
-    if (dis && rng() < .5){ glance = true; dmg *= .7; }
-    else if (rng()*100 < att.stats.crit + (op.critBonus||0) + (adv ? 15 : 0)){ crit = true; dmg *= 1 + att.stats.critDmg/100; }
+    if (rng()*100 < att.stats.crit + (op.critBonus||0)){ crit = true; dmg *= 1 + att.stats.critDmg/100; }
     const elemK = att.side === 'A' && clsFx().elem || 1;
-    if (adv) dmg *= 1 + .15 * elemK; if (dis) dmg *= .9;
+    if (adv) dmg *= ELEM_FORT * elemK; if (dis) dmg *= ELEM_FAIBLE;
     const fait = subir(s, tgt, dmg * (.95 + rng()*.1), ev, { crit, glance, adv, dis });
+    if (att.stats.vol && fait > 0 && att.alive) soin(s, att, fait * att.stats.vol / 100, ev);      // set Soigneur
     if (op.steal && fait > 0 && att.alive){                       // vol de vie : pour lui, ou pour l'allié le plus mal en point
       const qui = op.stealTo === 'lowest' ? mates(s, att).slice().sort((a, b) => a.hp / a.stats.hp - b.hp / b.stats.hp)[0] : att;
       if (qui) soin(s, qui, fait * op.steal / 100, ev);
@@ -1673,6 +1707,7 @@ const Engine = (() => {
       }
       if (op.spend){ actor.effects = actor.effects.filter(e => e.type !== 'charge'); ev.push({ t:'fx', id:actor.id, effects:fxSnap(actor) }); }
     }
+    if (actor.stats.rejoue && bonusAtb < 100 && rng()*100 < actor.stats.rejoue){ bonusAtb = 100; ev.push({ t:'note', id:actor.id, text:'Rejoue' }); }   // set Fuyard
     actor.cds[skillId] = sk.cd - (lv >= SK_MAX && sk.cd > 0 ? 1 : 0);
     if (actor.alive){ endTurn(s, actor, ev); if (bonusAtb && actor.alive){ actor.atb = Math.min(100, bonusAtb); ev.push({ t:'atb', id:actor.id, atb:actor.atb, delta:bonusAtb, reset:true }); } }
     checkOver(s, ev);
@@ -1726,7 +1761,7 @@ const Engine = (() => {
     let target = null;
     if (SKILLS[best.id].target === 'enemy'){
       const ops = SKILLS[best.id].ops, deton = ops.some(o => o.op === 'detonate'), vole = ops.some(o => o.op === 'strip' || o.op === 'stealBuff');
-      const val = t => (1 - t.hp/t.stats.hp)*1.2 + (isAdv(u,t) ? .6 : 0) - (isDis(u,t) ? .4 : 0) + (has(t,'defBreak') ? .3 : 0) + (has(t,'mark') ? .3 : 0) - (t.boss ? .2 : 0)
+      const val = t => (1 - t.hp/t.stats.hp)*1.2 + (isAdv(u,t) ? 1.2 : 0) - (isDis(u,t) ? 1 : 0) + (has(t,'defBreak') ? .3 : 0) + (has(t,'mark') ? .3 : 0) - (t.boss ? .2 : 0)
         + (deton ? pile(t,'poison') * .8 : 0) + (vole ? bons(t) * .5 : 0);
       target = visables(s, u).slice().sort((a,b) => val(b) - val(a))[0].id;
     }
@@ -1753,22 +1788,25 @@ const Eco = (() => {
   const itemById = (save, id) => save.items.find(i => i.id === id);
 
   // want : liste d'effets principaux voulus (raids, dragons) ; l'emplacement en découle
-  function genItem(save, rarity, slot, lvl, want){
-    let main;
-    if (want){
-      const opts = [];
-      for (const sl in SLOT_MAINS) for (const m of SLOT_MAINS[sl]) if (want.includes(m)) opts.push([+sl, m]);
-      [slot, main] = pick(opts);
-    } else { slot = slot || randInt(1,6); main = pick(SLOT_MAINS[slot]); }
+  // o.dofus : un Dofus (emplacements 5 et 6) · o.sets : familles possibles pour un trophée
+  function genItem(save, rarity, slot, lvl, want, o = {}){
+    const dofus = !!o.dofus;
+    let main, set = null;
+    if (dofus){ slot = slot >= 5 ? slot : pick([5, 6]); const ok = (want || DOFUS_M).filter(m => MAIN[m]); main = pick(ok.length ? ok : DOFUS_M); rarity = 'legendaire'; }
+    else {
+      slot = slot >= 1 && slot <= 4 ? slot : randInt(1, 4);
+      const ok = SLOT_MAINS[slot].filter(m => !want || want.includes(m)); main = pick(ok.length ? ok : SLOT_MAINS[slot]);
+      set = pick(o.sets && o.sets.length ? o.sets : Object.keys(SETS));
+      if (rarity === 'normal') rarity = 'magique';
+    }
     const subs = [];
     while (subs.length < RAR_SUBS[rarity]){
       const s = pick(Object.keys(SUB).filter(k => k !== main && !subs.some(x => x.s === k)));
       subs.push({ s, v:rollSub(s) });
     }
-    const sk = pickSkin(rarity, lvl || 10, want && rarity === 'legendaire' ? main : null);
-    return { id: save.nextId++, slot, rarity, main, lvl:0, il: Math.max(1, Math.round(lvl || 20)), subs, owner:null, ...(sk ? { sn:sk.n, si:sk.i } : {}) };
+    const sk = dofus ? pickSkin('legendaire', lvl || 10, want ? main : null) : skinTro(set, rarity, slot, save.nextId);
+    return { id: save.nextId++, slot, rarity, main, lvl:0, il: Math.max(1, Math.round(lvl || 20)), subs, owner:null, ...(set ? { set } : {}), ...(dofus ? { dofus:true } : {}), ...(sk ? { sn:sk.n, si:sk.i } : {}) };
   }
-  // Tire un équipement au niveau voulu : on prend une pièce proche de ce niveau, puis chaque ligne fait son jet.
   function genGear(save, lvl, slot){
     const slots = slot ? [GEAR_SRC[slot] || slot] : Object.keys(GEAR_BY_SLOT);
     const pool = GEAR_BY_SLOT[pick(slots)] || [];
@@ -1844,8 +1882,10 @@ const Eco = (() => {
     const o = monByUid(save, it.owner); if (o && o.equip[it.slot] === it.id) delete o.equip[it.slot];
     it.owner = null;
   }
-  function equip(save, mon, it){
+  // Un Dofus va dans l'emplacement 5 ou 6 : celui qu'on vise s'il est donné, sinon le premier libre.
+  function equip(save, mon, it, vise){
     unequip(save, it);
+    if (it.dofus) it.slot = vise >= 5 ? vise : !mon.equip[5] ? 5 : !mon.equip[6] ? 6 : it.slot >= 5 ? it.slot : 5;
     const cur = mon.equip[it.slot]; if (cur){ const c = itemById(save,cur); if (c) c.owner = null; }
     mon.equip[it.slot] = it.id; it.owner = mon.uid;
   }
@@ -1982,11 +2022,11 @@ const Eco = (() => {
     for (let i = 0; i < n; i++){
       if (dg.mode === 'camp'){ dropGear(); continue; }
       if (!i && dg.dofus && R() < dg.dofusRate){   // dragons : le Dofus, à taux volontairement bas
-        const it = genItem(save, 'legendaire', 0, ilvl, [dg.dofus, dg.dofus + 'Pct'].filter(k => MAIN[k]));
+        const it = genItem(save, 'legendaire', 0, ilvl, [dg.dofus], { dofus:true });
         save.items.push(it); out.items.push(it); continue;
       }
       if (dg.mode === 'dragon'){ dropGear(); continue; }
-      const it = genItem(save, weighted(dg.rarity), 0, ilvl, dg.mains);   // raids : trophées
+      const it = genItem(save, weighted(dg.rarity), 0, ilvl, null, { sets:dg.sets });   // raids : trophées de leurs familles
       save.items.push(it); out.items.push(it);
     }
     out.mons = [];
@@ -2002,12 +2042,12 @@ const Eco = (() => {
     return out;
   }
   function newSave(){
-    const s = { v:SAVE_V, sc:1, cat:CAT_MODE, kamas:800, stones:3, gold:0, scrolls:0, sum:0, ach:{}, nextId:1, monsters:[], items:[], gear:[], lock:[], team:[], teams:{}, cleared:[], seen:[], wins:0 };
+    const s = { runes:2, v:SAVE_V, sc:1, cat:CAT_MODE, kamas:800, stones:3, gold:0, scrolls:0, sum:0, ach:{}, nextId:1, monsters:[], items:[], gear:[], lock:[], team:[], teams:{}, cleared:[], seen:[], wins:0 };
     const [k1, k2, k3] = starterKeys();
     const a = addMonster(s,k1,10), b = addMonster(s,k2,10), c = addMonster(s,k3,10);   // au niveau du premier donjon
     s.team = [a.uid, b.uid, c.uid]; s.seen = [k1, k2, k3];
     for (const [mon, slot, rar] of [[a,2,'magique'],[b,5,'magique'],[c,1,'magique'],[c,4,'normal'],[null,3,'normal'],[null,6,'rare']]){
-      const it = genItem(s, rar, slot); s.items.push(it); if (mon) equip(s, mon, it);
+      const it = genItem(s, rar, slot > 4 ? slot - 2 : slot); s.items.push(it); if (mon) equip(s, mon, it);
     }
     for (const [mon, sl] of [[a,'coiffe'],[a,'arme'],[b,'cape'],[b,'bottes'],[c,'amulette'],[c,'anneau'],[null,'ceinture'],[null,'coiffe']]){
       const g = genGear(s, 8, sl); if (!g) continue;
@@ -2066,7 +2106,7 @@ function itemIcon(it){
   return itemSvg(it) + (it.si && IMG_OK ? `<img class="iimg" src="${IMG_BASE}/items/${it.si}.png" alt="" loading="lazy" data-fb>` : '');
 }
 function itemSvg(it){
-  const base = it.main.replace('Pct',''), legend = it.rarity === 'legendaire';
+  const base = it.main.replace('Pct',''), legend = !!it.dofus;
   const asset = ASSETS.items[((legend ? 'dofus-' : 'trophee-') + base).toLowerCase()];
   if (asset) return `<img src="${asset}" alt="">`;
   const id = 'g' + (++svgUid);
@@ -2235,7 +2275,7 @@ function drawMap(cv, themeKey, seed, opts = {}){
    ===================================================================== */
 const IMG_BASE = 'https://api.dofusdb.fr/img';
 let IMG_OK = true, imgFails = 0, imgLoads = 0, CAT_MODE = 'local';
-let ITEM_SKINS = { normal:[], legend:[] };
+let ITEM_SKINS = { normal:[], legend:[], prysm:[] };
 document.addEventListener('load', e => { if (e.target && e.target.hasAttribute && e.target.hasAttribute('data-fb')) imgLoads++; }, true);
 document.addEventListener('error', e => {
   const t = e.target;
@@ -2546,6 +2586,7 @@ function buildCatalog(cat){
   }
   const dgs = [];
   for (const d of cat.dungeons.slice().sort((a,b) => a.l - b.l || a.id - b.id)){
+    if (/^expédition/i.test(d.n)) continue;                    // reprises d'un donjon existant, au niveau 200 : des doublons
     const ms = d.m.map(id => 'm' + id).filter(k => MONSTERS[k]);
     const bossK = (d.b || []).map(id => 'm' + id).find(k => MONSTERS[k]);
     const normals = [...new Set(ms.filter(k => k !== bossK && !estBoss(MONSTERS[k])))];
@@ -2553,7 +2594,7 @@ function buildCatalog(cat){
     const L = Math.max(2, Math.min(MAX_LVL, d.l));   // le niveau du donjon est celui du vrai jeu
     const pickN = i => normals.length ? normals[i % normals.length] : bossK;
     const enemies = bossK
-      ? [{ key:pickN(0), level:Math.max(1, L-1), garde:true }, { key:bossK, level:Math.min(MAX_LVL, L+1), boss:true, bossMult:Math.min(2.4, 1.3 + L/150) }, { key:pickN(1), level:L, garde:true }]
+      ? [{ key:pickN(0), level:Math.max(1, L-1), garde:true }, { key:bossK, level:L+1, boss:true, bossMult:Math.min(2.4, 1.3 + L/150) }, { key:pickN(1), level:L, garde:true }]
       : [{ key:pickN(0), level:Math.max(1, L-1) }, { key:pickN(1), level:L }, { key:pickN(2), level:L }];
     dgs.push({ id:'d' + d.id, map:themeFor(d.n, d.id), mapId:d.mp || 0, maps:d.mps || [], pool:normals, name:d.n, lvl:L, dofusLvl:d.l,
       desc: bossK ? `Boss : ${MONSTERS[bossK].name}. Niveau Dofus conseillé : ${d.l}.` : `Niveau Dofus conseillé : ${d.l}.`, enemies, ...rewardsFor(L) });
@@ -2565,16 +2606,22 @@ function buildCatalog(cat){
   const bossHp = d => { const b = (d.enemies || []).find(e => e.boss) || (d.enemies || [])[0];
     return (b && MONSTERS[b.key] && MONSTERS[b.key].base.hp) || 0; };
   dgs.sort((a, b) => a.lvl - b.lvl || bossHp(a) - bossHp(b) || a.name.localeCompare(b.name, 'fr'));
-  // Gardes et boss reçoivent leur part de la difficulté du niveau (voir ENN). Le dernier palier compte à lui
-  // seul des dizaines de donjons de niveau 200 : il continue de durcir de l'un à l'autre, jusqu'à ×BAL.fin,
-  // pour que la fin de campagne reste une progression — celle de l'équipement et des trophées.
-  const fin = dgs.filter(d => d.lvl >= MAX_LVL);
+  // Fin de campagne : à partir de l'Antichambre des Gloursons, chaque donjon gagne des niveaux au-delà de 200,
+  // jusqu'à BAL.finLvl pour le dernier. Les joueurs, eux, restent plafonnés à 200 : passé ce point, seuls
+  // l'équipement, les trophées, les sets et les étoiles font avancer.
+  const glours = dgs.findIndex(d => /glours/i.test(d.name)), suite = glours < 0 ? [] : dgs.slice(glours + 1);
+  suite.forEach((d, k) => {
+    const L = Math.round(MAX_LVL + (BAL.finLvl - MAX_LVL) * (k + 1) / suite.length);
+    for (const e of d.enemies) e.level = clampL(e.level + (L - d.lvl));
+    d.lvl = L; Object.assign(d, rewardsFor(L));
+  });
+  // Gardes et boss reçoivent leur part de la difficulté du niveau (voir ENN).
   for (const d of dgs){
-    const j = fin.indexOf(d); d.dur = j > 0 ? 1 + (BAL.fin - 1) * j / (fin.length - 1) : 1;
+    d.dur = 1;
     for (const e of d.enemies){ if (e.boss) Object.assign(e, ennBoss(d.lvl, e.key, d.dur)); else if (e.garde) Object.assign(e, ENN(d.lvl, 'garde', d.dur)); }
   }
   if (dgs.length){ DUNGEONS.length = 0; DUNGEONS.push(...dgs); }
-  ITEM_SKINS = { normal:(cat.items || []).filter(i => i.t === 151), legend:(cat.items || []).filter(i => i.t === 23 || i.t === 217) };
+  ITEM_SKINS = { normal:(cat.items || []).filter(i => i.t === 151), legend:(cat.items || []).filter(i => i.t === 23), prysm:(cat.items || []).filter(i => i.t === 217) };
   indexGear(cat.gear || []);
   // Les 5 ★ reçoivent leur kit propre ; le nom et l'icône du sort Dofus restent en place.
   for (const k in MONSTERS){
@@ -2612,6 +2659,14 @@ function buildRoster(cat){
   }
   return out;
 }
+// Apparence d'un trophée : le vrai trophée Dofus de sa famille et de son palier (« Rempart mineur », « Ravageur
+// Feu majeur »…). Au palier le plus haut, c'est une Prysmaradite.
+function skinTro(set, rarity, slot, graine){
+  if (rarity === 'legendaire'){ const P = ITEM_SKINS.prysm; return P.length ? P[(Object.keys(SETS).indexOf(set) * 5 + slot + (graine || 0) % 2) % P.length] : null; }
+  const fam = SETS[set].n.toLowerCase(), t = TIER_NOM[rarity] ?? 'mineur', el = SLOT_NOM[slot].toLowerCase();
+  const nom = x => [fam, x, t].filter(Boolean).join(' ');
+  return ITEM_SKINS.normal.find(i => i.n.toLowerCase() === nom(el)) || ITEM_SKINS.normal.find(i => i.n.toLowerCase() === nom('')) || null;
+}
 function pickSkin(rarity, lvl, main){
   if (main){ const n = DOFUS_NAMES[main.replace('Pct','')]; return ITEM_SKINS.legend.find(i => i.n === n) || null; }   // Dofus d'un dragon : toujours le sien
   const pool = rarity === 'legendaire' ? ITEM_SKINS.legend : ITEM_SKINS.normal;
@@ -2640,7 +2695,7 @@ const TRASH = { hpMult:.45, atkMult:.7 }, WAVE_HEAL = 30;   // % des PV max rend
 // PV ×DIFF, ATK ×√DIFF — sinon les combats de fin de jeu se joueraient en un coup. Chaque rôle a sa part :
 // la piétaille des premières salles, les deux gardes du boss, le boss lui-même.
 const BAL = { trash:[.45, .7], garde:[.6, .8], boss:[1, 1], xp0:3, xpFin:60, eh:.5, ea:.9,
-  diff:[[10, .6], [20, 1.1], [30, .75], [40, 1.5], [60, 2.1], [100, 2.7], [150, 3.4], [200, 4.2]], fin:2 };   // [niveau du donjon, difficulté], interpolé entre deux points
+  diff:[[10, .6], [20, 1.1], [30, .75], [40, 1.5], [60, 2.1], [100, 2.7], [150, 3.4], [200, 4.2]], finLvl:270 };   // [niveau du donjon, difficulté], interpolé entre deux points
 const DIFF = L => { const T = BAL.diff; if (L <= T[0][0]) return T[0][1];
   for (let i = 1; i < T.length; i++) if (L <= T[i][0]){ const [a, x] = T[i-1], [b, y] = T[i]; return x + (y - x) * (L - a) / (b - a); }
   return T[T.length - 1][1]; };
@@ -2654,15 +2709,17 @@ const XPK = L => 1 + (BAL.xp0 - 1) * Math.max(0, 1 - (L - 10) / (BAL.xpFin - 10)
 const STAGES = { camp:[], gel:[], raid:[], dragon:[] };
 const MODE_LABEL = { camp:'Campagne', gel:'Gelées', raid:'Raids', dragon:'Dragons' };
 // Gelaxième Dimension : cinq étages, et à chaque victoire une gelée à donner à manger à ses monstres.
-// Plus l'étage est haut, plus les gelées qui tombent ont d'étoiles.
-const GEL_TAUX = [{ 1:80, 2:20 }, { 1:30, 2:55, 3:15 }, { 2:30, 3:55, 4:15 }, { 3:40, 4:50, 5:10 }, { 3:20, 4:55, 5:25 }];
+// Chaque étage donne les gelées de son rang.
+// Un étage, une gelée : le premier donne des 1 ★, le cinquième des 5 ★. Les trois derniers sont de vrais
+// défis (GEL_DUR), pas une ferme à expérience.
+const GEL_TAUX = [{ 1:100 }, { 2:100 }, { 3:100 }, { 4:100 }, { 5:100 }], GEL_LVL = [20, 60, 110, 160, 200], GEL_DUR = [1, 1, 2, 2.6, 3.4];
 function gelStages(){
   const ks = gelKeys(); if (ks.some(k => !k)) return [];
   const src = CAT && CAT.dungeons.find(d => (d.b || []).some(id => 'm' + id === ks[4]));
-  return [20, 60, 100, 140, 180].map((L, f) => {
-    const m = ENN(L, 'trash'), g = ENN(L, 'garde');
+  return GEL_LVL.map((L, f) => {
+    const m = ENN(L, 'trash', GEL_DUR[f]), g = ENN(L, 'garde', GEL_DUR[f]);
     const salle = n => Array.from({ length:n }, (_, k) => ({ key:ks[(f + k) % 4], level:clampL(L - 1), ...m }));
-    const last = [{ key:ks[f % 4], level:L, ...g }, { key:ks[4], level:clampL(L + 1), boss:true, bossMult:1.3 + f * .15, ...ennBoss(L, ks[4]) }, { key:ks[(f + 1) % 4], level:L, ...g }];
+    const last = [{ key:ks[f % 4], level:L, ...g }, { key:ks[4], level:clampL(L + 1), boss:true, bossMult:1.3 + f * .15, ...ennBoss(L, ks[4], GEL_DUR[f]) }, { key:ks[(f + 1) % 4], level:L, ...g }];
     return { id:`gel:${f + 1}`, mode:'gel', grp:'gel', gname:'Gelaxième Dimension', short:`Étage ${f + 1}`, name:`Gelaxième Dimension · étage ${f + 1}`,
       map:'fleurs', mapId:src ? src.mp || 0 : 0, maps:src ? src.mps || null : null, lvl:L, dofusLvl:0,
       desc:'Chaque victoire rapporte une gelée, à donner à manger à un monstre pour le faire monter.', enemies:last, waves:[salle(2), salle(3), last],
@@ -2671,9 +2728,9 @@ function gelStages(){
 }
 // boss : nom du monstre dans le catalogue · mains : effets principaux des trophées lâchés
 const RAID_DEFS = [
-  { k:'meulou', boss:/^meulou$/,      mains:['atk','atkPct','crit','critDmg'], tag:'trophées offensifs (ATK, critiques)' },
-  { k:'croca',  boss:/^crocabulia$/,  mains:['spd','acc','res'],               tag:'trophées de vitesse, précision et résistance' },
-  { k:'chene',  boss:/^chêne mou$/,   mains:['hp','hpPct','def','defPct'],     tag:'trophées défensifs (PV, DEF)' },
+  { k:'meulou', boss:/^meulou$/,      sets:['ravageur','joueur','pousseur'],            tag:'trophées Ravageur, Joueur et Pousseur (attaque, critiques)' },
+  { k:'croca',  boss:/^crocabulia$/,  sets:['initiateur','tacleur','adamantin','fuyard'], tag:'trophées Initiateur, Tacleur, Adamantin et Fuyard (vitesse, précision, résistance)' },
+  { k:'chene',  boss:/^chêne mou$/,   sets:['rempart','cuirasse','soigneur'],           tag:'trophées Rempart, Cuirassé et Soigneur (PV, DEF, vol de vie)' },
 ];
 // stat : effet principal du Dofus gardé (voir DOFUS_NAMES)
 const DRAGON_DEFS = [
@@ -2686,7 +2743,8 @@ const DRAGON_DEFS = [
   { k:'merkator',  boss:/^merkator$/,      stat:'acc' },
   { k:'wabbit',    boss:/^wa wabbit$/,     stat:'res' },
 ];
-const clampL = l => Math.max(1, Math.min(MAX_LVL, l));
+// Les ennemis peuvent dépasser le niveau maximum des joueurs : c'est ce qui fait la difficulté de la fin de campagne.
+const ENN_MAX = 300, clampL = l => Math.max(1, Math.min(ENN_MAX, l));
 // rooms : nombre de vagues, la dernière étant `last`. En donjon (5 salles), les deux premières salles n'ont que 2 monstres.
 function wavesFor(pool, L, last, rooms = 3, mult = TRASH){
   const p = pool.length ? pool : [last[0].key], n = rooms - 1;
@@ -2715,8 +2773,10 @@ function bossStages(defs, mode, floors, lvStep, mult0, multStep, lv0 = 0){
         desc: raid ? `${bn} lâche des ${D.tag}.` : `${bn} garde le ${DOFUS_NAMES[D.stat]} (${STAT_LONG[D.stat]}).`,
         enemies:last, waves:wavesFor(pool, L, last, 3, ENN(L, 'trash')), req:f > 1 ? `${mode}:${D.k}:${f-1}` : null,
         kamas:rw.kamas.map(k => Math.round(k*1.5)), xp:rw.xp,
-        rarity: !raid ? { rare:50, heroique:50 } : f <= 3 ? { normal:30, magique:45, rare:25 } : f <= 6 ? { magique:35, rare:45, heroique:20 } : f <= 8 ? { rare:50, heroique:50 } : { rare:25, heroique:75 },
-        mains:raid ? D.mains : null, dofus:raid ? null : D.stat, dofusRate:raid ? 0 : .02 + .008*f });   // un Dofus doit se raconter : de 2,8 % au premier étage à 8,4 % au dernier
+        // Palier des trophées selon le niveau de l'étage : mineurs (50) au début, puis normaux (100), majeurs (150), et Prysmaradites tout en haut
+        rarity: !raid ? { rare:50, heroique:50 } : L < 60 ? { magique:100 } : L < 80 ? { magique:70, rare:30 } : L < 115 ? { magique:15, rare:85 } : L < 135 ? { rare:60, heroique:40 }
+          : L < 175 ? { rare:15, heroique:85 } : L < 195 ? { heroique:85, legendaire:15 } : { heroique:65, legendaire:35 },
+        sets:raid ? D.sets : null, dofus:raid ? null : D.stat, dofusRate:raid ? 0 : .02 + .008*f });   // un Dofus doit se raconter : de 2,8 % au premier étage à 8,4 % au dernier
     }
   });
   return out;
@@ -2726,7 +2786,6 @@ function finalizeStages(){
   const camp = [];
   let prev = null;
   for (const d of DUNGEONS){
-    if (d.rarity.legendaire){ d.rarity.heroique = (d.rarity.heroique || 0) + d.rarity.legendaire; delete d.rarity.legendaire; }   // les Dofus ne tombent que sur les dragons
     const pool = d.pool && d.pool.length ? d.pool : [...new Set(d.enemies.filter(e => !e.boss).map(e => e.key))];
     const id = `camp:${d.id}`;
     camp.push({ id, mode:'camp', grp:d.id, gname:d.name, short:d.name, name:d.name, lvl:d.lvl, dofusLvl:d.dofusLvl || 0, map:d.map, mapId:d.mapId || 0, maps:d.maps || null,
@@ -2752,7 +2811,7 @@ const ACHS = [
   { id:'lvl',    name:'Entraîneur',        desc:n => `Monter un monstre au niveau ${n}`,                     tiers:[10,20,30,40],          val:s => Math.max(0, ...s.monsters.map(m => m.level)) },
   { id:'awk',    name:'Éveilleur',         desc:n => `Éveiller ${n} monstre${n > 1 ? 's' : ''}`,             tiers:[1,3,10,25],            val:s => s.monsters.filter(m => m.awakened).length },
   { id:'forge',  name:'Forgemage',         desc:n => `Monter un objet à +${n}`,                              tiers:[3,6,9,12,15],          val:s => Math.max(0, ...s.items.map(i => i.lvl)) },
-  { id:'dofus',  name:'Chasseur de Dofus', desc:n => `Posséder ${n} Dofus`,                                  tiers:[1,3,6,12],             val:s => s.items.filter(i => i.rarity === 'legendaire').length },
+  { id:'dofus',  name:'Chasseur de Dofus', desc:n => `Posséder ${n} Dofus`,                                  tiers:[1,3,6,12],             val:s => s.items.filter(i => i.dofus).length },
   { id:'kamas',  name:'Bourse pleine',     desc:n => `Posséder ${n.toLocaleString('fr-FR')} kamas`,          tiers:[5000,25000,100000,500000], val:s => s.kamas },
 ];
 // État d'un succès : palier en cours, progression, et s'il peut être réclamé
@@ -3320,6 +3379,25 @@ try { speed = Number(localStorage.getItem('idd-speed')) || 1; auto = localStorag
 // la courbe de puissance et la campagne réordonnée rendent les anciennes parties incohérentes.
 // Les migrations des versions précédentes ont donc été retirées : elles ne peuvent plus se déclencher.
 const SAVE_V = 3;
+// Passage aux trophées par élément : les anciens objets (six emplacements, sans famille) sont rangés dans le
+// nouveau système. Les Dofus vont aux emplacements 5 et 6, les trophées dans celui de leur effet principal, et
+// chacun reçoit une famille. Ce qui ne trouve plus de place libre sur son monstre retourne au sac.
+function migrer(s){
+  if (!s || s.runes === 2 || !Array.isArray(s.items)) return s;
+  const parMain = m => ['hp','hpPct','def','defPct'].includes(m) ? 1 : ['atk','atkPct','critDmg'].includes(m) ? 2 : ['acc','res'].includes(m) ? 3 : 4, cles = Object.keys(SETS);
+  for (const m of s.monsters) m.equip = {};
+  for (const it of s.items){
+    if (it.rarity === 'legendaire' && !it.set) it.dofus = true;
+    if (it.dofus) it.slot = 5;
+    else if (!it.set){ it.slot = parMain(it.main); if (it.rarity === 'normal') it.rarity = 'magique'; it.set = cles[it.id % cles.length];
+      const sk = skinTro(it.set, it.rarity, it.slot, it.id); if (sk){ it.sn = sk.n; it.si = sk.i; } }
+    const o = it.owner != null && s.monsters.find(m => m.uid === it.owner);
+    if (o){ const sl = it.dofus && o.equip[5] ? 6 : it.slot; if (!o.equip[sl]){ o.equip[sl] = it.id; it.slot = sl; } else it.owner = null; }
+    else it.owner = null;
+  }
+  s.runes = 2;
+  return s;
+}
 function loadSave(){
   try {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -3401,7 +3479,7 @@ const CLASSES = [
   { id:14, n:'Zobal',      r:'Guerrier lunatique',      g:'Butin',       b:"Jets d'équipement nettement meilleurs" },
   { id:15, n:'Steamer',    r:'Technomage',              g:'Combat',      b:'+40 % de dégâts contre les boss' },
   { id:16, n:'Eliotrope',  r:'Créateur de portails',    g:'Combat',      b:'+5 % de vitesse' },
-  { id:17, n:'Huppermage', r:'Mage élémentaliste',      g:'Combat',      b:'Avantage élémentaire doublé' },
+  { id:17, n:'Huppermage', r:'Mage élémentaliste',      g:'Combat',      b:'Avantage élémentaire ×1,8 au lieu de ×1,5' },
   { id:18, n:'Ouginak',    r:'Barbare',                 g:'Combat',      b:'+28 % de dégâts sous 50 % de PV' },
   { id:20, n:'Forgelance', r:'Champion immortel',       g:'Combat',      b:'+4 % de points de vie et de dégâts' },
 ];
@@ -3420,7 +3498,7 @@ const CLASS_FX = {
   13: { aoe:1.25 },                 // Roublard
   15: { boss:1.40 },                // Steamer
   16: { spd:1.05 },                 // Eliotrope — +10 % de vitesse valait deux fois les autres bonus
-  17: { elem:2 },                   // Huppermage
+  17: { elem:1.2 },                 // Huppermage — ×1,8 au lieu de ×1,5 contre l'élément qu'il bat
   18: { lowHp:1.28 },               // Ouginak
   20: { hp:1.04, atk:1.04 },        // Forgelance
   // Hors combat : ils accélèrent la progression sans gagner un combat à la place du joueur.
@@ -3539,10 +3617,9 @@ function dropsHtml(d){
     if (vus.length) lignes.push(`<li><span>Pièces possibles</span><span class="dicos">${vus.map(g => `<button class="dico" data-act="voirGear" data-id="${g.id}" title="${esc(g.n)} · ${GEAR_LABEL[g.s]}"><img src="${IMG_BASE}/items/${g.i}.png" alt="" loading="lazy" data-fb></button>`).join('')}</span></li>`);
   }
   if (raid){
-    const tot = Object.values(d.rarity).reduce((a, b) => a + b, 0) || 1;
-    const near = ITEM_SKINS.normal.filter(i => Math.abs(i.l - ilvl) <= 40), skins = near.length ? near : ITEM_SKINS.normal;
-    lignes.push(`<li><span>Trophées <span class="muted">(1 ou 2 par victoire)</span></span><span class="dchips">${RARITIES.filter(r => d.rarity[r]).map(r => `<b style="color:var(--r-${r})">${RAR_LABEL[r]} ${Math.round(d.rarity[r] / tot * 100)} %</b>`).join('')}</span></li>`);
-    if (skins.length) lignes.push(`<li><span>Trophées possibles</span><span class="dicos">${skins.slice(0, 7).map(i => `<button class="dico" data-act="voirTro" data-id="${i.id}" data-l="${ilvl}" title="${esc(i.n)}"><img src="${IMG_BASE}/items/${i.i}.png" alt="" loading="lazy" data-fb></button>`).join('')}</span></li>`);
+    const tot = Object.values(d.rarity).reduce((a, b) => a + b, 0) || 1, PAL = { magique:'mineurs', rare:'normaux', heroique:'majeurs', legendaire:'Prysmaradites' };
+    lignes.push(`<li><span>Trophées <span class="muted">(1 ou 2 par victoire)</span></span><span class="dchips">${RARITIES.filter(r => d.rarity[r]).map(r => `<b style="color:var(--r-${r})">${PAL[r]} ${Math.round(d.rarity[r] / tot * 100)} %</b>`).join('')}</span></li>`);
+    for (const k of d.sets || []) lignes.push(`<li><span>Set ${SETS[k].n} <span class="muted">${SETS[k].p} pièces</span></span><b>${SETS[k].d}</b></li>`);
   }
   if (d.gel){
     const tot = Object.values(d.gel).reduce((a, b) => a + b, 0), ks = gelKeys();
@@ -3854,8 +3931,8 @@ function teamModal(){
 }
 function slotCell(mon, n){
   const it = mon.equip[n] && Eco.itemById(save, mon.equip[n]);
-  return `<button class="cell ${slotPick === n ? 'on' : ''} ${it ? 'r-' + it.rarity : ''}" data-act="slot" data-slot="${n}" title="${it ? `${itemName(it)} +${it.lvl}` : 'Emplacement ' + n + ' vide'}">
-    ${it ? itemIcon(it) + `<span class="lv">+${it.lvl}</span>` : `<span class="ghost">${itemIcon({ main:SLOT_MAINS[n][0], rarity:n === 6 ? 'legendaire' : 'normal', lvl:0 })}</span>`}</button>`;
+  return `<button class="cell tslot ${slotPick === n ? 'on' : ''} ${it ? 'r-' + it.rarity : ''}" data-act="slot" data-slot="${n}" title="${it ? `${itemName(it)} +${it.lvl}${it.set ? ' · ' + setLigne(it) : ''}` : `Emplacement ${SLOT_NOM[n]} vide`}">
+    ${it ? itemIcon(it) + `<span class="lv">+${it.lvl}</span>` : `<span class="ghost">${itemIcon({ main:SLOT_MAINS[n][0], rarity:'normal', dofus:n > 4, lvl:0 })}</span>`}<span class="sl" style="${n <= 4 ? `color:#fff; background:var(--el-${SLOT_NOM[n].toLowerCase()})` : ''}">${SLOT_NOM[n]}</span></button>`;
 }
 // Évoluer : on choisit soi-même les monstres sacrifiés, parmi ceux du même nombre d'étoiles hors équipe.
 let evoOn = false, evoSel = [];
@@ -3934,6 +4011,7 @@ function monStats(mon){
     <div class="wb" style="display:grid; gap:8px">
       <ul class="rows">${statRow('hp')}${statRow('atk')}${statRow('def')}${statRow('spd')}${statRow('crit',' %')}${statRow('critDmg',' %')}${statRow('acc',' %')}${statRow('res',' %')}</ul>
       <p class="hint" style="margin:0">Entre parenthèses : ce que l'équipement et les trophées ajoutent.</p>
+      ${(() => { const S = setsDe(def.items); return S.length ? `<div class="band"><span>Sets de trophées</span></div><ul class="rows">${S.map(x => `<li><span>${SETS[x.k].n} <span class="muted">${x.n} / ${SETS[x.k].p}</span></span><b class="${x.fois ? 'pos' : 'muted'}" style="font-weight:${x.fois ? 'bold' : 'normal'}">${x.fois ? SETS[x.k].d + (x.fois > 1 ? ' ×' + x.fois : '') : 'incomplet'}</b></li>`).join('')}</ul>` : ''; })()}
       <div class="band">Sorts</div>
       <ul class="sklist">${skills.map((id, si) => { const lv = (mon.sk && mon.sk[si]) || 1, max = lv >= SK_MAX;
         return `<li>${spellIcon(id, m.el)}<b>${SKILLS[id].name} <span class="sklv">niv. ${lv}/${SK_MAX}</span>${SKILLS[id].cd ? ` <span class="muted" style="font-weight:normal">· recharge ${SKILLS[id].cd - (max ? 1 : 0)} t</span>` : ''}</b>
@@ -3945,7 +4023,7 @@ function monStats(mon){
 function pickRow(it){
   const owner = it.owner != null && Eco.monByUid(save, it.owner);
   return `<button class="prow" style="--rc:var(--r-${it.rarity})" data-act="equip" data-id="${it.id}"><span class="cell r-${it.rarity}">${itemIcon(it)}<span class="lv">+${it.lvl}</span></span><b>${itemName(it)} +${it.lvl}</b>
-    <span>${fmtStat(it.main, itemMainVal(it))}${it.subs.length ? ' · ' + it.subs.map(s => fmtStat(s.s,s.v)).join(' · ') : ''}${owner ? ` · sur ${MONSTERS[owner.key].name}` : ''}</span></button>`;
+    <span>${it.set ? `<i style="font-style:normal; color:var(--orange-dk)">${SETS[it.set].n}</i> · ` : ''}${fmtStat(it.main, itemMainVal(it))}${it.subs.length ? ' · ' + it.subs.map(s => fmtStat(s.s,s.v)).join(' · ') : ''}${owner ? ` · sur ${MONSTERS[owner.key].name}` : ''}</span></button>`;
 }
 // ---------- Équipement : une case par emplacement, autour du monstre
 const GEAR_SHORT = { coiffe:'Coiffe', cape:'Cape', amulette:'Amu', anneau:'Anneau', anneau2:'Anneau', ceinture:'Ceint', bottes:'Bottes', arme:'Arme' };
@@ -4033,13 +4111,13 @@ function gearPanel(mon){
 // sans détour par l'inventaire (les objets libres d'abord, puis ceux portés par un autre monstre)
 function slotPanel(mon){
   const n = slotPick, id = mon.equip[n], it = id ? Eco.itemById(save, id) : null;
-  const others = () => save.items.filter(i => i.slot === n && i.id !== id)
+  const others = () => save.items.filter(i => (n > 4 ? i.dofus : i.slot === n) && i.id !== id)
     .sort((a,b) => (a.owner != null) - (b.owner != null) || RARITIES.indexOf(b.rarity) - RARITIES.indexOf(a.rarity) || b.lvl - a.lvl);
   const rows = msg => { const l = others(); return l.length ? l.map(pickRow).join('') : `<span class="muted">${msg}</span>`; };
-  if (!it) return `<div class="panel picker"><div class="band"><span>Emplacement ${n}</span><span class="muted">vide</span></div>
-    ${rows('Aucun objet pour cet emplacement. Va en donjon pour en trouver.')}</div>`;
+  if (!it) return `<div class="panel picker"><div class="band"><span>Emplacement ${SLOT_NOM[n]}</span><span class="muted" style="color:#d9d4c4">vide</span></div>
+    ${rows(n > 4 ? 'Aucun Dofus. Ils se gagnent sur les dragons.' : `Aucun trophée ${SLOT_NOM[n]}. Ils se gagnent en raid.`)}</div>`;
   return `<div class="panel picker">
-    <div class="band slate"><span>${itemKind(it)} · emplacement ${n}</span><span>${RAR_LABEL[it.rarity]}</span></div>
+    <div class="band slate"><span>${itemKind(it)} · ${SLOT_NOM[n]}</span><span>${RAR_LABEL[it.rarity]}</span></div>
     ${itemFace(it)}
     <div class="panel" style="overflow:hidden">${itemEffects(it)}</div>
     ${upgradeBtn(it)}
@@ -4066,8 +4144,8 @@ function invMontre(o){
     if (slotKind && o.s !== (GEAR_SRC[kind] || kind)) return false;
   } else {
     if (!(kind === 'tous' || kind === 'trophee' || kind === 'dofus')) return false;
-    if (kind === 'dofus' && o.rarity !== 'legendaire') return false;
-    if (kind === 'trophee' && o.rarity === 'legendaire') return false;
+    if (kind === 'dofus' && !o.dofus) return false;
+    if (kind === 'trophee' && o.dofus) return false;
     if (filt.rar && o.rarity !== filt.rar) return false;
   }
   if (porte === 'libres' && o.owner != null) return false;
@@ -4090,7 +4168,7 @@ function viewTrophees(){
     return qualiteDe(o) * 100 >= seuil;
   };
   const tros = !voirTro ? [] : save.items.filter(i =>
-    (kind !== 'dofus' || i.rarity === 'legendaire') && (kind !== 'trophee' || i.rarity !== 'legendaire')
+    (kind !== 'dofus' || i.dofus) && (kind !== 'trophee' || !i.dofus)
     && (!filt.rar || i.rarity === filt.rar) && garde(i));
   const gears = !voirGear ? [] : (save.gear || []).filter(g => (!slotKind || g.s === (GEAR_SRC[kind] || kind)) && garde(g));
 
@@ -4147,7 +4225,8 @@ function viewTrophees(){
         <span class="muted" style="font-weight:normal; margin-left:auto">Point bleu : porté · cadenas : protégé</span>${kamaIcon(16)} ${fmt(save.kamas)} K</div>
     </div></section></div>`;
 }
-const itemKind = it => it.rarity === 'legendaire' ? 'Dofus' : 'Trophée';
+const itemKind = it => it.dofus ? 'Dofus' : it.rarity === 'legendaire' ? 'Prysmaradite' : 'Trophée';
+const setLigne = it => it.set && SETS[it.set] ? `Set ${SETS[it.set].n} · ${SETS[it.set].p} pièces : ${SETS[it.set].d}` : '';
 // Paliers d'amélioration : un sous-effet apparaît ou grandit tous les 3 niveaux jusqu'à +12
 function itemSteps(it){
   const next = it.lvl < 12 ? (Math.floor(it.lvl/3)+1)*3 : null, empty = 4 - it.subs.length;
@@ -4159,7 +4238,8 @@ function itemFace(it){
   return `<div class="itemhead${anim}"><div class="cell bigslot r-${it.rarity}">${itemIcon(it)}<span class="lv lvjump">+${it.lvl}</span></div>
     <div style="display:grid; gap:4px; align-content:start">
       <b style="font-size:15px; color:var(--r-${it.rarity})">${fmtStat(it.main, itemMainVal(it))}</b>
-      <span class="muted">Emplacement ${it.slot} · ${owner ? `équipé sur ${MONSTERS[owner.key].name}` : 'libre'}</span>
+      <span class="muted">${itemKind(it)} ${SLOT_NOM[it.slot] === 'Dofus' ? '' : SLOT_NOM[it.slot] + ' '}· ${owner ? `équipé sur ${MONSTERS[owner.key].name}` : 'libre'}</span>
+      ${it.set ? `<span style="font-size:11.5px; color:var(--orange-dk)">${setLigne(it)}</span>` : ''}
       ${segBar(it.lvl/15, 15)}
       <span class="muted" style="font-size:11px">${next ? `Au +${next} : ${empty ? 'nouvel effet' : 'un effet augmente'}` : it.lvl >= 15 ? 'Niveau maximum' : 'Plus de nouvel effet'}</span>
     </div></div>`;
@@ -4386,7 +4466,8 @@ function encyMons(){
 function encyObjets(){
   const q = plain(ency.q.trim());
   return GEAR.map(g => ({ id:g.id, n:g.n, l:g.l, i:g.i, k:g.s, e:g.e }))
-    .concat(ITEM_SKINS.normal.map(x => ({ id:x.id, n:x.n, l:x.l, i:x.i, k:'trophee' })), ITEM_SKINS.legend.map(x => ({ id:x.id, n:x.n, l:x.l, i:x.i, k:'dofus' })))
+    .concat(ITEM_SKINS.normal.filter(x => Object.values(SETS).some(S => x.n.toLowerCase().startsWith(S.n.toLowerCase()))).map(x => ({ id:x.id, n:x.n, l:x.l, i:x.i, k:'trophee' })),
+      ITEM_SKINS.prysm.map(x => ({ id:x.id, n:x.n, l:x.l, i:x.i, k:'trophee' })), ITEM_SKINS.legend.map(x => ({ id:x.id, n:x.n, l:x.l, i:x.i, k:'dofus' })))
     .filter(o => (!ency.type || o.k === ency.type) && (!q || plain(o.n).includes(q)))
     .sort((a, b) => a.l - b.l || a.n.localeCompare(b.n, 'fr'));
 }
@@ -4866,7 +4947,7 @@ const ACT = {
   equip(d){
     const it = Eco.itemById(save, +d.id);
     if (it && it.owner != null && it.owner !== selMon){ volPick = { t:'i', id:it.id }; return render(); }   // porté ailleurs : on demande
-    Eco.equip(save, Eco.monByUid(save, selMon), it);
+    Eco.equip(save, Eco.monByUid(save, selMon), it, slotPick);
     selItem = it.id; swapOpen = false; upMsg = null; upFx = null;   // l'emplacement reste ouvert sur le nouvel objet
     persist(); render();
   },
@@ -4939,7 +5020,7 @@ const ACT = {
   toggleImport(){ const b = $('#importBox'); b.hidden = !b.hidden; },
   doImport(){
     try { const s = JSON.parse(decodeURIComponent(escape(atob($('#importTxt').value.trim())))); if (!saveOk(s)) throw 0;
-      save = s; persist(); panneau = null; popPaint(); toast('Sauvegarde chargée.'); ACT.nav({ v:'jouer' });
+      save = migrer(s); persist(); panneau = null; popPaint(); toast('Sauvegarde chargée.'); ACT.nav({ v:'jouer' });
     } catch(e){ toast('Code de sauvegarde invalide.'); }
   },
   resetSave(){
@@ -5809,6 +5890,7 @@ function creStep(){
       <button class="btn" data-act="creGo">Entrer dans le monde</button></div></div>`;
 }
 function lauStart(){
+  { const avant = save && save.runes; migrer(save); if (save && save.runes !== avant) persist(); }   // ancienne partie : rangée dans le nouveau système, et enregistrée
   try { sessionStorage.setItem('idd-lance', '1'); } catch(e){}      // dans cet onglet, le launcher ne se rejoue plus au rechargement
   $('#lau').hidden = true;
   $('#wrap').hidden = false;
@@ -5877,7 +5959,7 @@ Object.assign(ACT, {
   mpOuvrir(d){ mpQ = ''; mpTrouves = []; mpOuvrir(d.id, d.nom); },
   mpRetour(){ mpAvec = null; mpMsgs = []; chatErr = ''; popPaint(); },
   voirGear(d){ const g = GEAR.find(x => x.id === +d.id); if (g){ apercu = { t:'g', def:g }; render(); } },
-  voirTro(d){ const i = (ITEM_SKINS.normal.concat(ITEM_SKINS.legend)).find(x => x.id === +d.id);
+  voirTro(d){ const i = (ITEM_SKINS.normal.concat(ITEM_SKINS.legend, ITEM_SKINS.prysm)).find(x => x.id === +d.id);
     if (i){ apercu = { t:'i', def:i, legend:ITEM_SKINS.legend.includes(i) }; render(); } },
   apercuOff(){ apercu = null; render(); },
   rtaQueue(){ applyTeam('rta'); rtaQueue(); },
