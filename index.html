@@ -624,36 +624,53 @@ body.in-combat .tabs{display:none}
 .sumbtns[hidden]{display:none}
 .sumhint{position:absolute; bottom:calc(14px + env(safe-area-inset-bottom, 0px)); left:0; right:0; margin:0; font-size:11px; color:#fff8}
 .sumconf{position:absolute; left:50%; top:46%; width:9px; height:14px; margin:-7px -4px; pointer-events:none; animation:sumConf var(--d,1.6s) cubic-bezier(.15,.7,.4,1) forwards}
-/* Montée : le palier s'écrit sous la pierre ; « essai » = la pierre force vers le palier suivant sans l'avoir atteint */
-.sumtier{min-height:30px; font-size:22px; font-weight:bold; letter-spacing:.08em; text-transform:uppercase; color:var(--c); text-shadow:0 0 14px var(--c), 0 2px 0 #000}
-.sumtier.monte{animation:sumStar .35s cubic-bezier(.2,1.6,.4,1)}
-.sumtier[hidden]{display:none}
-.sumov.essai .sumstone{animation-duration:.07s; filter:drop-shadow(0 0 20px var(--c)) drop-shadow(0 0 60px var(--c)) brightness(1.5)}
-.sumov.essai .sumtier{opacity:.35}
-.sumov[data-k="4"] .sumrays, .sumov[data-k="5"] .sumrays, .sumov[data-k="6"] .sumrays{opacity:.35}
-.sumov.iris .sumrays, .sumov.iris.burst .sumrays{background:repeating-conic-gradient(#ff9be055 0 8deg, #0000 8deg 16deg, #9df6ff55 16deg 24deg, #0000 24deg 32deg, #fff3a055 32deg 40deg, #0000 40deg 48deg)}
-.sumres.ombre .por{filter:brightness(0) drop-shadow(0 0 18px var(--c)); animation:sumOmbre .5s cubic-bezier(.2,1.5,.4,1) both, sumPulse 1s ease-in-out .5s infinite}
-.sumres.ombre h3, .sumres.ombre p{visibility:hidden}
-.sumres.lit .por{animation:sumLit .6s cubic-bezier(.2,1.6,.4,1) both}
-.sumban{height:0; font-size:clamp(30px, 9vw, 54px); font-weight:bold; letter-spacing:.06em; text-transform:uppercase; color:#ffd66a; text-shadow:0 0 22px #ffb21a, 0 3px 0 #7a4a00; opacity:0; pointer-events:none}
-.sumban.on{height:auto; opacity:1; animation:sumBan .55s cubic-bezier(.2,1.7,.4,1)}
-.sumban.iris{background:linear-gradient(90deg, #ff9be0, #9df6ff, #fff3a0, #c9a8ff, #ff9be0); background-size:300% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; text-shadow:none; filter:drop-shadow(0 0 14px #9df6ff); animation:sumBan .55s cubic-bezier(.2,1.7,.4,1), prisma 2.5s linear .55s infinite}
-/* ×10 : cartes face cachée */
-.sumcard.dos{--c:#6b6558; aspect-ratio:.74; padding:0; animation:none; background:linear-gradient(135deg, #2b2620, #15110c); opacity:0; transform:translateY(-60px) scale(.3)}
-.sumcard.dos.in{opacity:1; transform:none; transition:transform .28s cubic-bezier(.2,1.5,.4,1), opacity .2s}
-.sumdos{position:absolute; inset:5px; border-radius:6px; border:1px solid #ffffff22; background:radial-gradient(circle, #9df6ff44 0, #0000 62%), repeating-linear-gradient(45deg, #ffffff0d 0 6px, #0000 6px 12px)}
-.sumcard.cur{z-index:2} .sumcard.dos.cur{box-shadow:0 0 0 2px #fff8, 0 0 16px #fff6}
-.sumcard.tremble{animation:sumTremble .1s linear infinite; box-shadow:0 0 22px 4px var(--c)}
-.sumcard.tremble .sumdos{background:radial-gradient(circle, var(--c) 0, #0000 72%)}
-.sumcard.tremble.essai{animation-duration:.05s; box-shadow:0 0 34px 10px var(--c); filter:brightness(1.5)}
-.sumcard.tourne{transform:scaleX(.04) !important; transition:transform .12s ease-in !important}
-.sumcard:not(.dos){animation:sumFlip .28s cubic-bezier(.2,1.6,.4,1) both}
-.sumcard.hot:not(.dos){animation:sumFlip .28s cubic-bezier(.2,1.6,.4,1) both, sumGlow 1.1s ease-in-out .35s infinite}
-@keyframes sumTremble{0%{transform:translate(-2px,1px) rotate(-2deg)} 50%{transform:translate(2px,-1px) rotate(2deg)} 100%{transform:translate(-1px,-1px) rotate(-1deg)}}
-@keyframes sumFlip{from{transform:scaleX(.04)}}
-@keyframes sumOmbre{from{transform:scale(.15); opacity:0}}
-@keyframes sumLit{0%{filter:brightness(0)} 35%{filter:brightness(5); transform:scale(1.22)} 100%{filter:drop-shadow(0 0 26px var(--c)); transform:scale(1)}}
-@keyframes sumBan{from{transform:scale(3.2) rotate(-6deg); opacity:0}}
+/* Invocation plein écran (s2). --c = couleur du rang en cours */
+.s2{--c:#9df6ff; position:fixed; inset:0; z-index:9000; overflow:hidden; color:#fff; text-align:center; background:#04090c; animation:sumIn .25s ease-out; cursor:pointer; -webkit-tap-highlight-color:transparent; user-select:none}
+.s2.out{opacity:0; transition:opacity .25s}
+.s2bg{position:absolute; inset:-4%; background:#0d2a31 50% 20% / cover no-repeat; opacity:.28; animation:s2Zoom 9s ease-out forwards}
+.s2teinte{position:absolute; inset:0; background:radial-gradient(circle at 50% 44%, color-mix(in srgb, var(--c) 34%, transparent) 0, #04090cd9 62%, #04090c 100%); transition:background .35s}
+.s2cv{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
+.s2portal{position:absolute; left:50%; top:44%; width:min(250px, 62vw); aspect-ratio:1; transform:translate(-50%, -50%); display:grid; place-items:center; transition:transform .55s cubic-bezier(.2,.9,.3,1), opacity .4s}
+.s2halo{position:absolute; inset:16%; border-radius:50%; background:radial-gradient(circle, #fff 0, var(--c) 30%, transparent 70%); opacity:.55; animation:invHalo 1.6s ease-in-out infinite}
+.s2ring{position:absolute; inset:0; width:100%; height:100%; color:var(--c); animation:sumSpin 7s linear infinite; transition:color .3s}
+.s2stone{position:relative; animation:s2Stone 1.1s ease-in-out infinite; filter:drop-shadow(0 0 16px var(--c))}
+.s2stone .gemw, .s2stone svg{width:min(120px, 30vw) !important; height:min(120px, 30vw) !important}
+.s2stone[hidden]{display:none}
+.s2.hold .s2portal{transform:translate(-50%, -50%) scale(.86)} .s2.hold .s2ring{animation-play-state:paused} .s2.hold .s2teinte{background:#04090cf2}
+.s2.jet .s2portal{animation:s2Jet .5s cubic-bezier(.2,1.6,.4,1)}
+.s2.fend .s2portal{animation:s2Fend .09s linear infinite} .s2.fend .s2halo{opacity:1}
+.s2.ouvert .s2portal{transform:translate(-50%, -44%) scale(1.45, .4); opacity:.9} .s2.ouvert .s2halo{opacity:.35}
+.s2.recap .s2portal{opacity:0}
+.s2rev{position:absolute; inset:0; display:grid; grid-template-rows:44% auto; justify-items:center; pointer-events:none}
+.s2rev[hidden]{display:none}
+.s2art{align-self:end; display:grid; place-items:end center; transform-origin:50% 100%; animation:s2Art .5s cubic-bezier(.2,1.5,.35,1) both; filter:drop-shadow(0 0 18px var(--c)) drop-shadow(0 8px 6px #000a)}
+.s2art .por{--sz:min(250px, 60vw); width:var(--sz); height:var(--sz); background:none; border:0; box-shadow:none; animation:none; filter:none}
+.s2art .por .pimg{background:none; padding:0} .s2art .por:not(:has(.pimg)){--sz:150px; border-radius:50%; background:radial-gradient(circle at 50% 35%, var(--c), #1a1208); font-size:48px}
+.s2info{display:grid; justify-items:center; align-content:start; gap:5px; margin-top:calc(min(250px, 62vw) * .3); padding:0 16px; animation:sumUp .35s ease-out .12s both}
+.s2rank{padding:1px 12px; border-radius:11px; font-size:12px; font-weight:bold; letter-spacing:.12em; text-transform:uppercase; color:#12100a; background:var(--c); box-shadow:0 0 14px var(--c)}
+.s2rank.iris, .s2ban.iris{background:linear-gradient(90deg, #ff9be0, #9df6ff, #fff3a0, #c9a8ff, #ff9be0); background-size:300% 100%; animation:prisma 2.5s linear infinite}
+.s2info h3{margin:0; font-size:clamp(26px, 7.5vw, 42px); line-height:1.1; text-shadow:0 0 18px var(--c), 0 2px 0 #000}
+.s2stars{display:flex; gap:3px; min-height:34px; align-items:center} .s2stars span{font-size:30px; line-height:1; color:#ffc531; text-shadow:0 0 12px #ffb21a, 0 2px 0 #7a4a00; animation:sumStar .3s cubic-bezier(.2,1.6,.4,1) both}
+.s2info p{margin:0; font-size:14px; color:#e8e2d0}
+.s2ban{position:absolute; left:0; right:0; top:10%; font-size:clamp(26px, 9.5vw, 64px); font-weight:bold; letter-spacing:.04em; text-transform:uppercase; color:var(--c); opacity:0; white-space:nowrap; text-shadow:0 0 30px var(--c)}
+.s2ban.on{opacity:.9; animation:s2Ban .6s cubic-bezier(.2,1.5,.4,1) both} .s2ban.iris{-webkit-background-clip:text; background-clip:text; color:transparent; text-shadow:none; animation:s2Ban .6s cubic-bezier(.2,1.5,.4,1) both, prisma 2.5s linear .6s infinite}
+.s2sum{position:absolute; inset:0; display:grid; align-content:center; justify-items:center; gap:6px; padding:16px 12px 150px; pointer-events:none}
+.s2sum[hidden]{display:none}
+.s2sum h3{margin:0; font-size:clamp(24px, 6.5vw, 34px); text-shadow:0 0 18px var(--c), 0 2px 0 #000} .s2sum p{margin:0 0 6px; font-size:14px; color:#e8e2d0}
+.s2btns{position:absolute; left:0; right:0; bottom:calc(46px + env(safe-area-inset-bottom, 0px)); padding:0 12px; margin:0}
+.s2:not(.recap) .s2btns{bottom:calc(46px + env(safe-area-inset-bottom, 0px))}
+.s2flash{position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none}
+.s2skip{position:absolute; right:12px; top:calc(12px + env(safe-area-inset-top, 0px)); padding:5px 14px; border-radius:16px; border:1px solid #fff6; background:#0009; color:#fff; font:inherit; font-size:13px; cursor:pointer}
+.s2skip[hidden]{display:none}
+.s2count{position:absolute; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom, 0px)); margin:0; font-size:12.5px; color:#d6d0c0; opacity:.85; pointer-events:none}
+.s2.quake .s2rev, .s2.quake .s2cv{animation:quake .3s}
+@keyframes s2Zoom{to{transform:scale(1.12)}}
+@keyframes s2Stone{50%{transform:translateY(-8px) scale(1.05)}}
+@keyframes s2Jet{0%{transform:translate(-50%, -50%) scale(.8)} 100%{transform:translate(-50%, -50%) scale(1)}}
+@keyframes s2Fend{0%{transform:translate(calc(-50% - 3px), calc(-50% + 1px))} 50%{transform:translate(calc(-50% + 3px), calc(-50% - 2px))} 100%{transform:translate(calc(-50% - 1px), calc(-50% + 2px))}}
+@keyframes s2Art{0%{transform:translateY(46px) scale(.55); opacity:0} 60%{opacity:1}}
+@keyframes s2Ban{from{transform:scale(1.9); opacity:0}}
+@keyframes s2Flash{0%{opacity:.9} 100%{opacity:0}}
 .sumov.quake .sumstage{animation:quake .3s}
 @keyframes sumIn{from{opacity:0}}
 @keyframes sumSpin{to{transform:rotate(360deg)}}
@@ -5048,139 +5065,153 @@ const SON = {
 const rangDe = m => m.prisma ? 6 : m.stars;
 const rangCol = k => k >= 6 ? STAR_COL.P : STAR_COL[k];
 const RANG_WORD = { ...STAR_WORD, 6:'Prisma' };
-// rs : un tirage ou une liste de tirages (×10).
-// Le principe : on ne sait jamais où la lumière va s'arrêter. À chaque palier la pierre force vers le suivant ; parfois
-// elle retombe avant de passer quand même, et la toute dernière poussée, elle, n'aboutit pas. Rien ne distingue les deux
-// avant la fin. En ×10 les cartes arrivent face cachée et se retournent une à une, la meilleure en dernier.
+// ---------- Séquence d'invocation, en trois temps.
+//  1. Le portail se charge : la pierre flotte au centre du cercle de runes, les éclats d'âme y convergent.
+//  2. Le verdict : silence, puis un trait de lumière jaillit, de la couleur du rang. Il peut encore monter d'un cran
+//     (bleu → violet → or) : tant que le monstre n'est pas apparu, rien n'est joué.
+//  3. La révélation : chaque monstre arrive seul, plein écran, debout sur le cercle. En ×10 ils défilent du plus
+//     commun au plus rare, puis un récapitulatif les rassemble. Toucher l'écran avance, « Passer » va au bout.
+// Particules, trait et rayons sont dessinés sur un canevas : une seule surface à peindre, donc fluide sur téléphone.
+const SUM_COL = { 1:'#d8d2c0', 2:'#7fe05a', 3:'#4aa8ff', 4:'#b77bff', 5:'#ffc531', 6:'#9df6ff' };
+const SUM_IRIS = ['#ff9be0', '#9df6ff', '#fff3a0', '#c9a8ff', '#ffffff'];
 async function summonShow(rs){
   if (fxOff) return;   // animations réduites : le résultat s'affiche directement dans la page
   sumBusy = true;
   rs = [].concat(rs);
-  const multi = rs.length > 1, r = rs.reduce((a, b) => rangDe(MONSTERS[b.mon.key]) > rangDe(MONSTERS[a.mon.key]) ? b : a);
-  const m = MONSTERS[r.mon.key], st = rangDe(m);
-  const o = document.createElement('div'); o.className = 'sumov';
-  o.innerHTML = `<div class="sumrays"></div>
-    <div class="sumstage"><div class="sumstone">${gemIcon('perfect', 150)}</div><div class="sumtier"></div>
-      <div class="sumres" hidden>${multi ? '<div class="sumgrid"></div>' : `<div class="sumban"></div>${portrait(r.mon.key, 230, { badge:false })}`}<div class="sumstars"></div><h3></h3><p></p>
-        <div class="sumbtns" hidden><button class="btn" data-sum="again">Invoquer encore</button><button class="btn" data-sum="again10">Invoquer ×10</button>${multi ? '' : '<button class="btn grey" data-sum="see">Voir la fiche</button>'}<button class="btn grey" data-sum="close">Continuer</button></div></div></div>
-    <div class="sumflash"></div><p class="sumhint">Touche l'écran pour passer</p>`;
+  const multi = rs.length > 1, best = rs.reduce((a, b) => rangDe(MONSTERS[b.mon.key]) > rangDe(MONSTERS[a.mon.key]) ? b : a);
+  const bm = MONSTERS[best.mon.key], st = rangDe(bm);
+  const o = document.createElement('div'); o.className = 's2';
+  const runes = Array.from({ length:24 }, (_, i) => `<rect x="99" y="${i % 3 ? 7 : 3}" width="2" height="${i % 3 ? 7 : 13}" rx="1" transform="rotate(${i * 15} 100 100)"/>`).join('');
+  o.innerHTML = `<div class="s2bg" style="background-image:url('assets/portail.jpg')"></div><div class="s2teinte"></div>
+    <canvas class="s2cv"></canvas>
+    <div class="s2portal"><span class="s2halo"></span>
+      <svg class="s2ring" viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="96" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="100" cy="100" r="74" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="14 9"/><g fill="currentColor">${runes}</g></svg>
+      <span class="s2stone">${gemIcon('perfect', 120)}</span></div>
+    <div class="s2rev" hidden><div class="s2ban"></div><div class="s2art"></div>
+      <div class="s2info"><span class="s2rank"></span><h3></h3><div class="s2stars"></div><p></p></div></div>
+    <div class="s2sum" hidden><h3></h3><p></p><div class="sumgrid"></div></div>
+    <div class="sumbtns s2btns" hidden><button class="btn" data-sum="again">Invoquer encore</button><button class="btn" data-sum="again10">Invoquer ×10</button>${multi ? '' : '<button class="btn grey" data-sum="see">Voir la fiche</button>'}<button class="btn grey" data-sum="close">Continuer</button></div>
+    <div class="s2flash"></div><button class="s2skip" data-sum="skip">Passer ›</button><p class="s2count"></p>`;
   document.body.appendChild(o);
-  let skip = false, done = false;
-  const close = () => { o.classList.add('out'); setTimeout(() => o.remove(), 260); sumBusy = false; };
+  const $o = q => o.querySelector(q);
+  let phase = 'intro', skipIntro = false, skipAll = false, tap = false, done = false, vivant = true;
+  const close = () => { vivant = false; o.classList.add('out'); setTimeout(() => o.remove(), 260); sumBusy = false; };
   o.addEventListener('click', e => {
     const b = e.target.closest('[data-sum]');
-    if (!done){ skip = true; return; }
-    close();
-    if (b && b.dataset.sum === 'again') ACT.summon();
-    else if (b && b.dataset.sum === 'again10') ACT.summon10();
-    else if (b && b.dataset.sum === 'see') ACT.seeMon({ uid:r.mon.uid });
+    if (b && b.dataset.sum === 'skip'){ skipAll = skipIntro = tap = true; return; }
+    if (b && done){ close();
+      if (b.dataset.sum === 'again') ACT.summon(); else if (b.dataset.sum === 'again10') ACT.summon10(); else if (b.dataset.sum === 'see') ACT.seeMon({ uid:best.mon.uid });
+      return; }
+    if (!done){ if (phase === 'intro') skipIntro = true; else tap = true; }
   });
-  const w = ms => skip ? Promise.resolve() : new Promise(res => { const t0 = Date.now(), id = setInterval(() => { if (skip || Date.now() - t0 >= ms){ clearInterval(id); res(); } }, 30); });
-  const son = (...a) => { if (!skip && sonOn) blip(...a); };
-  const coeur = () => { if (!skip) sonBlip(70, .2, 'sine', .14, 0, 38); };
-  const ring = (col) => { if (skip) return; const x = document.createElement('span'); x.className = 'sumring'; if (col) x.style.borderColor = col; o.appendChild(x); setTimeout(() => x.remove(), 650); };
-  const flash = () => { const f = o.querySelector('.sumflash'); f.style.animation = 'none'; void f.offsetWidth; f.style.animation = 'sumFlash .7s ease-out'; };
-  const secousse = () => { o.classList.remove('quake'); void o.offsetWidth; o.classList.add('quake'); };
-  const confettis = (n, cols) => { if (skip) n = Math.min(n, 30); for (let i = 0; i < n; i++){
-    const a = Math.random()*6.283, d = 140 + Math.random()*Math.max(innerWidth, innerHeight)*.55, x = document.createElement('span');
-    x.className = 'sumconf';
-    x.style.cssText = `--x:${Math.cos(a)*d}px;--y:${Math.sin(a)*d + 160}px;--r:${Math.round(Math.random()*1080 - 540)}deg;--d:${(1.2 + Math.random()*1.1).toFixed(2)}s;background:${cols[i % cols.length]}`;
-    o.appendChild(x); setTimeout(() => x.remove(), 2400); } };
-  const IRIS = ['#ff9be0', '#9df6ff', '#fff3a0', '#c9a8ff', '#fff'];
-  // La montée, commune à la pierre et aux cartes du ×10. poser(k, essai) colore le support ; essai = poussée qui n'a pas encore abouti.
-  const montee = async (de, cible, poser, lent) => {
-    let k = de; poser(k, false);
-    for (;;){
-      const haut = Math.min(6, k + 1), dernier = k >= cible;
-      if (k >= 6){ await w(500 * lent); break; }
-      // la tension monte : battements de plus en plus serrés
-      const bat = 2 + Math.min(3, k - de + (k >= 4 ? 1 : 0));
-      for (let b = 0; b < bat; b++){ coeur(); await w((330 - b * 45) * lent); }
-      if (dernier || Math.random() < .34){          // elle force… et retombe
-        poser(haut, true); son(150 * 2 ** (k * 3 / 12), .2, 'sawtooth', .05); await w(260 * lent);
-        poser(k, false); if (!skip) sonBlip(110, .25, 'sine', .1, 0, 50); await w((dernier ? 420 : 300) * lent);
-        if (dernier) break;
-        coeur(); await w(240 * lent);
-      }
-      k = haut; poser(k, false, true); await w((k >= 4 ? 520 : 340) * lent);
+  const attends = (ms, fin) => new Promise(res => { if (fin()) return res(); const t0 = Date.now(), id = setInterval(() => { if (fin() || Date.now() - t0 >= ms){ clearInterval(id); res(); } }, 25); });
+  const wi = ms => attends(ms, () => skipIntro);                                   // pendant l'ouverture
+  const z = ms => attends(ms, () => skipAll || tap);                               // petits délais d'une révélation
+  const wt = ms => attends(ms, () => skipAll || tap).then(() => { tap = false; }); // pause entre deux monstres : un toucher l'abrège
+  const son = (...a) => { if (!skipAll) blip(...a); };
+
+  // --- canevas
+  const cv = $o('.s2cv'), g = cv.getContext('2d'); let W = 0, H = 0, D = 1;
+  const taille = () => { D = Math.min(2, window.devicePixelRatio || 1); W = o.clientWidth; H = o.clientHeight; cv.width = Math.round(W * D); cv.height = Math.round(H * D); };
+  taille(); window.addEventListener('resize', taille);
+  const CY = .44, cx = () => W / 2, cy = () => H * CY;
+  const fx = { col:'#cfefff', iris:false, charge:0, beam:0, rays:0, embers:0, rot:0 }, T = { beam:0, rays:0 }, P = [];
+  const teinte = () => fx.iris ? SUM_IRIS[(Math.random() * SUM_IRIS.length) | 0] : fx.col;
+  const eclat = (n, v, c) => { for (let i = 0; i < n && P.length < 420; i++){ const a = Math.random() * 6.283, sp = v * (.25 + Math.random());
+    P.push({ x:cx(), y:cy(), vx:Math.cos(a) * sp, vy:Math.sin(a) * sp - 40, life:0, max:.6 + Math.random() * .9, sz:1.5 + Math.random() * 3.5, c:c || (Math.random() < .25 ? '#fff' : teinte()), g:260 }); } };
+  const couleur = k => { fx.iris = k >= 6; fx.col = SUM_COL[k]; o.style.setProperty('--c', SUM_COL[k]); o.dataset.k = k; };
+  let t0 = performance.now();
+  const peindre = t => {
+    if (!vivant){ window.removeEventListener('resize', taille); return; }
+    const dt = Math.min(.05, (t - t0) / 1000); t0 = t;
+    fx.rot += dt * .22; fx.beam += (T.beam - fx.beam) * Math.min(1, dt * 7); fx.rays += (T.rays - fx.rays) * Math.min(1, dt * 4);
+    g.setTransform(D, 0, 0, D, 0, 0); g.clearRect(0, 0, W, H); g.globalCompositeOperation = 'lighter';
+    const X = cx(), Y = cy();
+    if (fx.rays > .01){                                             // rayons : douze éventails qui tournent lentement
+      const R = Math.hypot(W, H); g.save(); g.translate(X, Y); g.rotate(fx.rot);
+      for (let i = 0; i < 12; i++){ g.rotate(6.283 / 12); g.globalAlpha = .11 * fx.rays; g.fillStyle = fx.iris ? SUM_IRIS[i % 4] : fx.col;
+        g.beginPath(); g.moveTo(0, 0); g.lineTo(R, -R * .085); g.lineTo(R, R * .085); g.closePath(); g.fill(); }
+      g.restore();
     }
+    if (fx.beam > .01){                                             // trait de lumière qui monte du portail
+      const w = 70 * fx.beam, gr = g.createLinearGradient(X - w, 0, X + w, 0);
+      gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(.5, fx.col); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.globalAlpha = .8 * fx.beam; g.fillStyle = gr; g.fillRect(X - w, 0, w * 2, Y);
+      const w2 = 16 * fx.beam, g2 = g.createLinearGradient(X - w2, 0, X + w2, 0);
+      g2.addColorStop(0, 'rgba(255,255,255,0)'); g2.addColorStop(.5, '#fff'); g2.addColorStop(1, 'rgba(255,255,255,0)');
+      g.globalAlpha = fx.beam; g.fillStyle = g2; g.fillRect(X - w2, 0, w2 * 2, Y);
+    }
+    if (fx.charge > 0) for (let i = 0; i < 3 && P.length < 420; i++){ const a = Math.random() * 6.283, r = 170 + Math.random() * 150;
+      P.push({ x:X + Math.cos(a) * r, y:Y + Math.sin(a) * r, pull:true, life:0, max:.75, sz:1.5 + Math.random() * 2.5, c:Math.random() < .3 ? '#fff' : teinte() }); }
+    if (fx.embers > 0 && Math.random() < fx.embers && P.length < 420) P.push({ x:Math.random() * W, y:H + 8, vx:(Math.random() - .5) * 24, vy:-(50 + Math.random() * 90), life:0, max:3 + Math.random() * 2, sz:1.2 + Math.random() * 2.6, c:teinte(), g:0 });
+    for (let i = P.length - 1; i >= 0; i--){ const p = P[i]; p.life += dt; if (p.life >= p.max){ P.splice(i, 1); continue; }
+      if (p.pull){ const dx = X - p.x, dy = Y - p.y; p.x += (dx * 3.4 - dy * 2) * dt; p.y += (dy * 3.4 + dx * 2) * dt; }
+      else { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.g * dt; p.vx *= 1 - dt * 1.2; }
+      const a = 1 - p.life / p.max; g.globalAlpha = Math.min(1, a * 1.4); g.fillStyle = p.c; g.beginPath(); g.arc(p.x, p.y, p.sz * (.5 + a * .7), 0, 6.283); g.fill(); }
+    g.globalAlpha = 1;
+    requestAnimationFrame(peindre);
   };
+  requestAnimationFrame(peindre);
+  const flash = fort => { const f = $o('.s2flash'); f.style.animation = 'none'; void f.offsetWidth; f.style.animation = `s2Flash ${fort ? .8 : .45}s ease-out`; };
+  const secousse = () => { o.classList.remove('quake'); void o.offsetWidth; o.classList.add('quake'); };
 
-  // 1. Charge : des éclats d'âme convergent vers la pierre
-  for (let i = 0; i < 22; i++){
-    const a = Math.random()*6.283, d = 160 + Math.random()*220, x = document.createElement('span');
-    x.className = 'summote'; x.style.cssText = `--x:${Math.cos(a)*d}px;--y:${Math.sin(a)*d}px;--d:${(.7 + Math.random()*.6).toFixed(2)}s;--dl:${(Math.random()*.9).toFixed(2)}s`;
-    o.appendChild(x);
+  // --- 1. Charge
+  couleur(1); fx.col = '#bfefff'; o.style.setProperty('--c', '#9df6ff');
+  fx.charge = 1; fx.embers = .05;
+  if (sonOn) sonBlip(98, 1.5, 'sawtooth', .028, 0, 392);
+  await wi(1450);
+  // --- 2. Verdict : un temps de silence, puis le trait. Un 4 ★ ou mieux s'annonce parfois un cran plus bas avant de monter.
+  fx.charge = 0; o.classList.add('hold'); await wi(320); o.classList.remove('hold');
+  let vu = st >= 5 ? (Math.random() < .65 ? 4 : 3) : st === 4 ? (Math.random() < .5 ? 3 : 4) : st;
+  const jaillir = (k, fort) => { couleur(k); T.beam = 1; T.rays = k >= 5 ? 1 : k === 4 ? .55 : k === 3 ? .2 : 0; eclat(fort ? 120 : 50, fort ? 560 : 340); flash(fort); if (k >= 4) secousse();
+    o.classList.remove('jet'); void o.offsetWidth; o.classList.add('jet');
+    if (!skipIntro && sonOn){ bruit(.35, fort ? .1 : .06, 900 + k * 300, .8); [0, 7, 12].slice(0, k >= 3 ? 3 : 2).forEach((semi, i) => blip(196 * 2 ** ((k * 3 + semi) / 12), .5, 'triangle', .06, i * .05)); } };
+  jaillir(vu, vu >= 4); await wi(vu < st ? 780 : 900);
+  while (vu < st){                                                    // la lumière force, le cercle se fend, elle monte d'un cran
+    o.classList.add('fend'); if (!skipIntro && sonOn){ sonBlip(70, .5, 'sine', .14, 0, 40); sonBlip(180, .5, 'sawtooth', .04, 0, 520); }
+    T.beam = .35; await wi(560); o.classList.remove('fend');
+    vu = vu === 3 ? 4 : st; jaillir(vu, true); await wi(vu < st ? 780 : vu >= 5 ? 1150 : 900);
   }
-  const tier = o.querySelector('.sumtier');
-  son(196, .5, 'triangle', .04); await w(multi ? 900 : 700);
-
-  if (!multi){
-    // 2. Montée, palier par palier
-    await montee(1, st, (k, essai, passe) => {
-      o.style.setProperty('--c', rangCol(k)); o.dataset.k = k; o.classList.toggle('essai', !!essai); o.classList.toggle('tense', k >= 3 || !!essai);
-      o.classList.toggle('iris', k >= 6);
-      if (!essai){ tier.textContent = RANG_WORD[k]; tier.classList.remove('monte'); void tier.offsetWidth; tier.classList.add('monte'); }
-      if (passe){ ring(); son(196 * 2 ** ((k - 1) * 4 / 12), .3, 'triangle', .07); if (k >= 4){ flash(); secousse(); } }
-    }, 1);
-    // 3. Éclatement
-    o.classList.remove('tense', 'essai'); o.classList.add('burst'); ring(); flash(); if (st >= 3) secousse();
-    [0, 4, 7, 12, 16, 19].slice(0, Math.max(2, st)).forEach((semi, i) => son(392 * 2 ** (semi / 12), .5, 'sine', .06, i * .07));
-    await w(260);
-    o.querySelector('.sumstone').hidden = true; tier.hidden = true;
-    const res = o.querySelector('.sumres'); res.hidden = false; res.classList.add('ombre');   // d'abord une silhouette : on sait le rang, pas encore qui
-    confettis(st >= 3 ? st * 26 : 0, st >= 6 ? IRIS : [rangCol(st), '#fff', '#ffd66a', rangCol(Math.max(1, st - 1))]);
-    const stars = res.querySelector('.sumstars');
-    for (let i = 0; i < m.stars; i++){ const x = document.createElement('span'); x.textContent = '★'; stars.appendChild(x); son(660 * 2 ** (i * 2 / 12), .16, 'square', .035); await w(190); }
-    await w(st >= 4 ? 520 : 260);
-    // 4. Le monstre se dévoile
-    res.classList.remove('ombre'); res.classList.add('lit'); ring(); if (st >= 4){ flash(); secousse(); confettis(st * 14, st >= 6 ? IRIS : [rangCol(st), '#fff']); }
-    [0, 7, 12].forEach((semi, i) => son(523 * 2 ** (semi / 12), .45, 'triangle', .07, i * .06));
-    if (st >= 5){ const ban = res.querySelector('.sumban'); ban.textContent = st >= 6 ? 'Prisma !' : 'Légendaire !'; ban.classList.add('on'); if (st >= 6) ban.classList.add('iris'); }
-    res.querySelector('h3').textContent = m.name;
-    res.querySelector('p').innerHTML = `${RANG_WORD[st]} · ${ELEM[m.el]} · ${m.role}${r.isNew ? '<span class="sumnew">Nouveau !</span>' : ''}`;
-  } else {
-    // ×10 : la pierre éclate en dix cartes, face cachée
-    o.classList.add('burst'); ring(); flash(); son(392, .4, 'sine', .06); son(587, .4, 'sine', .06, .08);
-    await w(240);
-    o.querySelector('.sumstone').hidden = true; tier.hidden = true;
-    const res = o.querySelector('.sumres'); res.hidden = false; res.querySelector('.sumstars').hidden = true;
-    const grid = res.querySelector('.sumgrid'), h3 = res.querySelector('h3');
-    h3.textContent = 'Dix âmes répondent…';
-    const ordre = rs.filter(x => x !== r).concat(r);          // la meilleure pour la fin
-    const cartes = ordre.map(() => { const c = document.createElement('span'); c.className = 'sumcard dos'; c.innerHTML = '<span class="sumdos"></span>'; grid.appendChild(c); return c; });
-    for (const c of cartes){ c.classList.add('in'); son(300, .06, 'square', .02); await w(70); }
-    await w(420);
-    let vus = 0;
-    for (let i = 0; i < ordre.length; i++){
-      const x = ordre[i], mm = MONSTERS[x.mon.key], k = rangDe(mm), c = cartes[i];
-      c.classList.add('cur');
-      // À partir de 4 ★, la carte tremble et sa lumière grimpe. Une rare sur quatre tremble aussi… pour rien.
-      if (k >= 4 || (k === 3 && Math.random() < .25)){
-        c.classList.add('tremble');
-        await montee(3, k, (q, essai, passe) => { c.style.setProperty('--c', rangCol(q)); c.classList.toggle('essai', !!essai); c.classList.toggle('iris', q >= 6 && !essai);
-          if (passe){ son(196 * 2 ** ((q - 1) * 4 / 12), .28, 'triangle', .07); ring(rangCol(q)); o.style.setProperty('--c', rangCol(q)); } }, .62);
-        c.classList.remove('tremble', 'essai');
-      } else await w(i ? 120 : 200);
-      c.classList.add('tourne'); await w(130);
-      c.className = 'sumcard cur' + (k >= 4 ? ' hot' : '') + (mm.prisma ? ' prisma' : ''); c.style.setProperty('--c', rangCol(k));
-      c.innerHTML = `${portrait(x.mon.key, 70, { badge:false })}<b>${starsTxt(mm.stars)}</b><small>${mm.name}</small>${x.isNew ? '<i>Nouveau</i>' : ''}`;
-      son(520 * 2 ** (k * 3 / 12), .14, k >= 4 ? 'triangle' : 'square', k >= 4 ? .07 : .035);
-      if (k >= 4){ ring(rangCol(k)); flash(); secousse(); confettis(k * 12, k >= 6 ? IRIS : [rangCol(k), '#fff', '#ffd66a']); [0, 7, 12].forEach((semi, j) => son(523 * 2 ** (semi / 12), .4, 'triangle', .06, j * .06)); await w(650); }
-      else await w(150);
-      c.classList.remove('cur'); vus++;
-    }
-    o.style.setProperty('--c', rangCol(st));
+  // --- 3. Révélation
+  phase = 'rev'; tap = false;
+  $o('.s2stone').hidden = true; o.classList.add('ouvert'); T.beam = 0;
+  const rv = $o('.s2rev'), art = $o('.s2art'), ban = $o('.s2ban'), cnt = $o('.s2count');
+  const montrer = async (x, i, n) => {
+    const mm = MONSTERS[x.mon.key], k = rangDe(mm);
+    couleur(k); T.rays = k >= 5 ? 1 : k === 4 ? .6 : k === 3 ? .22 : 0; fx.embers = k >= 3 ? .12 * k : .05;
+    rv.hidden = true; void rv.offsetWidth; rv.hidden = false; rv.className = 's2rev k' + k;
+    art.innerHTML = portrait(x.mon.key, 260, { badge:false });
+    ban.textContent = k >= 6 ? 'Prisma' : k === 5 ? 'Légendaire' : ''; ban.className = 's2ban' + (k >= 5 ? ' on' : '') + (k >= 6 ? ' iris' : '');
+    $o('.s2rank').textContent = RANG_WORD[k]; $o('.s2rank').className = 's2rank' + (k >= 6 ? ' iris' : '');
+    $o('.s2info h3').textContent = mm.name;
+    $o('.s2info p').innerHTML = `${ELEM[mm.el]} · ${mm.role}${x.isNew ? '<span class="sumnew">Nouveau !</span>' : ''}`;
+    const stars = $o('.s2stars'); stars.innerHTML = '';
+    cnt.textContent = n > 1 ? `${i + 1} / ${n}` : '';
+    eclat(k >= 4 ? 110 : k === 3 ? 60 : 30, k >= 4 ? 520 : 320); flash(k >= 4); if (k >= 4) secousse();
+    if (!skipAll && sonOn){ if (k >= 4) bruit(.3, .09, 1800, .8); [0, 4, 7, 12, 16].slice(0, Math.max(2, k)).forEach((semi, j) => blip(330 * 2 ** (semi / 12), .4, 'triangle', .055, j * .06)); }
+    for (let q = 0; q < mm.stars; q++){ const e = document.createElement('span'); e.textContent = '★'; stars.appendChild(e); son(660 * 2 ** (q * 2 / 12), .12, 'square', .03); await z(k >= 4 ? 140 : 70); }
+    if (x.isNew && !skipAll) son(1320, .3, 'sine', .05, .05);
+  };
+  if (multi){
+    const ordre = rs.slice().sort((a, b) => rangDe(MONSTERS[a.mon.key]) - rangDe(MONSTERS[b.mon.key]));
+    for (let i = 0; i < ordre.length && !skipAll; i++){ const k = rangDe(MONSTERS[ordre[i].mon.key]);
+      await montrer(ordre[i], i, ordre.length); await wt(k >= 5 ? 2800 : k === 4 ? 1700 : k === 3 ? 950 : 650); }
+    // récapitulatif
+    rv.hidden = true; cnt.textContent = ''; o.classList.add('recap'); couleur(st); T.rays = st >= 4 ? .5 : .15; fx.embers = .15;
+    const sum = $o('.s2sum'), grid = sum.querySelector('.sumgrid'); sum.hidden = false;
     const news = rs.filter(x => x.isNew).length;
-    h3.textContent = `${rs.length} invocations`;
-    res.querySelector('p').innerHTML = `Meilleur tirage : ${m.name} (${st >= 6 ? 'Prisma' : st + ' étoiles'})${news ? `<span class="sumnew">${news} nouveau${news > 1 ? 'x' : ''}</span>` : ''}`;
-  }
-  if (rs.some(x => x.isNew) && sonOn) blip(1320, .3, 'sine', .05, .1);
-  await w(350);
-  const res = o.querySelector('.sumres'), btns = res.querySelector('.sumbtns'); btns.hidden = false;
+    sum.querySelector('h3').textContent = `${rs.length} invocations`;
+    sum.querySelector('p').innerHTML = `Meilleur tirage : ${bm.name}${news ? `<span class="sumnew">${news} nouveau${news > 1 ? 'x' : ''}</span>` : ''}`;
+    ordre.slice().reverse().forEach((x, i) => { const mm = MONSTERS[x.mon.key], k = rangDe(mm), c = document.createElement('span');
+      c.className = 'sumcard' + (k >= 4 ? ' hot' : '') + (mm.prisma ? ' prisma' : ''); c.style.setProperty('--c', SUM_COL[k]); c.style.animationDelay = i * 55 + 'ms';
+      c.innerHTML = `${portrait(x.mon.key, 70, { badge:false })}<b>${starsTxt(mm.stars)}</b><small>${mm.name}</small>${x.isNew ? '<i>Nouveau</i>' : ''}`; grid.appendChild(c); });
+    if (sonOn) [0, 4, 7, 12].forEach((semi, j) => blip(392 * 2 ** (semi / 12), .4, 'sine', .05, j * .08));
+  } else await montrer(best, 0, 1);
+  await attends(multi ? 700 : 350, () => false);
+  const btns = $o('.s2btns'); btns.hidden = false; $o('.s2skip').hidden = true; o.classList.add('fini');
   if (save.stones < 1) btns.querySelector('[data-sum="again"]').disabled = true;
   if (save.stones < 10) btns.querySelector('[data-sum="again10"]').disabled = true;
-  o.querySelector('.sumhint').textContent = `${save.stones} pierre${save.stones > 1 ? 's' : ''} d'âme pleine${save.stones > 1 ? 's' : ''} restante${save.stones > 1 ? 's' : ''}`;
+  cnt.textContent = `${fmt(save.stones)} pierre${save.stones > 1 ? 's' : ''} d'âme pleine${save.stones > 1 ? 's' : ''}`;
   done = true;
 }
 
