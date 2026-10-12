@@ -798,6 +798,12 @@ body.in-combat .tabs{display:none}
 .pop.glance{color:#8a7f66; font-size:16px}
 .pop.heal{color:#2f9b12}
 .pop.info{font-size:13px; color:#2b4f80}
+.pop.reac{font-size:17px; color:#ffe27a; text-shadow:-1px -1px 0 #5a2a00, 1px -1px 0 #5a2a00, -1px 1px 0 #5a2a00, 1px 1px 0 #5a2a00, 0 0 10px #ff9d1a; letter-spacing:.03em; z-index:5}
+.pop.reac.gros{font-size:26px; color:#fff}
+.unit.reacf .token{filter:brightness(1.9) saturate(1.4)}
+.bar.brk{height:4px; margin-top:1px; background:#2a2118} .bar.brk i{display:block; height:100%; background:linear-gradient(90deg, #fff3a0, #ffb21a); transition:width .25s}
+.fx .aur{background:color-mix(in srgb, var(--c) 80%, #000); color:#fff; border-color:#fff8}
+#wbbar .wbt::after{content:''; position:absolute; left:0; bottom:0; height:3px; width:var(--brk, 100%); background:linear-gradient(90deg, #fff3a0, #ffb21a); transition:width .25s}
 @keyframes pop{0%{opacity:0; transform:translate(-50%,6px) scale(.7)} 15%{opacity:1; transform:translate(-50%,-6px) scale(1.12)} 100%{opacity:0; transform:translate(-50%,-46px) scale(1)}}
 @keyframes bob{50%{transform:translateY(-4px)}}
 @keyframes pulse{50%{box-shadow:0 0 0 2px var(--side), 0 0 12px 4px #fff}}
@@ -1060,6 +1066,38 @@ body.fs .cwin .hudbar{display:none}
 .autoloot li{display:flex; flex-wrap:wrap; align-items:center; gap:4px}
 .tabn{display:inline-block; min-width:16px; padding:0 4px; border-radius:8px; background:var(--foe); color:#fff; font-size:10px; line-height:16px; text-shadow:none}
 .achs{list-style:none; margin:0; padding:0; display:grid; gap:4px}
+/* Quêtes du jour et succès : un bandeau de récompense, puis une carte par objectif */
+.qhero{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:12px; align-items:center; padding:12px; border-radius:12px; color:#fff; border:2px solid #000;
+  background:radial-gradient(circle at 12% 30%, #3f8ea0 0, #0000 55%), linear-gradient(135deg, #1d3d47, #12222a); box-shadow:inset 0 1px 0 #fff3, 0 3px 10px #0005; margin-bottom:8px}
+.qhero.pret{background:radial-gradient(circle at 12% 30%, #ffd66a 0, #0000 55%), linear-gradient(135deg, #7a4a0c, #3a2204); animation:qPret 1.6s ease-in-out infinite}
+.qhero .muted{color:#cfe3e6}
+.qgem{position:relative; display:grid; place-items:center; filter:drop-shadow(0 0 10px #9df6ff)} .qgem b{position:absolute; right:-8px; bottom:-4px; padding:0 6px; border-radius:9px; background:var(--orange2); border:1px solid #000; font-size:13px}
+.qhm{display:grid; gap:5px; min-width:0} .qhm > b{font-size:14.5px; line-height:1.2}
+.qpips, .spips{display:flex; gap:3px} .qpips i{flex:1; max-width:22px; height:7px; border-radius:3px; background:#ffffff2e} .qpips i.on{background:linear-gradient(#fff3a0, #ffb21a); box-shadow:0 0 6px #ffb21a}
+.spips i{width:9px; height:9px; border-radius:50%; background:var(--panel-line)} .spips i.on{background:var(--orange2); box-shadow:0 0 0 1px #0005}
+.qlist{list-style:none; margin:0; padding:0; display:grid; gap:6px}
+.qc{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:10px; align-items:center; padding:8px 10px; border-radius:10px; background:var(--row); border:1px solid var(--panel-line); transition:transform .1s}
+.qc.pret{border-color:var(--orange2); background:linear-gradient(90deg, #ffe7b8, var(--row)); box-shadow:0 0 0 1px var(--orange2), 0 2px 10px #ff9d1a55}
+.qc.pris{opacity:.55}
+.qi{display:grid; place-items:center; width:42px; height:42px; border-radius:50%; color:#fff; background:linear-gradient(#5aa7b8, #2c6f80); border:2px solid #0006; box-shadow:inset 0 2px 0 #fff4}
+.qc.pret .qi{background:linear-gradient(#ffcf5a, #e08a12)} .qc.pris .qi{background:linear-gradient(#8fb86a, #4d7a2c)}
+.qi.med{grid-template-rows:auto auto; align-content:center; line-height:1} .qi.med b{font-size:17px} .qi.med small{font-size:8.5px; opacity:.85}
+.qt{display:grid; gap:4px; min-width:0} .qt > b{font-size:13.5px; line-height:1.2} .sdesc{font-size:12px; opacity:.85}
+.qbar{position:relative; display:block; height:14px; border-radius:7px; background:#3d3c38; overflow:hidden; box-shadow:inset 0 1px 2px #000a}
+.qbar i{display:block; height:100%; border-radius:7px; background:linear-gradient(#ffd27a, var(--orange2)); transition:width .4s}
+.qc.pris .qbar i{background:linear-gradient(#b6e08a, #5d9a2f)}
+.qbar em{position:absolute; inset:0; display:grid; place-items:center; font-style:normal; font-size:10px; font-weight:bold; color:#fff; text-shadow:0 1px 1px #000}
+.qr{display:flex; gap:10px; font-size:11.5px; opacity:.85} .qr span{display:inline-flex; align-items:center; gap:3px}
+.qa .btn{display:inline-flex; align-items:center; gap:4px} .qc.pret .qa .btn{animation:sumPulse 1s ease-in-out infinite}
+.qok{display:grid; place-items:center; width:28px; height:28px; border-radius:50%; background:#4d7a2c; color:#fff; font-weight:bold} .qok.gros{width:40px; height:40px; font-size:20px}
+.sring{--p:0; display:grid; place-items:center; width:62px; height:62px; border-radius:50%; background:conic-gradient(#ffb21a calc(var(--p) * 1%), #ffffff26 0); position:relative}
+.sring::before{content:''; position:absolute; inset:6px; border-radius:50%; background:#12222a} .sring b{position:relative; font-size:17px} .sring small{font-size:10px}
+.qhero.pret .sring::before{background:#3a2204}
+@keyframes qPret{50%{box-shadow:inset 0 1px 0 #fff3, 0 0 18px #ffb21a}}
+html[data-theme="sombre"] .qc.pret{background:linear-gradient(90deg, #5a3a0c, var(--row))}
+.passif{display:grid; gap:2px; padding:7px 10px; border-radius:8px; border:1px solid var(--orange2); background:linear-gradient(90deg, #ffb21a22, #0000); font-size:12.5px} .passif b{color:var(--orange-dk)}
+.tmb{padding:0; border:0; background:none; cursor:pointer; border-radius:6px} .tmb:active{transform:scale(.92)}
+@media (prefers-reduced-motion: reduce){ .qhero.pret, .qc.pret .qa .btn{animation:none} }
 .ach{display:grid; grid-template-columns:minmax(0,1fr) 150px auto; gap:10px; align-items:center; padding:6px 10px; background:var(--row); border:1px solid transparent; border-radius:6px}
 .ach:nth-child(even){background:var(--row2)}
 .ach.ready{border-color:var(--orange2); background:#fbe3bf}
@@ -1325,6 +1363,34 @@ const EFFECTS = {
   regen:   { label:'Régénération',   short:'RÉG',  good:true  },
   immune:  { label:'Immunité',       short:'IMM',  good:true  },
   charge:  { label:'Charge',         short:'CHG',  good:true, pile:3, fixe:true },
+  rompu:   { label:'Rompu',          short:'RPT',  good:false },
+  // Imprégnations : l'élément du dernier coup reçu. Elles ne sont pas des malus (voir REAC).
+  aura_eau:  { label:'Mouillé',  short:'EAU', good:false, aura:'eau' },
+  aura_feu:  { label:'Embrasé',  short:'FEU', good:false, aura:'feu' },
+  aura_terre:{ label:'Terreux',  short:'TER', good:false, aura:'terre' },
+  aura_air:  { label:'Venté',    short:'AIR', good:false, aura:'air' },
+};
+// Réactions élémentaires. Un coup laisse l'élément de son auteur sur la cible pendant deux tours ; le coup suivant
+// d'un AUTRE élément consomme cette imprégnation et déclenche la réaction du couple. Le Neutre n'imprègne ni ne réagit.
+const REAC = {
+  'eau+feu':   { n:'Vapeur',          d:'le coup frappe 35 % plus fort', amp:1.35 },
+  'air+feu':   { n:'Embrasement',     d:'pose une Brûlure (2 t)', burn:.8 },
+  'air+eau':   { n:'Électrocution',   d:'35 % du coup rebondit sur les autres ennemis', splash:.35 },
+  'eau+terre': { n:'Embourbé',        d:'la barre d\'attaque de la cible recule de 25 %', atb:-25 },
+  'feu+terre': { n:'Fracture',        d:'Fragilité sur la cible (1 t)', effet:'defBreak' },
+  'air+terre': { n:'Cristallisation', d:'l\'attaquant gagne un bouclier de 10 % de ses PV (2 t)', shield:10 },
+};
+// Rupture : chaque boss a une jauge. Un coup l'entame d'un point, de deux avec l'avantage d'élément, d'aucun en désavantage.
+// À zéro le boss est Rompu : il perd son tour et subit davantage tant que l'état dure, puis la jauge se reforme.
+const RUPTURE = { par:6, dmg:1.35, tours:2 };
+// Attaques de suivi : selon son rôle, un monstre frappe hors de son tour quand un allié remplit la condition.
+const SUIVI = {
+  Attaquant:    { quand:'reac',   chance:100, mult:1.5, d:'Quand un allié déclenche une réaction élémentaire, il frappe la même cible à 1,5× ATK.' },
+  Bagarreur:    { quand:'crit',   chance:40,  mult:1.3, d:'Quand un allié réussit un coup critique, 40 % de chance de frapper la même cible à 1,3× ATK.' },
+  Assassin:     { quand:'crit',   chance:50,  mult:1.5, d:'Quand un allié réussit un coup critique, 50 % de chance de frapper la même cible à 1,5× ATK.' },
+  Pyromane:     { quand:'burn',   chance:50,  mult:1.4, d:'Quand un allié frappe une cible qui brûle, 50 % de chance de la frapper aussi à 1,4× ATK.' },
+  Empoisonneur: { quand:'poison', chance:50,  mult:1.4, d:'Quand un allié frappe une cible empoisonnée, 50 % de chance de la frapper aussi à 1,4× ATK.' },
+  Entraveur:    { quand:'rompu',  chance:100, mult:2,   d:'Quand un allié rompt un boss, il le frappe aussitôt à 2× ATK.' },
 };
 
 const SKILLS = {
@@ -1436,6 +1502,12 @@ const SETS = {
   pousseur:   { n:'Pousseur',   p:4, fx:{ critDmg:40 }, d:'Dégâts critiques +40 %' },
   fuyard:     { n:'Fuyard',     p:4, fx:{ rejoue:18 },  d:'18 % de chance de rejouer aussitôt' },
   soigneur:   { n:'Soigneur',   p:4, fx:{ vol:25 },     d:'Se soigne de 25 % des dégâts infligés' },
+  // Sets à procs : lus par le moteur de combat
+  furibond:   { n:'Furibond',   p:4, fx:{ procBurn:30 },   d:'30 % de chance de poser Brûlure (2 t) sur chaque cible frappée' },
+  sanguinaire:{ n:'Sanguinaire',p:4, fx:{ procPoison:35 }, d:'35 % de chance de poser Poison (2 t) sur chaque cible frappée' },
+  bousculeur: { n:'Bousculeur', p:2, fx:{ brk:1 },         d:'+1 point de rupture à chaque coup porté à un boss' },
+  acrobate:   { n:'Acrobate',   p:4, fx:{ echo:25 },       d:'25 % de chance de suivre le sort offensif d\'un allié à 1,2× ATK' },
+  savant:     { n:'Savant',     p:2, fx:{ reacK:40 },      d:'Ses réactions élémentaires sont 40 % plus fortes' },
 };
 const setsDe = items => { const c = {}; for (const it of items || []) if (it.set && SETS[it.set]) c[it.set] = (c[it.set] || 0) + 1;
   return Object.keys(c).map(k => ({ k, n:c[k], fois:Math.floor(c[k] / SETS[k].p) })); };
@@ -1596,19 +1668,23 @@ const Engine = (() => {
     skills.forEach((id, k) => { skl[id] = (def.sk && def.sk[k]) || 1; });
     return { id: side + i, side, key: def.key, name: m.name, short: m.short, el: m.el, role: m.role, boss: !!def.boss, bars: def.bars || null, bar: 0,
       level: def.level, awakened: !!def.awakened, gear: def.items || [], pos: POS[side][i], stats, hp: stats.hp,
-      atb: 0, alive: true, effects: [], cds: {}, skills, skl };
+      atb: 0, alive: true, effects: [], cds: {}, skills, skl, aura: null };
   }
+  // Jauge de rupture des boss : proportionnelle au nombre d'adversaires, pour tenir aussi bien à trois qu'à dix.
+  const jauges = s => { for (const u of s.B) if (u.boss){ u.brkMax = u.brk = RUPTURE.par * s.A.filter(x => x.alive).length; } };
   function createBattle(teamA, teamB, seed){
     const A = teamA.map((d,i)=>makeUnit(d,'A',i));
     const atb0 = clsFx().atb0;
     if (atb0) for (const u of A) u.atb = Math.min(99, u.atb + atb0 * 100);
-    return { A, B: teamB.map((d,i)=>makeUnit(d,'B',i)),
+    const s = { A, B: teamB.map((d,i)=>makeUnit(d,'B',i)),
       rng: mulberry32(seed), seed, turn: 0, actor: null, over: false, winner: null };
+    jauges(s); return s;
   }
   // Vague suivante : l'équipe A garde ses PV, effets et recharges ; de nouveaux ennemis remplacent les morts
   function nextWave(s, teamB, healPct = 0){
     s.B = teamB.map((d,i) => makeUnit(d,'B',i)); s.over = false; s.winner = null; s.actor = null; s.wt = 0;
     for (const u of s.A) if (u.alive) u.hp = Math.min(u.stats.hp, Math.round(u.hp + u.stats.hp * healPct/100));
+    jauges(s);
   }
   const all = s => s.A.concat(s.B);
   const byId = (s,id) => all(s).find(u => u.id === id);
@@ -1620,7 +1696,7 @@ const Engine = (() => {
   // Le Neutre des Prismas n'entre pas dans le cycle : il a l'avantage sur les quatre éléments, et aucun ne l'a sur lui.
   const isAdv = (a,t) => a.el === 'neutre' ? t.el !== 'neutre' : BEATS[a.el] === t.el;
   const isDis = (a,t) => BEATS[t.el] === a.el;
-  const fxSnap = u => u.effects.map(e => ({ type:e.type, turns:e.turns }));
+  const fxSnap = u => u.effects.map(e => ({ type:e.type, turns:e.turns })).concat(u.aura ? [{ type:'aura_' + u.aura.el, turns:u.aura.turns }] : []);
 
   function advance(s){
     const live = all(s).filter(u => u.alive);
@@ -1692,7 +1768,7 @@ const Engine = (() => {
       tgt.hp = tgt.stats.hp;
       ev.push({ t:'bar', id:tgt.id, bar:tgt.bar, hp:tgt.hp });
     }
-    else if (tgt.hp <= 0){ tgt.alive = false; tgt.atb = 0; tgt.effects = []; ev.push({ t:'death', id:tgt.id }); }
+    else if (tgt.hp <= 0){ tgt.alive = false; tgt.atb = 0; tgt.effects = []; tgt.aura = null; ev.push({ t:'death', id:tgt.id }); }
     return dmg;
   }
   const atkDe = u => u.stats.atk * (has(u,'atkUp') ? 1.5 : 1) * (has(u,'atkDown') ? .6 : 1);
@@ -1719,6 +1795,13 @@ const Engine = (() => {
     if (op.vs && has(tgt, op.vs[0])) dmg *= 1 + op.vs[1];
     if (op.perDose) dmg *= 1 + op.perDose[1] * pile(tgt, op.perDose[0]);
     if (has(tgt,'mark')) dmg *= 1.3;
+    if (has(tgt,'rompu')) dmg *= RUPTURE.dmg;
+    // Réaction élémentaire : la cible porte l'élément d'un autre que l'attaquant
+    const rk = 1 + (att.stats.reacK || 0) / 100;
+    const reac = !op.pur && att.el !== 'neutre' && tgt.aura && tgt.aura.el !== att.el ? REAC[[tgt.aura.el, att.el].sort().join('+')] : null;
+    if (reac && reac.amp) dmg *= 1 + (reac.amp - 1) * rk;
+    const T = !op.pur && !sans && s.trig;                      // ce que l'action en cours a provoqué, pour les attaques de suivi
+    if (T){ T.cible = tgt; if (has(tgt,'burn')) T.burn = true; if (has(tgt,'poison')) T.poison = true; }
     if (s.wt > FATIGUE && !tgt.bars && !att.bars) dmg *= 1 + (s.wt - FATIGUE) * .04;      // fatigue : un combat qui s'éternise finit par se décider
     if (att.side === 'A'){                       // bonus de classe, côté joueur seulement
       const C = clsFx();
@@ -1729,7 +1812,7 @@ const Engine = (() => {
     }
     const adv = isAdv(att,tgt), dis = isDis(att,tgt);
     let crit = false, glance = false;
-    if (rng()*100 < att.stats.crit + (op.critBonus||0)){ crit = true; dmg *= 1 + att.stats.critDmg/100; }
+    if (rng()*100 < att.stats.crit + (op.critBonus||0)){ crit = true; dmg *= 1 + att.stats.critDmg/100; if (T) T.crit = true; }
     const elemK = att.side === 'A' && clsFx().elem || 1;
     if (adv) dmg *= ELEM_FORT * elemK; if (dis) dmg *= ELEM_FAIBLE;
     const fait = subir(s, tgt, dmg * (.95 + rng()*.1), ev, { crit, glance, adv, dis });
@@ -1737,6 +1820,29 @@ const Engine = (() => {
     if (op.steal && fait > 0 && att.alive){                       // vol de vie : pour lui, ou pour l'allié le plus mal en point
       const qui = op.stealTo === 'lowest' ? mates(s, att).slice().sort((a, b) => a.hp / a.stats.hp - b.hp / b.stats.hp)[0] : att;
       if (qui) soin(s, qui, fait * op.steal / 100, ev);
+    }
+    if (reac){
+      tgt.aura = null; if (T) T.reac = true;
+      ev.push({ t:'reac', id:tgt.id, text:reac.n }); ev.push({ t:'fx', id:tgt.id, effects:fxSnap(tgt) });
+      if (reac.splash) for (const v of foes(s, att)) if (v !== tgt) subir(s, v, fait * reac.splash * rk, ev);
+      if (tgt.alive){
+        if (reac.burn) addEffect(s, tgt, 'burn', 2, ev, Math.round(atkDe(att) * reac.burn * rk * DMG_K));
+        if (reac.effet) addEffect(s, tgt, reac.effet, 1, ev);
+        if (reac.atb){ tgt.atb = Math.max(0, tgt.atb + reac.atb); ev.push({ t:'atb', id:tgt.id, atb:tgt.atb, delta:reac.atb }); }
+      }
+      if (reac.shield && att.alive) addEffect(s, att, 'shield', 2, ev, Math.round(att.stats.hp * reac.shield * rk / 100));
+    }
+    else if (!op.pur && att.el !== 'neutre' && tgt.alive && !(tgt.aura && tgt.aura.turns >= 2)){ tgt.aura = { el:att.el, turns:2 }; ev.push({ t:'fx', id:tgt.id, effects:fxSnap(tgt) }); }
+    // Rupture : la jauge du boss s'entame, deux fois plus vite avec l'avantage d'élément
+    if (tgt.alive && tgt.brkMax && tgt.brk > 0 && !op.pur){
+      const pts = (dis ? 0 : adv ? 2 : 1) + (att.stats.brk || 0);
+      if (pts){ tgt.brk = Math.max(0, tgt.brk - pts); ev.push({ t:'brk', id:tgt.id, v:tgt.brk, max:tgt.brkMax });
+        if (!tgt.brk){
+          tgt.effects = tgt.effects.filter(e => e.type !== 'rompu' && e.type !== 'stun');
+          tgt.effects.push({ type:'rompu', turns:RUPTURE.tours, fresh:tgt === s.actor }, { type:'stun', turns:1, fresh:tgt === s.actor });
+          tgt.atb = 0; if (T) T.rompu = true;
+          ev.push({ t:'reac', id:tgt.id, text:'Rupture !', gros:true }); ev.push({ t:'fx', id:tgt.id, effects:fxSnap(tgt) }); ev.push({ t:'atb', id:tgt.id, atb:0, delta:-100 });
+        } }
     }
     // Riposte : une cible touchée par un sort monocible rend le coup, une fois.
     if (!sans && tgt.alive && att.alive && op.nTargets === 1 && has(tgt,'counter')){
@@ -1759,6 +1865,7 @@ const Engine = (() => {
     const ev = [], sk = SKILLS[skillId], rng = s.rng, lv = actor.skl[skillId] || 1, pw = 1 + SK_STEP * (lv - 1);
     const targets = resolveTargets(s, actor, sk, targetId);
     let bonusAtb = 0;
+    s.trig = {};
     ev.push({ t:'skill', id:actor.id, skill:skillId, targets:targets.map(u => u.id) });
     for (const op of sk.ops){
       // Conditions d'un effet : tour pair ou impair du lanceur
@@ -1776,7 +1883,7 @@ const Engine = (() => {
       }
       if (op.op === 'revive'){                                        // relève un allié tombé ; personne à relever : soin de groupe
         const mort = s[actor.side].find(u => !u.alive);
-        if (mort){ mort.alive = true; mort.hp = Math.round(mort.stats.hp * op.pct / 100); mort.atb = 0; mort.effects = []; ev.push({ t:'revive', id:mort.id, hp:mort.hp }); }
+        if (mort){ mort.alive = true; mort.aura = null; mort.hp = Math.round(mort.stats.hp * op.pct / 100); mort.atb = 0; mort.effects = []; ev.push({ t:'revive', id:mort.id, hp:mort.hp }); }
         else for (const u of mates(s, actor)) soin(s, u, u.stats.hp * (op.sinon || 0) * pw / 100, ev);
         continue;
       }
@@ -1797,6 +1904,9 @@ const Engine = (() => {
             for (const v of foes(s, actor)) if (v !== tgt && actor.alive) hit(s, actor, v, { mult:o.mult * op.explose[1], nTargets:2 }, ev);
           }
           if (!tgt.alive && op.onKill){ if (op.onKill.atb) bonusAtb += op.onKill.atb; ev.push({ t:'note', id:actor.id, text:'Rejoue' }); }
+          // Sets à procs : Furibond et Sanguinaire
+          if (tgt.alive && actor.stats.procBurn && rng()*100 < actor.stats.procBurn) addEffect(s, tgt, 'burn', 2, ev, Math.round(atkDe(actor) * .9 * DMG_K));
+          if (tgt.alive && actor.stats.procPoison && rng()*100 < actor.stats.procPoison) addEffect(s, tgt, 'poison', 2, ev, Math.round(atkDe(actor) * .8 * DMG_K));
         }
         else if (op.op === 'assist'){                                 // un allié pris au hasard frappe la même cible
           const m = mates(s, actor).filter(u => u !== actor); if (!m.length) continue;
@@ -1858,6 +1968,16 @@ const Engine = (() => {
       }
       if (op.spend){ actor.effects = actor.effects.filter(e => e.type !== 'charge'); ev.push({ t:'fx', id:actor.id, effects:fxSnap(actor) }); }
     }
+    // Attaques de suivi : chaque allié dont la condition est remplie frappe une fois, hors de son tour.
+    const T = s.trig; s.trig = null;
+    if (actor.alive && sk.ops.some(o => o.op === 'dmg')) for (const a of mates(s, actor)){
+      if (a === actor || has(a,'stun')) continue;
+      const P = SUIVI[a.role], parRole = P && T[P.quand] && rng()*100 < P.chance;
+      if (!parRole && !(a.stats.echo && rng()*100 < a.stats.echo)) continue;
+      const c = T.cible && T.cible.alive ? T.cible : visables(s, a)[0]; if (!c) break;
+      ev.push({ t:'suivi', id:a.id, cible:c.id });
+      hit(s, a, c, { mult:parRole ? P.mult : 1.2, nTargets:1, pur:true }, ev, true);
+    }
     if (actor.stats.rejoue && bonusAtb < 100 && rng()*100 < actor.stats.rejoue){ bonusAtb = 100; ev.push({ t:'note', id:actor.id, text:'Rejoue' }); }   // set Fuyard
     actor.cds[skillId] = sk.cd - (lv >= SK_MAX && sk.cd > 0 ? 1 : 0);
     if (actor.alive){ endTurn(s, actor, ev); if (bonusAtb && actor.alive){ actor.atb = Math.min(100, bonusAtb); ev.push({ t:'atb', id:actor.id, atb:actor.atb, delta:bonusAtb, reset:true }); } }
@@ -1868,6 +1988,8 @@ const Engine = (() => {
     actor.atb = 0;
     const finies = [];
     actor.effects = actor.effects.filter(e => { if (e.fresh){ e.fresh = false; return true; } if (EFFECTS[e.type].fixe) return true; if (--e.turns > 0) return true; finies.push(e); return false; });
+    if (actor.aura && --actor.aura.turns <= 0) actor.aura = null;
+    if (actor.brkMax && !actor.brk && !has(actor,'rompu')){ actor.brk = actor.brkMax; ev.push({ t:'brk', id:actor.id, v:actor.brk, max:actor.brkMax }); }   // la jauge se reforme
     ev.push({ t:'fx', id:actor.id, effects:fxSnap(actor) });
     // Une bombe arrivée à échéance explose sur son porteur, et éclabousse ses alliés.
     for (const e of finies) if (e.type === 'bomb' && actor.alive){
@@ -2974,7 +3096,7 @@ const TRASH = { hpMult:.45, atkMult:.7 }, WAVE_HEAL = 30;   // % des PV max rend
 // multiplicateurs, qui montent avec le niveau du donjon pour suivre ce qu'un joueur a accumulé à ce stade.
 // PV ×DIFF, ATK ×√DIFF — sinon les combats de fin de jeu se joueraient en un coup. Chaque rôle a sa part :
 // la piétaille des premières salles, les deux gardes du boss, le boss lui-même.
-const BAL = { trash:[.45, .7], garde:[.6, .8], boss:[1, 1], xp0:3, xpFin:60, eh:.5, ea:.9,
+const BAL = { trash:[.5, .74], garde:[.66, .84], boss:[1.12, 1.04], xp0:3, xpFin:60, eh:.5, ea:.9,
   diff:[[10, .6], [20, 1.1], [30, .75], [40, 1.5], [60, 2.1], [100, 2.7], [120, 3.4], [130, 4.4], [150, 5.6], [200, 7.5]], finLvl:240 };   // [niveau du donjon, difficulté], interpolé entre deux points
 const DIFF = L => { const T = BAL.diff; if (L <= T[0][0]) return T[0][1];
   for (let i = 1; i < T.length; i++) if (L <= T[i][0]){ const [a, x] = T[i-1], [b, y] = T[i]; return x + (y - x) * (L - a) / (b - a); }
@@ -3013,9 +3135,9 @@ function gelStages(){
 }
 // boss : nom du monstre dans le catalogue · mains : effets principaux des trophées lâchés
 const RAID_DEFS = [
-  { k:'meulou', boss:/^meulou$/,      sets:['ravageur','joueur','pousseur'],            tag:'trophées Ravageur, Joueur et Pousseur (attaque, critiques)' },
-  { k:'croca',  boss:/^crocabulia$/,  sets:['initiateur','tacleur','adamantin','fuyard'], tag:'trophées Initiateur, Tacleur, Adamantin et Fuyard (vitesse, précision, résistance)' },
-  { k:'chene',  boss:/^chêne mou$/,   sets:['rempart','cuirasse','soigneur'],           tag:'trophées Rempart, Cuirassé et Soigneur (PV, DEF, vol de vie)' },
+  { k:'meulou', boss:/^meulou$/,      sets:['ravageur','joueur','pousseur','furibond','sanguinaire'], tag:'trophées Ravageur, Joueur, Pousseur, Furibond et Sanguinaire (attaque, critiques, brûlure, poison)' },
+  { k:'croca',  boss:/^crocabulia$/,  sets:['initiateur','tacleur','adamantin','fuyard','acrobate','bousculeur'], tag:'trophées Initiateur, Tacleur, Adamantin, Fuyard, Acrobate et Bousculeur (vitesse, précision, suivi, rupture)' },
+  { k:'chene',  boss:/^chêne mou$/,   sets:['rempart','cuirasse','soigneur','savant'],  tag:'trophées Rempart, Cuirassé, Soigneur et Savant (PV, DEF, vol de vie, réactions)' },
 ];
 // stat : effet principal du Dofus gardé (voir DOFUS_NAMES)
 const DRAGON_DEFS = [
@@ -3165,7 +3287,7 @@ function arenaFoes(save){
 // durcit, au lieu de coucher l'équipe au premier tour. Il est du niveau moyen de l'équipe engagée, donc
 // jouable dès le début ; c'est le nombre de barres brisées qui fait le rang.
 const WB_TRIES = 3, WB_TEAM = 10, WB_TURNS = 300, WB_BARS = 10;
-const WB = { hp:5, atk:1.2, barHp:1.2, barAtk:1.6 };
+const WB = { hp:8.5, atk:1.2, barHp:1.2, barAtk:1.6 };
 const WB_TIERS = [   // barres brisées → rang et récompenses
   { min:0,  rank:'D',  gold:2,  kamas:500,   stones:0 },
   { min:1,  rank:'C',  gold:5,  kamas:1500,  stones:0 },
@@ -3648,7 +3770,7 @@ async function chatSend(){
 }
 
 const SAVE_KEY = 'idd-save-v3';
-const EL_HEX = { terre:'#a0662c', feu:'#d9481f', eau:'#2f7bc8', air:'#4c9b33' };
+const EL_HEX = { terre:'#a0662c', feu:'#d9481f', eau:'#2f7bc8', air:'#4c9b33', neutre:'#8e7fd6' };
 const STAT_ICO = { hp:['hp','#d23b2b'], atk:['atk','#8a5a26'], def:['def','#6b7a86'], spd:['spd','#8a44c4'], crit:['crit','#e0a010'], critDmg:['critDmg','#d9481f'], acc:['acc','#2a69b8'], res:['res','#3b8a17'] };
 const STAT_LONG = { hp:'Points de vie', atk:'Attaque', def:'Défense', spd:'Vitesse', crit:'Taux critique', critDmg:'Dégâts critiques', acc:'Précision', res:'Résistance' };
 
@@ -3948,17 +4070,26 @@ function apresVictoire(dg){
   quete('win'); if (dg.mode === 'camp') quete('camp'); if (dg.mode === 'arena') quete('arene');
   if (evRueeReste() > 0) evDe().r.pts++;
 }
+const QUETE_ICO = { win:'M3 13 11 5l-1-2 3 0 0 3-2-1-8 8zM3 3l3 0 7 7-1.5 1.5-7-7z', camp:'M2 14V6l3-3 3 3 3-3 3 3v8h-4v-4H6v4z', invoc:'M8 1 13 6 8 15 3 6z', nourrir:'M8 2c3 0 5 2.5 5 5.5S10.5 14 8 14 3 11 3 7.5 5 2 8 2zm0 3v5m-2.5-2.5h5', forge:'M2 6h9l3 2-3 1H9v2l2 3H4l2-3V9H2z', equip:'M8 1l6 3v4c0 4-3 6-6 7-3-1-6-3-6-7V4z', vente:'M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm0 3v6m-2-4.5c0-2 4-2 4 0s-4 1-4 3 4 2 4 0', arene:'M4 2h8v3a4 4 0 0 1-8 0zM6 10h4v2H6zM4 13h8v1.5H4z', wb:'M8 1l2 3 3-1-1 4 3 2-3 2 1 4-3-1-2 3-2-3-3 1 1-4-3-2 3-2-1-4 3 1z' };
 function quetesCorps(){
-  const Q = quetesDuJour(), finies = QUETES.filter(q => queteEtat(q).pris).length, tout = finies === QUETES.length;
-  const lignes = QUETES.map(q => { const e = queteEtat(q);
-    return `<li class="ach ${e.pris ? 'done' : e.fini ? 'ready' : ''}"><span class="achn"><b>${e.v.t}</b><br><span class="muted">${kamaIcon(12)} ${fmt(queteKamas())} · ${QUETE_XP} XP d'invocateur</span></span>
-      <span class="achp"><span class="xpbar"><b style="width:${e.fait / e.v.n * 100}%"></b></span><span class="muted">${e.fait} / ${e.v.n}</span></span>
-      <span class="achr">${e.pris ? '<span class="ok">Réclamée</span>' : `<button class="btn sm" data-act="quetePrendre" data-id="${q.id}" ${e.fini ? '' : 'disabled'}>Réclamer</button>`}</span></li>`; }).join('');
-  return ['Quêtes du jour', `${finies} / ${QUETES.length}`, `<div class="row" style="justify-content:space-between; flex-wrap:nowrap; align-items:flex-start"><p class="muted" style="margin:0">Dix quêtes par jour, remises à zéro à minuit.</p>
-      <button class="btn sm" data-act="queteTout" style="flex:none" ${QUETES.some(q => { const e = queteEtat(q); return e.fini && !e.pris; }) ? '' : 'disabled'}>Tout réclamer</button></div>
-    <ul class="achs">${lignes}</ul>
-    <div class="band slate"><span>Les dix quêtes finies</span><span>${gemIcon('perfect', 14)} ${QUETES_BONUS} pierres d'âme pleines</span></div>
-    <div class="row" style="justify-content:flex-end">${Q.bonus ? '<span class="ok">Récompense du jour réclamée</span>' : `<button class="btn" data-act="queteBonus" ${tout ? '' : 'disabled'}>${tout ? 'Réclamer les 10 pierres' : `Encore ${QUETES.length - finies} quête${QUETES.length - finies > 1 ? 's' : ''}`}</button>`}</div>`];
+  const Q = quetesDuJour(), finies = QUETES.filter(q => queteEtat(q).pris).length, tout = finies === QUETES.length, reste = QUETES.length - finies;
+  const prets = QUETES.filter(q => { const e = queteEtat(q); return e.fini && !e.pris; }).length;
+  const ordre = QUETES.map(q => ({ q, e:queteEtat(q) })).sort((a, b) => (a.e.pris - b.e.pris) || ((b.e.fini && !b.e.pris) - (a.e.fini && !a.e.pris)));
+  const cartes = ordre.map(({ q, e }) => { const pret = e.fini && !e.pris, pc = Math.min(100, e.fait / e.v.n * 100);
+    return `<li class="qc ${e.pris ? 'pris' : pret ? 'pret' : ''}">
+      <span class="qi"><svg viewBox="0 0 16 16" width="22" height="22" aria-hidden="true"><path d="${QUETE_ICO[e.v.k] || QUETE_ICO.win}" fill="${e.v.k === 'nourrir' || e.v.k === 'vente' ? 'none' : 'currentColor'}" stroke="currentColor" stroke-width="${e.v.k === 'nourrir' || e.v.k === 'vente' ? 1.6 : 0}" stroke-linecap="round"/></svg></span>
+      <span class="qt"><b>${e.v.t}</b><span class="qbar"><i style="width:${pc}%"></i><em>${e.fait} / ${e.v.n}</em></span>
+        <span class="qr"><span>${kamaIcon(13)} ${fmt(queteKamas())}</span><span>+${QUETE_XP} XP</span></span></span>
+      <span class="qa">${e.pris ? '<span class="qok">✓</span>' : `<button class="btn sm" data-act="quetePrendre" data-id="${q.id}" ${pret ? '' : 'disabled'}>${pret ? 'Réclamer' : 'En cours'}</button>`}</span></li>`; }).join('');
+  return ['Quêtes du jour', `${finies} / ${QUETES.length}`, `<div class="qhero ${tout && !Q.bonus ? 'pret' : ''}">
+      <span class="qgem">${gemIcon('perfect', 54)}<b>×${QUETES_BONUS}</b></span>
+      <div class="qhm"><b>${Q.bonus ? 'Récompense du jour reçue' : tout ? 'Les dix quêtes sont finies !' : `Encore ${reste} quête${reste > 1 ? 's' : ''} pour ${QUETES_BONUS} pierres d'âme`}</b>
+        <span class="qpips">${QUETES.map((_, i) => `<i class="${i < finies ? 'on' : ''}"></i>`).join('')}</span>
+        <span class="muted" style="font-size:11.5px">Remises à zéro à minuit.</span></div>
+      ${Q.bonus ? '<span class="qok gros">✓</span>' : `<button class="btn" data-act="queteBonus" ${tout ? '' : 'disabled'}>Réclamer</button>`}
+    </div>
+    ${prets > 1 ? `<div class="row" style="justify-content:flex-end"><button class="btn sm" data-act="queteTout">Tout réclamer (${prets})</button></div>` : ''}
+    <ul class="qlist">${cartes}</ul>`];
 }
 let evBoum = null;   // récompense qui vient d'être réclamée, pour l'animer une fois
 function eventCorps(){
@@ -3998,7 +4129,11 @@ const TUTO = [
     <li><span><span class="fx" style="display:inline-flex"><span class="bad">PSN</span></span> Poison · <span class="fx" style="display:inline-flex"><span class="bad">BRL</span></span> Brûlure</span><b>dégâts à chaque tour, cumulables</b></li></ul>
     <p class="hint" style="margin:0">Un bon enchaînement : poser Fragilité, puis frapper fort. Certains sorts frappent plus fort une cible déjà empoisonnée ou brûlée : de quoi bâtir une équipe autour d'un effet.</p>`],
   ['Les éléments', `<p style="margin:0; text-align:center; font-size:15px"><b style="color:var(--el-eau)">Eau</b> › <b style="color:var(--el-feu)">Feu</b> › <b style="color:var(--el-terre)">Terre</b> › <b style="color:var(--el-air)">Air</b> › <b style="color:var(--el-eau)">Eau</b></p>
-    <p style="margin:0">Chaque monstre a un élément. Contre celui qu'il bat, il inflige <b>×1,25</b>. Contre celui qui le bat, <b>×0,75</b>. En combat, la cible affiche « Avantage » ou « Désavantage ».</p>`],
+    <p style="margin:0">Chaque monstre a un élément. Contre celui qu'il bat, il inflige <b>×1,25</b>. Contre celui qui le bat, <b>×0,75</b>. En combat, la cible affiche « Avantage » ou « Désavantage ».</p>
+    <p style="margin:0"><b>Réactions.</b> Un coup laisse son élément sur la cible pendant deux tours. Si le coup suivant est d'un <b>autre</b> élément, une réaction éclate :</p>
+    <ul class="rows">${Object.entries(REAC).map(([k, r]) => `<li><span>${k.split('+').map(e => `<b style="color:var(--el-${e})">${ELEM[e]}</b>`).join(' + ')} · ${r.n}</span><b>${r.d}</b></li>`).join('')}</ul>
+    <p style="margin:0"><b>Rupture.</b> Les boss ont une jauge dorée sous leur vie. Chaque coup l'entame, deux fois plus vite avec l'avantage d'élément. Vidée, le boss est <b>Rompu</b> : il perd son tour et subit 35 % de dégâts en plus.</p>
+    <p class="hint" style="margin:0">Mélange les éléments dans ton équipe : c'est ce qui déclenche les réactions, et certains monstres enchaînent une <b>attaque de suivi</b> quand un allié en provoque une (voir le passif sur leur fiche).</p>`],
   ['Place au combat', `<p style="margin:0">Rien ne vaut la pratique. Tu vas livrer un <b>combat d'entraînement</b> contre deux Chafers : une bulle t'indique quoi faire à chaque tour.</p>
     <p class="hint" style="margin:0">Impossible de le perdre. Une surprise t'attend à la sortie.</p>`],
   ['Ta première invocation', `<p style="margin:0">Les monstres vont de 1 à 5 étoiles. Les <b>5 ★</b> sont rares (1 % par invocation) et chacun a des sorts que personne d'autre ne possède.</p>
@@ -4520,6 +4655,7 @@ function monStats(mon){
       <ul class="rows">${statRow('hp')}${statRow('atk')}${statRow('def')}${statRow('spd')}${statRow('crit',' %')}${statRow('critDmg',' %')}${statRow('acc',' %')}${statRow('res',' %')}</ul>
       <p class="hint" style="margin:0">Entre parenthèses : ce que l'équipement et les trophées ajoutent.</p>
       ${(() => { const S = setsDe(def.items); return S.length ? `<div class="band"><span>Sets de trophées</span></div><ul class="rows">${S.map(x => `<li><span>${SETS[x.k].n} <span class="muted">${x.n} / ${SETS[x.k].p}</span></span><b class="${x.fois ? 'pos' : 'muted'}" style="font-weight:${x.fois ? 'bold' : 'normal'}">${x.fois ? SETS[x.k].d + (x.fois > 1 ? ' ×' + x.fois : '') : 'incomplet'}</b></li>`).join('')}</ul>` : ''; })()}
+      ${passifHtml(m)}
       <div class="band">Sorts</div>
       <ul class="sklist">${skills.map((id, si) => { const lv = (mon.sk && mon.sk[si]) || 1, max = lv >= SK_MAX;
         return `<li>${spellIcon(id, m.el)}<b>${SKILLS[id].name} <span class="sklv">niv. ${lv}/${SK_MAX}</span>${SKILLS[id].cd ? ` <span class="muted" style="font-weight:normal">· recharge ${SKILLS[id].cd - (max ? 1 : 0)} t</span>` : ''}</b>
@@ -4784,24 +4920,28 @@ function itemDetail(it){
 }
 
 // ---------- Invocation
-let tauxOn = false;
+let tauxOn = false, tauxSel = null;
 // Les taux par étoiles, et les monstres qu'on peut tirer dans chacune.
 function tauxModal(){
   if (!tauxOn) return '';
+  if (tauxSel && MONSTERS[tauxSel]) return `<div class="over modal" data-act="tauxOff"><div class="win" style="width:min(460px,100%)" data-stop>
+    <div class="wt"><h2>${esc(MONSTERS[tauxSel].name)}</h2><button class="x" data-act="tauxOff" aria-label="Fermer">×</button></div>
+    <div class="wb" style="display:grid; gap:8px; max-height:min(74vh, 640px); overflow:auto"><div><button class="btn grey sm" data-act="tauxSel" data-k="">‹ Retour aux chances</button></div>${monCarte(tauxSel)}</div></div></div>`;
+  const vignette = k => `<button class="tmb" data-act="tauxSel" data-k="${k}" title="${esc(MONSTERS[k].name)}">${portrait(k, 34, { badge:false })}</button>`;
   const tot = Object.values(SUMMON.rates).reduce((a, b) => a + b, 0);
   const pool = Object.keys(MONSTERS).filter(k => (!ROSTER || ROSTER.has(k)) && !MONSTERS[k].food && !MONSTERS[k].prisma);
   const rangs = Object.entries(SUMMON.rates).reverse().map(([st, w]) => {
     const ks = pool.filter(k => MONSTERS[k].stars === +st).sort((a, b) => MONSTERS[a].name.localeCompare(MONSTERS[b].name, 'fr'));
     return `<div class="tr"><div class="th"><span class="stars">${starsTxt(+st)}</span><span>${Math.round(w / tot * 100)} % <span class="muted" style="font-weight:normal">· ${ks.length} monstres</span></span></div>
-      <div class="tm">${ks.map(k => portrait(k, 34, { badge:false })).join('')}</div></div>`;
+      <div class="tm">${ks.map(vignette).join('')}</div></div>`;
   }).join('');
   const pr = Object.keys(MONSTERS).filter(k => MONSTERS[k].prisma && (!ROSTER || ROSTER.has(k)));
   const prisma = pr.length ? `<div class="tr"><div class="th"><span><span class="prismatag">Prisma</span> <span class="stars">${starsTxt(5)}</span></span><span>0,3 % <span class="muted" style="font-weight:normal">· ${pr.length} monstres</span></span></div>
       <span class="muted" style="font-size:11.5px">Au-dessus des légendaires : élément Neutre (×1,25 contre les quatre éléments, jamais désavantagé) et carrure supérieure à tous les 5 ★.</span>
-      <div class="tm">${pr.map(k => portrait(k, 34, { badge:false })).join('')}</div></div>` : '';
+      <div class="tm">${pr.map(vignette).join('')}</div></div>` : '';
   return `<div class="over modal" data-act="tauxOff"><div class="win" style="width:min(460px,100%)" data-stop>
     <div class="wt"><h2>Chances d'invocation</h2><button class="x" data-act="tauxOff" aria-label="Fermer">×</button></div>
-    <div class="wb"><div class="tauxl">${prisma}${rangs}</div></div></div></div>`;
+    <div class="wb" style="display:grid; gap:6px"><span class="muted" style="font-size:12px">Touche un monstre pour voir sa fiche.</span><div class="tauxl">${prisma}${rangs}</div></div></div></div>`;
 }
 function viewInvocation(){
   const tot = Object.values(SUMMON.rates).reduce((a, b) => a + b, 0), n = save.stones;
@@ -5098,14 +5238,9 @@ function encyDetail(){
     encyWhere = {};
     for (const d of STAGES.camp) for (const w of d.waves) for (const e of w) if (!(encyWhere[e.key] = encyWhere[e.key] || []).includes(d.gname)) encyWhere[e.key].push(d.gname);
   }
-  const m = MONSTERS[k], st = computeStats(m, { level:MAX_LVL }), n = save.monsters.filter(x => x.key === k).length, where = encyWhere[k] || [];
+  const m = MONSTERS[k], where = encyWhere[k] || [];
   return `<section class="win"><div class="wt"><h2>${esc(m.name)}${m.dofusLvl ? `<small>Dofus niv. ${m.dofusLvl}</small>` : ''}</h2></div><div class="wb" style="display:grid; gap:8px">
-    <div class="ehead">${portrait(k, 110, { badge:false })}<div><span class="stars" style="font-size:16px">${starsTxt(m.stars)}</span><br><b>${ELEM[m.el]}</b> · ${m.role}<br><span class="muted">${!ROSTER || ROSTER.has(k) ? 'Invocable' : 'Ennemi uniquement, non invocable'}</span><br>
-      <span class="${n ? 'ok' : 'muted'}">${n ? `Possédé ×${n}` : save.seen.includes(k) ? 'Déjà obtenu' : 'Jamais obtenu'}</span></div></div>
-    <div class="band">Caractéristiques au niveau ${MAX_LVL}</div>
-    <ul class="rows estats">${Object.keys(STAT_LONG).map(s => `<li><span>${sico(s)} ${STAT_LONG[s]}</span><b>${fmt(st[s])}${PCT.has(s) ? ' %' : ''}</b></li>`).join('')}</ul>
-    <div class="band">Sorts</div>
-    <ul class="sklist">${m.skills.map(id => `<li>${spellIcon(id, m.el)}<b>${SKILLS[id].name}${SKILLS[id].cd ? ` <span class="muted" style="font-weight:normal">· recharge ${SKILLS[id].cd} t</span>` : ''}</b><span>${SKILLS[id].desc}</span></li>`).join('')}</ul>
+    ${monCarte(k)}
     <div class="band">Où le croiser</div>
     <p style="margin:0">${where.length ? esc(where.slice(0, 5).join(', ')) + (where.length > 5 ? ` et ${where.length - 5} autre${where.length > 6 ? 's' : ''}` : '') : 'Aucun donjon de campagne : uniquement par invocation.'}</p></div></section>`;
 }
@@ -5419,20 +5554,41 @@ function viewBoss(){
       <p class="hint" style="margin:0">Chaque assaut est récompensé selon son rang. Le classement entre joueurs et le boss partagé demandent un serveur en ligne : pour l'instant chacun affronte sa propre instance.</p></div></section></div>`;
 }
 
+// Passif d'un monstre : son attaque de suivi, donnée par son rôle
+const passifHtml = m => SUIVI[m.role] ? `<div class="passif"><b>Passif · Attaque de suivi</b><span>${SUIVI[m.role].d}</span></div>` : '';
+// Carte d'un monstre : portrait, caractéristiques au niveau maximum, passif et sorts
+function monCarte(k){
+  const m = MONSTERS[k], st = computeStats(m, { level:MAX_LVL }), n = save.monsters.filter(x => x.key === k).length;
+  return `<div class="ehead">${portrait(k, 110, { badge:false })}<div><span class="stars" style="font-size:16px">${starsTxt(m.stars)}</span>${m.prisma ? ' <span class="prismatag">Prisma</span>' : ''}<br><b>${ELEM[m.el]}</b> · ${m.role}<br><span class="muted">${!ROSTER || ROSTER.has(k) ? 'Invocable' : 'Ennemi uniquement, non invocable'}</span><br>
+      <span class="${n ? 'ok' : 'muted'}">${n ? `Possédé ×${n}` : save.seen.includes(k) ? 'Déjà obtenu' : 'Jamais obtenu'}</span></div></div>
+    <div class="band">Caractéristiques au niveau ${MAX_LVL}</div>
+    <ul class="rows estats">${Object.keys(STAT_LONG).map(s => `<li><span>${sico(s)} ${STAT_LONG[s]}</span><b>${fmt(st[s])}${PCT.has(s) ? ' %' : ''}</b></li>`).join('')}</ul>
+    ${passifHtml(m)}
+    <div class="band">Sorts</div>
+    <ul class="sklist">${m.skills.map(id => `<li>${spellIcon(id, m.el)}<b>${SKILLS[id].name}${SKILLS[id].cd ? ` <span class="muted" style="font-weight:normal">· recharge ${SKILLS[id].cd} t</span>` : ''}</b><span>${SKILLS[id].desc}</span></li>`).join('')}</ul>`;
+}
+
 // ---------- Succès
 function succesCorps(){
-  const rows = ACHS.map(a => {
-    const st = achState(save, a);
-    return `<li class="ach ${st.done ? 'done' : st.ready ? 'ready' : ''}">
-      <span class="achn"><b>${a.name}</b> <span class="muted">palier ${Math.min(st.got + 1, a.tiers.length)} / ${a.tiers.length}</span><br><span>${a.desc(st.goal)}</span></span>
-      <span class="achp"><span class="xpbar"><b style="width:${st.done ? 100 : Math.min(100, st.v / st.goal * 100)}%"></b></span><span class="muted">${st.done ? 'Terminé' : `${fmt(Math.min(st.v, st.goal))} / ${fmt(st.goal)}`}</span></span>
-      <span class="achr">${st.done ? '<span class="ok">Tout réclamé</span>' : `<button class="btn sm" data-act="claim" data-id="${a.id}" ${st.ready ? '' : 'disabled'}>${gemIcon('perfect', 14)} +${st.reward}</button>`}</span></li>`;
-  }).join('');
   const total = ACHS.reduce((t, a) => t + a.tiers.length, 0), got = ACHS.reduce((t, a) => t + (save.ach[a.id] || 0), 0);
-  const prets = ACHS.filter(a => achState(save, a).ready).length;
-  return [`${got} / ${total} paliers`, `<div><div class="row" style="justify-content:space-between; margin:0 0 8px; flex-wrap:nowrap; align-items:flex-start"><p class="muted" style="margin:0">Chaque palier atteint se réclame contre des pierres d'âme pleines : 1 pour le premier, 2 pour le deuxième, et ainsi de suite.</p>
-      <button class="btn sm" data-act="claimAll" style="flex:none" ${prets ? '' : 'disabled'}>Tout réclamer</button></div>
-    <ul class="achs">${rows}</ul></div>`];
+  const etats = ACHS.map(a => ({ a, st:achState(save, a) })), prets = etats.filter(x => x.st.ready).length;
+  const aPrendre = etats.reduce((t, x) => t + (x.st.ready ? x.st.reward : 0), 0), pc = Math.round(got / total * 100);
+  const rows = etats.slice().sort((x, y) => (y.st.ready - x.st.ready) || (x.st.done - y.st.done)).map(({ a, st }) => {
+    const p = st.done ? 100 : Math.min(100, st.v / st.goal * 100);
+    return `<li class="qc suc ${st.done ? 'pris' : st.ready ? 'pret' : ''}">
+      <span class="qi med"><b>${st.got}</b><small>/ ${a.tiers.length}</small></span>
+      <span class="qt"><b>${a.name}</b><span class="sdesc">${st.done ? 'Tous les paliers sont atteints' : a.desc(st.goal)}</span>
+        <span class="qbar"><i style="width:${p}%"></i><em>${st.done ? 'Terminé' : `${fmt(Math.min(st.v, st.goal))} / ${fmt(st.goal)}`}</em></span>
+        <span class="spips">${a.tiers.map((_, i) => `<i class="${i < st.got ? 'on' : ''}"></i>`).join('')}</span></span>
+      <span class="qa">${st.done ? '<span class="qok">✓</span>' : `<button class="btn sm" data-act="claim" data-id="${a.id}" ${st.ready ? '' : 'disabled'}>${gemIcon('perfect', 14)} +${st.reward}</button>`}</span></li>`;
+  }).join('');
+  return [`${got} / ${total} paliers`, `<div class="qhero ${prets ? 'pret' : ''}">
+      <span class="sring" style="--p:${pc}"><b>${pc}<small>%</small></b></span>
+      <div class="qhm"><b>${prets ? `${prets} palier${prets > 1 ? 's' : ''} à réclamer` : 'Rien à réclamer pour l\'instant'}</b>
+        <span class="muted" style="font-size:11.5px">Chaque palier rapporte des pierres d'âme pleines : 1 pour le premier, 2 pour le deuxième, et ainsi de suite.</span></div>
+      <button class="btn" data-act="claimAll" ${prets ? '' : 'disabled'}>${prets ? `${gemIcon('perfect', 16)} +${aPrendre}` : 'Tout réclamer'}</button>
+    </div>
+    <ul class="qlist">${rows}</ul>`];
 }
 
 // ---------- Actions
@@ -5814,7 +5970,7 @@ function addUnit(u){
     const img = monImg(MONSTERS[u.key]);
     n.innerHTML = `
       <div class="plate"><div class="nm"><span>${u.name}${u.awakened ? ' ✦' : ''}</span><small>${u.level}</small></div>
-        <div class="bar hp"><i></i><span></span></div><div class="bar atb"><i></i></div><div class="fx"></div></div>
+        <div class="bar hp"><i></i><span></span></div>${u.brkMax ? '<div class="bar brk" title="Jauge de rupture"><i style="width:100%"></i></div>' : ''}<div class="bar atb"><i></i></div><div class="fx"></div></div>
       <button class="token" aria-label="${u.name}">${u.bars ? `<b class="barn" title="Barres de vie restantes">×${u.bars.n - u.bar}</b>` : ''}<i class="ini">${u.short}</i>${elBadge(u.el)}${img ? `<img class="spr" src="${img}" alt="" data-fb>` : ''}<span class="tag"></span></button>
       <div class="ring"></div>`;
     n.querySelector('.token').addEventListener('click', () => onUnitClick(u.id));
@@ -5877,7 +6033,8 @@ function setFx(id, effects){
   for (const e of effects){ const g = vus.find(x => x.type === e.type); if (g){ g.n++; g.turns = Math.max(g.turns, e.turns); } else vus.push({ type:e.type, turns:e.turns, n:1 }); }
   nodes[id].querySelector('.fx').innerHTML = vus.map(e => {
     const E = EFFECTS[e.type], fin = E.fixe ? '' : ' ' + e.turns;
-    return `<span class="${E.good ? 'good' : 'bad'}" title="${E.label}${e.n > 1 ? ' ×' + e.n : ''}${E.fixe ? '' : ' · ' + e.turns + ' t'}">${E.short}${e.n > 1 ? '×' + e.n : ''}${fin}</span>`;
+    if (E.aura) return `<span class="aur" style="--c:var(--el-${E.aura})" title="${E.label} · ${e.turns} t : un coup d'un autre élément déclenche une réaction">${E.short}</span>`;
+    return `<span class="${E.good ? 'good' : 'bad'}" title=""${E.label}${e.n > 1 ? ' ×' + e.n : ''}${E.fixe ? '' : ' · ' + e.turns + ' t'}">${E.short}${e.n > 1 ? '×' + e.n : ''}${fin}</span>`;
   }).join('');
 }
 function setDead(id){ nodes[id].classList.add('dead'); tls[id].classList.add('dead'); }
@@ -6310,6 +6467,9 @@ async function play(events, my){
         if (e.added){ statusFx(e.id, e.added); (EFFECTS[e.added].good ? SON.bonus : SON.malus)(); pop(e.id, EFFECTS[e.added].label, 'info'); log(`${uname(e.id)} : ${EFFECTS[e.added].label} (${e.turns} tours).`); await wait(nx && nx.t === 'fx' && nx.added ? 40 : 130); }
         if (e.cleansed){ pop(e.id, 'Malus retiré', 'info'); await wait(160); }
         break;
+      case 'reac': pop(e.id, e.text, e.gros ? 'reac gros' : 'reac'); flash(e.id, 'reacf', 420); SON.critique(); log(`${uname(e.id)} : ${e.text}`, 'kill'); await wait(e.gros ? 420 : 240); break;
+      case 'suivi': pop(e.id, 'Suivi !', 'reac'); flash(e.id, e.id[0] === 'A' ? 'lungeA' : 'lungeB', 300); SON.sort(); log(`${uname(e.id)} enchaîne sur ${uname(e.cible)}.`, 'sk'); await wait(200); break;
+      case 'brk': { const b = nodes[e.id].querySelector('.bar.brk i'); if (b) b.style.width = Math.round(e.v / e.max * 100) + '%'; const w = $('#wbbar'); if (w) w.style.setProperty('--brk', Math.round(e.v / e.max * 100) + '%'); break; }
       case 'note': if (!e.silent){ pop(e.id, e.text, 'info'); log(`${uname(e.id)} : ${e.text}.`); await wait(200); } break;
       case 'revive': nodes[e.id].classList.remove('dead'); tls[e.id].classList.remove('dead'); setHp(e.id, e.hp); healFx(e.id); SON.soin();
         pop(e.id, 'Relevé !', 'heal'); log(`${uname(e.id)} est relevé.`, 'heal'); renderOrder(); await wait(420); break;
@@ -6588,7 +6748,7 @@ Object.assign(ACT, {
     feedOn = false; feedSel = []; persist();
     toast(`+${fmt(r.xp)} XP${r.ups ? ` · niveau ${mon.level}` : ''}${r.sorts ? ` · +${r.sorts} niveau${r.sorts > 1 ? 'x' : ''} de sort` : ''}.`); render(); },
   aideLigne(d, el){ if (el.title) toast(el.title); },   // au doigt, pas de survol : un appui affiche l'équivalence
-  tauxOn(){ tauxOn = true; render(); }, tauxOff(){ tauxOn = false; render(); },
+  tauxOn(){ tauxOn = true; tauxSel = null; render(); }, tauxOff(){ tauxOn = false; tauxSel = null; render(); }, tauxSel(d){ tauxSel = d.k || null; render(); },
   quetePrendre(d){ const q = QUETES.find(x => x.id === d.id), e = q && queteEtat(q); if (!e || !e.fini || e.pris) return;
     quetesDuJour().pris.push(q.id); save.kamas += queteKamas(); invGain(QUETE_XP); persist(); render(); popPaint(); },
   queteTout(){ let n = 0; for (const q of QUETES){ const e = queteEtat(q); if (e.fini && !e.pris){ quetesDuJour().pris.push(q.id); save.kamas += queteKamas(); invGain(QUETE_XP); n++; } }

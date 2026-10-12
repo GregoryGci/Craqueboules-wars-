@@ -39,7 +39,11 @@
   des duels contre trois légendaires. À rejouer en vrai, surtout comme boss de campagne (facteur .26 à l'estime).
 - **Niveau requis pour l'équipement** (12/10) : une pièce ne s'équipe plus au-dessus du niveau du monstre, et les
   monstres de départ ne portent rien. Le bot passe 68 donjons sur 126 avec cette règle (75 avant) : à surveiller.
-- **Mécaniques de combo** : propositions faites le 12/10, en attente du choix.
+- **Réactions, rupture, suivis, sets à procs** (12/10) : ajoutés d'un bloc. Pour compenser, les ennemis ont été
+  durcis (`BAL` : trash .5/.74, garde .66/.84, boss 1.12/1.04) et le boss mondial aussi (`WB.hp` 8.5). Au banc la
+  campagne revient au même point (bot : 88 donjons sur 126, comme avant) et le boss mondial à 4-5,6 barres pour un
+  joueur type, 6,5-7,7 équipé à fond. Les cinq sets à procs ne sont pas mesurés un par un, et rien n'est joué à la main.
+  `rebuild()` du banc fausse les mesures (donjons reconstruits plus durs) : régler dans index.html et relancer.
 - **Campagne par régions** : une région s'ouvre quand le premier donjon de la précédente est fini, et ses
   donjons s'enchaînent à l'intérieur. La règle d'ouverture est un choix de ma part, à valider.
 
