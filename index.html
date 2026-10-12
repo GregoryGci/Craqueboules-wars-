@@ -3580,7 +3580,7 @@ function invGain(xp){
   }
 }
 // Quêtes du jour : dix objectifs remis à zéro à minuit. Chacune rapporte des kamas et de l'expérience
-// d'invocateur ; les dix finies et réclamées donnent dix parchemins dorés.
+// d'invocateur ; les dix finies et réclamées donnent dix pierres d'âme pleines.
 const QUETES = [
   { id:'w3',  t:'Gagner 3 combats',                         k:'win',     n:3 },
   { id:'w10', t:'Gagner 10 combats',                        k:'win',     n:10 },
@@ -3646,8 +3646,8 @@ function quetesCorps(){
   return ['Quêtes du jour', `${finies} / ${QUETES.length}`, `<div class="row" style="justify-content:space-between; flex-wrap:nowrap; align-items:flex-start"><p class="muted" style="margin:0">Dix quêtes par jour, remises à zéro à minuit.</p>
       <button class="btn sm" data-act="queteTout" style="flex:none" ${QUETES.some(q => { const e = queteEtat(q); return e.fini && !e.pris; }) ? '' : 'disabled'}>Tout réclamer</button></div>
     <ul class="achs">${lignes}</ul>
-    <div class="band slate"><span>Les dix quêtes finies</span><span>${resIcon(GOLD_ICON, 14)} ${QUETES_BONUS} parchemins dorés</span></div>
-    <div class="row" style="justify-content:flex-end">${Q.bonus ? '<span class="ok">Récompense du jour réclamée</span>' : `<button class="btn" data-act="queteBonus" ${tout ? '' : 'disabled'}>${tout ? 'Réclamer les parchemins' : `Encore ${QUETES.length - finies} quête${QUETES.length - finies > 1 ? 's' : ''}`}</button>`}</div>`];
+    <div class="band slate"><span>Les dix quêtes finies</span><span>${gemIcon('perfect', 14)} ${QUETES_BONUS} pierres d'âme pleines</span></div>
+    <div class="row" style="justify-content:flex-end">${Q.bonus ? '<span class="ok">Récompense du jour réclamée</span>' : `<button class="btn" data-act="queteBonus" ${tout ? '' : 'disabled'}>${tout ? 'Réclamer les 10 pierres' : `Encore ${QUETES.length - finies} quête${QUETES.length - finies > 1 ? 's' : ''}`}</button>`}</div>`];
 }
 function eventCorps(){
   const E = evDe(), pret = evJourPret(), reste = evRueeReste();
@@ -6118,7 +6118,7 @@ Object.assign(ACT, {
   queteTout(){ let n = 0; for (const q of QUETES){ const e = queteEtat(q); if (e.fini && !e.pris){ quetesDuJour().pris.push(q.id); save.kamas += queteKamas(); invGain(QUETE_XP); n++; } }
     if (n){ persist(); toast(`${n} quête${n > 1 ? 's' : ''} réclamée${n > 1 ? 's' : ''}.`); render(); popPaint(); } },
   queteBonus(){ const Q = quetesDuJour(); if (Q.bonus || !QUETES.every(q => queteEtat(q).pris)) return;
-    Q.bonus = true; save.gold += QUETES_BONUS; persist(); toast(`+${QUETES_BONUS} parchemins dorés.`); render(); popPaint(); },
+    Q.bonus = true; save.stones += QUETES_BONUS; persist(); toast(`+${QUETES_BONUS} pierres d'âme pleines.`); render(); popPaint(); },
   evJour(){ if (!evJourPret()) return; const E = evDe().j, j = EV_JOURS[E.n]; j.f(save); E.n++; E.day = dayKey(); persist(); toast(`Jour ${E.n} : ${j.t}.`); render(); popPaint(); },
   evPalier(d){ const E = evDe().r, i = +d.i, x = EV_RUEE[i]; if (!x || E.pts < x.p || E.got.includes(i)) return; x.f(save); E.got.push(i); persist(); toast(x.t + '.'); render(); popPaint(); },
   tutoSuiv(){ tutoPas = Math.min(TUTO.length - 1, tutoPas + 1); popPaint(); }, tutoPrec(){ tutoPas = Math.max(0, tutoPas - 1); popPaint(); },
