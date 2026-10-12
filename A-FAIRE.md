@@ -32,12 +32,18 @@
 
 ## Essais en cours
 
-- **Arène vue de face** (façon Summoners War) : adversaires au fond, équipe devant, sol en perspective. Fait
-  sur les duels d'arène seulement, pour juger. À étendre ou à retirer selon l'avis.
+- **Arène, équipes en biais** (12/10) : la vue de face est retirée ; les deux équipes sont en lignes parallèles,
+  de biais, face à face. Les monstres ne peuvent pas être montrés de dos : DofusDB ne fournit qu'un angle par
+  monstre (le rendu Ankama à plusieurs orientations ne répond plus). À étendre ou à retirer selon l'avis.
+- **Prismas** (12/10) : dix 5 ★ Neutres à 0,3 %. Un seul dans une équipe de légendaires fait gagner 81 à 91 %
+  des duels contre trois légendaires. À rejouer en vrai, surtout comme boss de campagne (facteur .26 à l'estime).
+- **Niveau requis pour l'équipement** (12/10) : une pièce ne s'équipe plus au-dessus du niveau du monstre, et les
+  monstres de départ ne portent rien. Le bot passe 68 donjons sur 126 avec cette règle (75 avant) : à surveiller.
+- **Mécaniques de combo** : propositions faites le 12/10, en attente du choix.
 - **Campagne par régions** : une région s'ouvre quand le premier donjon de la précédente est fini, et ses
   donjons s'enchaînent à l'intérieur. La règle d'ouverture est un choix de ma part, à valider.
 
 ## Fait
 
-- Icônes Dofus 2 de la boutique et du bestiaire, découpées dans la planche fournie (12/10) · Affaiblir le mode Gelées (12/10) · Changement de classe via le Temple des Dopeuls (12/10) · Dragons assumés
+- Page et animation d'invocation refaites (12/10) · Icônes Dofus 2 de la boutique et du bestiaire, découpées dans la planche fournie (12/10) · Affaiblir le mode Gelées (12/10) · Changement de classe via le Temple des Dopeuls (12/10) · Dragons assumés
   comme contenu de milieu et fin de partie (12/10).

@@ -14,7 +14,7 @@ function runBot(opts = {}){
   function gearUp(){
     for (const m of team()) for (const sl of GEAR_SLOTS){
       const src = GEAR_SRC[sl] || sl, cur = m.g && m.g[sl] && Eco.gearById(sv, m.g[sl]);
-      const best = (sv.gear || []).filter(g => g.s === src && g.owner == null).sort((a, b) => gScore(b) - gScore(a))[0];
+      const best = (sv.gear || []).filter(g => g.s === src && g.owner == null && gearLvl(g) <= m.level).sort((a, b) => gScore(b) - gScore(a))[0];
       if (best && (!cur || gScore(best) > gScore(cur))) Eco.equipGear(sv, m, best, sl);
     }
     for (const g of (sv.gear || []).filter(g => g.owner == null)) Eco.sellGear(sv, g);
