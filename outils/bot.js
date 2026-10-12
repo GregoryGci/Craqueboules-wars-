@@ -4,7 +4,7 @@ function rebuild(){ buildCatalog(JSON.parse(CATJSON)); finalizeStages(); }
 function runBot(opts = {}){
   const maxRuns = opts.maxRuns || 2500, raids = opts.raids !== false, log = [];
   save = Eco.newSave();
-  const sv = save, camp = STAGES.camp, raid = STAGES.raid;
+  const sv = save, camp = STAGES.camp.slice().sort((a, b) => a.lvl - b.lvl), raid = STAGES.raid;   // le bot avance par niveau, toutes régions confondues
   const team = () => sv.team.map(u => Eco.monByUid(sv, u));
   const defs = () => team().map(m => Eco.monDef(sv, m));
   let seed = 1;
@@ -83,4 +83,4 @@ function refWin(stages, l, teams = 6, fights = 8){
   for (let t = 0; t < teams; t++){ const T = refTeam(l); for (const d of stages) for (let f = 0; f < fights; f++){ n++; if (simulate(d, T, 1000 * t + f).win) w++; } }
   return w / n;
 }
-const tierStages = L => { const a = STAGES.camp.filter(d => d.lvl === L); return a.length <= 3 ? a : [a[0], a[a.length >> 1], a[a.length - 1]]; };
+const tierStages = L => { const a = STAGES.camp.filter(d => d.lvl === L).sort((x, y) => x.id < y.id ? -1 : 1); return a.length <= 3 ? a : [a[0], a[a.length >> 1], a[a.length - 1]]; };

@@ -59,7 +59,6 @@ html[data-theme="sombre"] .btn[aria-pressed="true"].grey{background:linear-gradi
 html[data-theme="sombre"] .dgboss .por .pimg, html[data-theme="sombre"] .sumcard .por .pimg, html[data-theme="sombre"] .dcenter .por .pimg, html[data-theme="sombre"] .reveal .por .pimg{background:none}
 html[data-theme="sombre"] .search, html[data-theme="sombre"] .sel, html[data-theme="sombre"] .pan textarea{background-color:#161514; color:var(--ink); border-color:var(--slot-line)}
 html[data-theme="sombre"] .search::placeholder{color:#7d786c}
-html[data-theme="sombre"] .obtn{color:#d8d2c3; box-shadow:inset 0 1px 0 #ffffff14, 0 1px 2px #0008}
 html[data-theme="sombre"] .res{box-shadow:inset 0 0 0 1px var(--win-hi)}
 html[data-theme="sombre"] .pbadge .pb-t b{color:#f1ecdf}
 html[data-theme="sombre"] .por .pimg{background:radial-gradient(circle at 50% 40%, #4b4841, #23211e 78%)}
@@ -135,11 +134,13 @@ h1,h2,h3{font-family:var(--font); margin:0; line-height:1.15; text-wrap:balance}
 /* Raccourcis du bandeau : série automatique, succès, chat, réglages. Des cases du jeu, pas des boutons d'appli. */
 .top .res{margin-left:auto}
 .outils{display:flex; gap:5px}
-.obtn{position:relative; width:36px; height:36px; padding:0; display:grid; place-items:center; cursor:pointer; color:#4a463c;
-  border-radius:8px; border:1px solid var(--slot-line); background:linear-gradient(var(--slot-hi), var(--slot)); box-shadow:inset 0 1px 0 #fff8, 0 1px 2px #0004}
+/* Tuiles vert sombre, comme les boutons du menu de Dofus 2 : c'est le fond sur lequel ses icônes sont dessinées. */
+.obtn{position:relative; width:38px; height:38px; padding:0; display:grid; place-items:center; cursor:pointer; color:#e8e2cf;
+  border-radius:7px; border:1px solid #1d2017; background:linear-gradient(#454a36, #33382a); box-shadow:inset 0 1px 0 #ffffff24, 0 1px 2px #0006}
 .obtn:hover{border-color:var(--orange2)}
 .obtn svg{width:22px; height:22px}
-.obtn img{width:28px; height:28px; object-fit:contain}
+.obtn img{width:32px; height:32px; object-fit:contain; border-radius:4px}
+.obtn img[src*="ogrine"]{width:28px; height:28px}
 .obtn .tabn{position:absolute; right:-5px; top:-6px; font-style:normal; box-shadow:0 1px 2px #0006}
 .obtn.tourne svg{animation:tourne 1.6s linear infinite}
 @keyframes tourne{to{transform:rotate(360deg)}}
@@ -280,6 +281,14 @@ body.in-combat .tabs{display:none}
 .drow.on{border-color:var(--orange2); background:#fbe3bf}
 .drow.locked{opacity:.55}
 .dgrp{display:grid; gap:2px}
+/* Campagne par régions : chaque région a sa vignette (la carte de son dernier donjon) et sa progression */
+.ghead.zone{grid-template-columns:auto minmax(0,1fr) auto; padding:4px 8px 4px 4px; min-height:48px}
+.zart{width:64px; height:40px; border-radius:5px; background:#1b1a18 center / cover no-repeat; border:1px solid #0006; box-shadow:inset 0 0 0 1px #ffffff22; flex:none}
+.ghead.zone .dn b{font-size:14px}
+.zst{display:flex; align-items:center; gap:6px; font-variant-numeric:tabular-nums} .zst .xpbar{width:44px}
+.ghead.zone.locked .zart{filter:grayscale(1) brightness(.7)}
+.dgrp .glv .drow.sub{grid-template-columns:auto minmax(0,1fr) auto; padding-left:14px}
+.dgrp .glv .drow.sub .por{width:30px; height:30px}
 .dgrp:nth-child(even) > .ghead{background:var(--row2)}
 .ghead.cur{border-color:var(--panel-line); box-shadow:inset 3px 0 0 var(--orange2)}
 .ghead .chev{display:inline-block; width:12px; text-align:center; color:var(--ink2)}
@@ -728,6 +737,17 @@ body.in-combat .tabs{display:none}
 .fctrl{flex:none; display:flex; gap:5px; align-items:center; padding-right:6px}
 /* Plein écran : la fenêtre de combat recouvre la page. Fait en CSS, car Safari sur iPhone n'ouvre pas
    le vrai plein écran du navigateur pour autre chose qu'une vidéo. */
+/* Arène vue de face : étiquettes des deux camps */
+.vstag{position:absolute; z-index:58; display:flex; align-items:center; gap:6px; padding:2px 9px 2px 5px; border-radius:14px; background:#14100acc; border:1px solid #000; color:#fff; font-size:11.5px; pointer-events:none; text-shadow:0 1px 2px #000}
+.vstag span{color:#ffd66a; font-size:10.5px} .vstag .cls-av{--av:24px}
+.field.face .plate{position:relative; width:calc(var(--tok) * 1.5); min-width:54px; margin-left:16px; background:#000b; border:1px solid #000; padding:2px 3px; gap:1px; box-shadow:0 1px 3px #000a}
+.field.face .plate .nm{display:block; height:0; overflow:visible}
+.field.face .plate .nm span{display:none}
+.field.face .plate .nm small{position:absolute; left:-19px; top:50%; transform:translateY(-50%); width:20px; height:20px; border-radius:50%; display:grid; place-items:center;
+  background:#3a3936; border:2px solid var(--side); color:#fff; font-size:9px; font-weight:bold; box-shadow:0 1px 2px #000}
+.field.face .bar{height:7px} .field.face .bar span{display:none} .field.face .fx{min-height:0}
+.field.face .bar.hp i{background:linear-gradient(#8be36f, #3c9a2c)} .field.face .bar.atb{height:3px} .field.face .bar.atb i{background:#5ab6ff}
+.field.face .unit.active .plate{background:#000d; border-color:var(--orange2)}
 /* Combat guidé */
 .coach{position:absolute; left:8px; right:8px; z-index:65; padding:8px 11px; border-radius:8px; pointer-events:none; font-size:12.5px; line-height:1.35; color:#fff;
   background:#14100af2; border:1px solid var(--orange2); box-shadow:0 0 0 1px #000, 0 4px 14px #000a; animation:coachIn .3s ease-out}
@@ -1085,7 +1105,7 @@ body.fs .cwin .hudbar{display:none}
   /* menus */
   .doll .cell{width:46px; height:46px} .doll .cell svg, .doll .cell img{width:38px; height:38px}
   .dcenter{min-height:160px}
-  .dlist{max-height:300px}
+  .dlist{max-height:min(62vh, 520px)}
   /* inventaire : filtres en grille régulière, cases plus grandes, vente collée en bas de l'écran */
   .invfiltres{display:grid; grid-template-columns:1fr 1fr; gap:6px}
   .invfiltres .selwrap, .invfiltres .sel{width:100%; box-sizing:border-box}
@@ -2696,7 +2716,7 @@ function buildCatalog(cat){
     const enemies = bossK
       ? [{ key:pickN(0), level:Math.max(1, L-1), garde:true }, { key:bossK, level:L+1, boss:true, bossMult:Math.min(2.4, 1.3 + L/150) }, { key:pickN(1), level:L, garde:true }]
       : [{ key:pickN(0), level:Math.max(1, L-1) }, { key:pickN(1), level:L }, { key:pickN(2), level:L }];
-    dgs.push({ id:'d' + d.id, map:themeFor(d.n, d.id), mapId:d.mp || 0, maps:d.mps || [], pool:normals, name:d.n, lvl:L, dofusLvl:d.l,
+    dgs.push({ id:'d' + d.id, zone:d.z || '', sz:d.sz || '', map:themeFor(d.n, d.id), mapId:d.mp || 0, maps:d.mps || [], pool:normals, name:d.n, lvl:L, dofusLvl:d.l,
       desc: bossK ? `Boss : ${MONSTERS[bossK].name}. Niveau Dofus conseillé : ${d.l}.` : `Niveau Dofus conseillé : ${d.l}.`, enemies, ...rewardsFor(L) });
   }
   // La campagne est une chaîne : chaque donjon exige le précédent. L'ordre du catalogue étant celui de
@@ -2888,14 +2908,24 @@ function bossStages(defs, mode, floors, lvStep, mult0, multStep, lv0 = 0){
 }
 // Campagne : un niveau par donjon, joué en ROOMS salles (celles du vrai donjon) ; le boss attend dans la dernière
 function finalizeStages(){
-  const camp = [];
-  let prev = null;
-  for (const d of DUNGEONS){
-    const pool = d.pool && d.pool.length ? d.pool : [...new Set(d.enemies.filter(e => !e.boss).map(e => e.key))];
-    const id = `camp:${d.id}`;
-    camp.push({ id, mode:'camp', grp:d.id, gname:d.name, short:d.name, name:d.name, lvl:d.lvl, dofusLvl:d.dofusLvl || 0, map:d.map, mapId:d.mapId || 0, maps:d.maps || null,
-      desc:d.desc, enemies:d.enemies, waves:wavesFor(pool, d.lvl, d.enemies, ROOMS, ENN(d.lvl, 'trash', d.dur || 1)), req:prev, kamas:d.kamas, xp:d.xp, rarity:d.rarity });
-    prev = id;
+  // La campagne est rangée par région du Monde des Douze : Incarnam, Astrub, Amakna… Les régions vont de la
+  // plus facile à la plus dure (niveau de leur premier donjon), et leurs donjons du plus bas au plus haut.
+  // Une région s'ouvre quand le premier donjon de la précédente est fini ; à l'intérieur, les donjons s'enchaînent.
+  // Sans données de région (ancien catalogue), on retombe sur une seule file triée par niveau.
+  const camp = [], zones = new Map(), parZone = DUNGEONS.some(d => d.zone);
+  for (const d of DUNGEONS){ const z = parZone ? d.zone || 'Terres inconnues' : d.id; if (!zones.has(z)) zones.set(z, []); zones.get(z).push(d); }
+  const ordre = [...zones.entries()].sort((a, b) => a[1][0].lvl - b[1][0].lvl);     // DUNGEONS est déjà trié par niveau
+  let premierPrec = null, prev = null;
+  for (const [z, liste] of ordre){
+    liste.forEach((d, n) => {
+      const pool = d.pool && d.pool.length ? d.pool : [...new Set(d.enemies.filter(e => !e.boss).map(e => e.key))];
+      const id = `camp:${d.id}`;
+      camp.push({ id, mode:'camp', grp:parZone ? 'z:' + z : d.id, gname:parZone ? z : d.name, zone:parZone ? z : '', sz:d.sz || '', short:d.name, name:d.name, lvl:d.lvl, dofusLvl:d.dofusLvl || 0,
+        map:d.map, mapId:d.mapId || 0, maps:d.maps || null, desc:d.desc, enemies:d.enemies, waves:wavesFor(pool, d.lvl, d.enemies, ROOMS, ENN(d.lvl, 'trash', d.dur || 1)),
+        req:parZone ? (n ? prev : premierPrec) : prev, kamas:d.kamas, xp:d.xp, rarity:d.rarity });
+      if (parZone && !n) premierPrec = id;
+      prev = id;
+    });
   }
   STAGES.camp = camp;
   STAGES.gel = gelStages();
@@ -3633,11 +3663,11 @@ function renderTop(){
     <li title="Parchemins de sort">${resIcon(SCROLL_ICON,16)}${save.scrolls}</li>`;
   const ready = ACHS.filter(a => achState(save, a).ready).length;
   const tabs = [['jouer','Jouer'],['equipe','Équipe'],['trophees','Inventaire'],['invocation','Invocation']];
-  if (sb && debloque('hdv')) tabs.push(['hdv', 'Hôtel de vente' + (hdvGains.length ? ` <b class="tabn">${hdvGains.length}</b>` : '')]);
   const nonLus = chatUnread + mpNonLus(), a = autoRun, o = $('#outils');
   if (o) o.innerHTML = (a ? `<button class="obtn ${a.on ? 'tourne' : ''}" data-act="pan" data-v="auto" title="Série automatique : ${a.done} / ${a.total}" aria-label="Série automatique">${ICO.auto}<b class="tabn">${a.on ? `${a.done}/${a.total}` : '✓'}</b></button>` : '')
     + `<button class="obtn" data-act="pan" data-v="event" title="Événements" aria-label="Événements">${ICO.cadeau}${evPrets() ? `<b class="tabn">${evPrets()}</b>` : ''}</button>`
     + `<button class="obtn" data-act="pan" data-v="quetes" title="Quêtes du jour" aria-label="Quêtes du jour">${ICO.quete}${quetesPretes() ? `<b class="tabn">${quetesPretes()}</b>` : ''}</button>`
+    + (sb && debloque('hdv') ? `<button class="obtn" data-act="nav" data-v="hdv" title="Hôtel de vente" aria-label="Hôtel de vente">${ICO.echoppe}${hdvGains.length ? `<b class="tabn">${hdvGains.length}</b>` : ''}</button>` : '')
     + `<button class="obtn" data-act="pan" data-v="ency" title="Encyclopédie" aria-label="Encyclopédie">${ICO.livre}</button>`
     + `<button class="obtn" data-act="pan" data-v="succes" title="Succès${ready ? ` : ${ready} à réclamer` : ''}" aria-label="Succès">${ICO.ogrine}${ready ? `<b class="tabn">${ready}</b>` : ''}</button>`
     + (sb ? `<button class="obtn" data-act="pan" data-v="chat" title="Chat" aria-label="Chat">${ICO.bulle}${nonLus ? `<b class="tabn">${nonLus}</b>` : ''}</button>` : '')
@@ -3837,7 +3867,8 @@ const ICO = {
   roue:   '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="4.2" stroke-dasharray="3.4 2.88"/><circle cx="12" cy="12" r="5.6" fill="none" stroke="currentColor" stroke-width="2.6"/></svg>',
   bulle:  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7l-5 4v-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" fill="currentColor"/><path d="M6.5 9h11M6.5 12.5h7" stroke="#e9e4d3" stroke-width="1.6" stroke-linecap="round"/></svg>',
   ogrine: '<img src="assets/ogrine.png" alt="">',   // l'icône d'ogrine de Dofus
-  livre:  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4.5C6 3 9 3 12 5c3-2 6-2 9-.5V19c-3-1.5-6-1.5-9 .5-3-2-6-2-9-.5z" fill="#8a5a26" stroke="#4a2f10" stroke-width="1"/><path d="M4.6 6c2.3-.8 4.4-.6 6.4.7v10.6c-2-1.1-4.1-1.3-6.4-.7zM19.4 6c-2.3-.8-4.4-.6-6.4.7v10.6c2-1.1 4.1-1.3 6.4-.7z" fill="#f3ead2"/><path d="M6 8.6c1.3-.3 2.5-.2 3.6.3M6 11c1.3-.3 2.5-.2 3.6.3M14.4 8.9c1.1-.5 2.3-.6 3.6-.3M14.4 11.3c1.1-.5 2.3-.6 3.6-.3" stroke="#8a7a55" stroke-width=".9" fill="none"/></svg>',
+  livre:  '<img src="assets/bestiaire.png" alt="">',   // l'icône de bestiaire de l'interface Dofus 2
+  echoppe:'<img src="assets/boutique.png" alt="">',    // l'icône de boutique de l'interface Dofus 2
   cadeau: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="10" width="18" height="11" rx="1.5" fill="#c9412b" stroke="#6e1c10"/><rect x="2" y="6.5" width="20" height="4.5" rx="1.2" fill="#e25a3f" stroke="#6e1c10"/><rect x="10.3" y="6.5" width="3.4" height="14.5" fill="#ffd66a"/><path d="M12 6.5C9 1.5 4.5 3.5 7 6.5zM12 6.5c3-5 7.5-3 5 0z" fill="#ffd66a" stroke="#8a6a12" stroke-width=".8"/></svg>',
   quete:  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h11a2 2 0 0 1 2 2v13a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V5a2 2 0 0 1 2-2z" fill="#f0e3bf" stroke="#7a5a22"/><path d="M4 18a3 3 0 0 0 3 3h9a3 3 0 0 1-3-3z" fill="#d9c48f" stroke="#7a5a22"/><rect x="10.6" y="6" width="2.8" height="7" rx="1.2" fill="#c0281a"/><circle cx="12" cy="15.4" r="1.5" fill="#c0281a"/></svg>',
   auto:   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 1-7.4 5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M2.2 4.6 5 10.4l5.6-2.6z" fill="currentColor"/></svg>',
@@ -3879,8 +3910,20 @@ function dgListHtml(){
   const q = dq.trim().toLowerCase(), L = stages(), groups = [], cur = L[selDg];
   L.forEach((d, i) => { let g = groups[groups.length - 1]; if (!g || g.k !== d.grp) groups.push(g = { k:d.grp, name:d.gname, idx:[] }); g.idx.push(i); });
   const state = (un, done, txt) => done ? '<span class="ok">Terminé</span>' : un ? `<span class="new">${txt}</span>` : '<span class="muted">Verrouillé</span>';
-  return groups.filter(g => !q || g.name.toLowerCase().includes(q) || g.idx.some(i => L[i].enemies.some(e => MONSTERS[e.key].name.toLowerCase().includes(q)))).map(g => {
+  return groups.filter(g => !q || g.name.toLowerCase().includes(q) || g.idx.some(i => L[i].short.toLowerCase().includes(q) || L[i].enemies.some(e => MONSTERS[e.key].name.toLowerCase().includes(q)))).map(g => {
     const done = g.idx.filter(i => save.cleared.includes(L[i].id)).length, open = openGrp === g.k, first = L[g.idx[0]], last = L[g.idx[g.idx.length - 1]], un = isUnlocked(g.idx[0]);
+    const boss = d => (d.enemies.find(e => e.boss) || d.enemies[0]).key;
+    if (String(g.k).startsWith('z:')){                              // campagne : une région, ses donjons dedans
+      const fait = g.idx.filter(i => save.cleared.includes(L[i].id)).length, vig = mapBg(L[g.idx[g.idx.length - 1]], .25);
+      return `<div class="dgrp"><button class="drow ghead zone ${un ? '' : 'locked'} ${cur && cur.grp === g.k ? 'cur' : ''}" data-act="grp" data-k="${esc(g.k)}" aria-expanded="${open}">
+        <span class="zart" style="background-image:url('${vig}')"></span>
+        <span class="dn"><b>${esc(g.name)}</b><span class="muted">Niv. ${first.lvl}${last.lvl !== first.lvl ? '–' + last.lvl : ''} · ${g.idx.length} donjon${g.idx.length > 1 ? 's' : ''}</span></span>
+        <span class="dst zst">${un ? `<b class="${fait === g.idx.length ? 'ok' : ''}">${fait} / ${g.idx.length}</b><span class="xpbar"><b style="width:${fait / g.idx.length * 100}%"></b></span>` : '<span class="muted">🔒 Verrouillée</span>'} <span class="chev" aria-hidden="true">${open ? '▴' : '▾'}</span></span></button>
+        ${open ? `<div class="glv">${g.idx.map(i => { const d = L[i], u = isUnlocked(i);
+          return `<button class="drow sub ${i === selDg ? 'on' : ''} ${u ? '' : 'locked'}" data-act="selDg" data-i="${i}">${portrait(boss(d), 30, { badge:false })}
+            <span class="dn"><b>${esc(d.short)}</b><span class="muted">Niv. ${d.lvl}${d.sz ? ' · ' + esc(d.sz) : ''}</span></span>
+            <span class="dst">${state(u, save.cleared.includes(d.id), 'Ouvert')}</span></button>`; }).join('')}</div>` : ''}</div>`;
+    }
     if (g.idx.length === 1) return `<button class="drow ${g.idx[0] === selDg ? 'on' : ''} ${un ? '' : 'locked'}" data-act="selDg" data-i="${g.idx[0]}">${portrait((last.enemies.find(e => e.boss) || last.enemies[0]).key, 34, { badge:false })}
       <span class="dn"><b>${g.name}</b><span class="muted">Niv. ${first.lvl}${first.dofusLvl ? ` · Dofus ${first.dofusLvl}` : ''}</span></span><span class="dst">${state(un, done === 1, 'Ouvert')}</span></button>`;
     return `<div class="dgrp"><button class="drow ghead ${un ? '' : 'locked'} ${cur && cur.grp === g.k ? 'cur' : ''}" data-act="grp" data-k="${g.k}" aria-expanded="${open}">${portrait((last.enemies.find(e => e.boss) || last.enemies[0]).key, 34, { badge:false })}
@@ -3941,7 +3984,7 @@ function dgDetail(i){
     <div class="wb" style="display:grid; gap:8px">
       <div class="dgart"><canvas class="mini big" data-map data-i="${i}" aria-hidden="true"></canvas>
         ${(() => { const b = d.enemies.find(e => e.boss) || d.enemies[0], m = b && MONSTERS[b.key]; return m ? `<span class="dgboss">${portrait(b.key, 96, { badge:false })}<b>${esc(m.name)}</b><small>${b.boss ? 'Boss · ' : ''}niv. ${b.level} · ${ELEM[m.el]}</small></span>` : ''; })()}</div>
-      <p style="margin:0">${d.desc}</p>
+      <p style="margin:0">${d.zone ? `<b>${esc(d.zone)}</b>${d.sz && d.sz !== d.zone ? ' · ' + esc(d.sz) : ''} — ` : ''}${d.desc}</p>
       ${SYNC_MODES.includes(d.mode) && team.some(m => m.level > d.lvl + SYNC) ? `<p class="hint" style="margin:0">Tes monstres au-dessus du niveau ${d.lvl + SYNC} combattront ici comme s'ils étaient niveau ${d.lvl + SYNC}.</p>` : ''}
       <div class="band">Butin possible</div>
       ${dropsHtml(d)}${apercuModal()}
@@ -5480,7 +5523,10 @@ function layoutField(){
   const basBande  = (() => { const e = $('#spellbar'); return e ? e.offsetHeight + 10 : 0; })();
   const Hu = Math.max(120, H - hautBande - basBande);         // hauteur réellement jouable
   // Vraie map : la grille et les sprites sont calés sur la taille des cases de l'image, pour que les monstres soient à l'échelle du décor
-  const dg = curStage, real = !!(dg.mapId && IMG_OK), zoom = real ? (W < 560 ? 1.3 : 1.5) : 1;
+  const dg = curStage;
+  if (dg.mode === 'arena') return layoutFace(W, H, hautBande, Hu, basBande);
+  field.classList.remove('face');
+  const real = !!(dg.mapId && IMG_OK), zoom = real ? (W < 560 ? 1.3 : 1.5) : 1;
   // Le décor remplit toute l'arène, bandes comprises : c'est sur cette échelle-là que se règle la taille d'une case.
   // Au format téléphone, on plafonne pour que les deux colonnes de trois tiennent entre les bandes.
   const twMap = Math.max(W, H*MAP_AR) * zoom / MAP_CELLS;
@@ -5503,6 +5549,55 @@ function layoutField(){
   const sc = real && W * (window.devicePixelRatio || 1) > 700 ? 1 : .5;
   drawMap($('#mapcv'), dg.map, curDg + 1, { tw, cy, cells: real ? [] : cells, bg: mapBg(dg, sc, roomMap(dg, waveIdx)), grid: !real, zoom });
   if (real && waveIdx < dg.waves.length - 1) loadImg(mapBg(dg, sc, roomMap(dg, waveIdx + 1)), () => {});   // précharge la salle suivante
+}
+// Arène : essai d'une vue de face, façon Summoners War. Les adversaires au fond, plus petits ; l'équipe devant,
+// plus grande ; un sol de pierre dessiné en perspective. Les images des monstres n'existent que sous un angle :
+// on ne peut pas montrer ses monstres de dos, seulement les placer et les mettre à l'échelle.
+function layoutFace(W, H, haut, Hu, bas){
+  field.classList.remove('real'); field.classList.add('face'); field.style.removeProperty('--tok'); fxSize();
+  const base = Math.min(W < 560 ? 44 : 68, Hu / 6.4);
+  const rang = (liste, y, k) => liste.forEach((u, i) => { const n = nodes[u.id], x = W * (liste.length === 1 ? .5 : .17 + .66 * i / (liste.length - 1));
+    n.classList.remove('flip'); n.style.setProperty('--tok', base * k + 'px'); n.style.left = x + 'px'; n.style.top = y + 'px'; n.style.zIndex = Math.round(y); });
+  rang(state.B, haut + Hu * .45, .8); rang(state.A, haut + Hu * .95, 1.18);
+  const tag = (id, html, css) => { let e = $('#' + id); if (!e){ e = document.createElement('div'); e.id = id; e.className = 'vstag'; field.appendChild(e); } e.innerHTML = html; e.style.cssText = css; };
+  tag('vsHaut', `<b>${esc((curStage.name || '').split('· ').pop())}</b><span>niv. ${curStage.lvl}</span>`, `right:8px; top:${haut + 2}px`);
+  tag('vsBas', `${classOf() ? clsAvatar(classOf(), save.player.sex, 24) : ''}<b>${esc(save.player.name)}</b>`, `left:8px; top:${haut + 2}px`);
+  drawArene($('#mapcv'), haut, Hu);
+}
+function drawArene(cv, haut, Hu){
+  const W = cv.clientWidth, H = cv.clientHeight; if (!W || !H) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const hz = haut + Hu * .2, cx = W / 2, cy = haut + Hu * .72, rx = W * .66, ry = Hu * .44;
+  // ciel de fin de journée
+  let d = g.createLinearGradient(0, 0, 0, hz); d.addColorStop(0, '#7a4f63'); d.addColorStop(.45, '#e08a66'); d.addColorStop(1, '#f7d2b0');
+  g.fillStyle = d; g.fillRect(0, 0, W, hz + 2);
+  g.fillStyle = '#fff3'; for (const [x, y, r] of [[.18, .5, .22], [.5, .3, .3], [.82, .55, .24], [.33, .75, .18], [.68, .8, .2]]){ g.beginPath(); g.ellipse(W * x, hz * y, W * r, hz * .16, 0, 0, 6.3); g.fill(); }
+  // sol
+  d = g.createLinearGradient(0, hz, 0, H); d.addColorStop(0, '#b9b4ab'); d.addColorStop(1, '#6f6b66');
+  g.fillStyle = d; g.fillRect(0, hz, W, H - hz);
+  // portail au fond
+  d = g.createRadialGradient(cx, hz, 2, cx, hz, W * .16); d.addColorStop(0, '#f2e6ffee'); d.addColorStop(.35, '#b58bff99'); d.addColorStop(1, '#b58bff00');
+  g.fillStyle = d; g.fillRect(cx - W * .2, hz - Hu * .22, W * .4, Hu * .3);
+  g.fillStyle = '#5fd6d0aa'; g.beginPath(); g.ellipse(cx, hz + 3, W * .11, Hu * .018, 0, 0, 6.3); g.fill();
+  // colonnes
+  for (const [x, k] of [[.06, 1.5], [.2, 1], [.8, 1], [.94, 1.5]]){ const w = W * .045 * k, h = Hu * .3 * k, bx = W * x - w / 2;
+    d = g.createLinearGradient(bx, 0, bx + w, 0); d.addColorStop(0, '#6f6b68'); d.addColorStop(.45, '#c9c4bb'); d.addColorStop(1, '#58545a');
+    g.fillStyle = d; g.fillRect(bx, hz - h * .62, w, h); g.fillStyle = '#8a857f'; g.fillRect(bx - w * .2, hz - h * .62 - 5, w * 1.4, 6); g.fillRect(bx - w * .25, hz + h * .38 - 4, w * 1.5, 7); }
+  // dalle circulaire, vue en perspective : ellipses concentriques et rayons
+  const ell = (k, style, lw, dash) => { g.beginPath(); g.ellipse(cx, cy, rx * k, ry * k, 0, 0, 6.3); if (dash){ g.setLineDash(dash); } g.lineWidth = lw; g.strokeStyle = style; g.stroke(); g.setLineDash([]); };
+  g.fillStyle = '#d3cfc6'; g.beginPath(); g.ellipse(cx, cy, rx, ry, 0, 0, 6.3); g.fill();
+  d = g.createRadialGradient(cx, cy, 4, cx, cy, rx); d.addColorStop(0, '#fff6'); d.addColorStop(1, '#0002'); g.fillStyle = d; g.beginPath(); g.ellipse(cx, cy, rx, ry, 0, 0, 6.3); g.fill();
+  g.strokeStyle = '#8f8a82'; g.lineWidth = 1;
+  for (let a = 0; a < 24; a++){ const t = a / 24 * 6.283; g.beginPath(); g.moveTo(cx + Math.cos(t) * rx * .22, cy + Math.sin(t) * ry * .22); g.lineTo(cx + Math.cos(t) * rx, cy + Math.sin(t) * ry); g.stroke(); }
+  for (const k of [.22, .42, .62, .82, 1]) ell(k, '#8f8a82', 1.2);
+  ell(.72, '#d9a520', Math.max(6, ry * .09), [rx * .2, rx * .09]);      // anneau doré
+  ell(.72, '#f6d77a66', 1.5, [rx * .2, rx * .09]);
+  g.fillStyle = '#e2b53a'; g.beginPath(); g.ellipse(cx, cy, rx * .16, ry * .16, 0, 0, 6.3); g.fill(); ell(.16, '#a8791c', 2);
+  // les bords s'assombrissent, pour ramener l'œil au centre
+  d = g.createRadialGradient(cx, cy, Math.min(W, H) * .3, cx, cy, Math.max(W, H) * .78); d.addColorStop(0, '#0000'); d.addColorStop(1, '#0009');
+  g.fillStyle = d; g.fillRect(0, 0, W, H);
 }
 function buildField(){
   nodes = {}; tls = {};

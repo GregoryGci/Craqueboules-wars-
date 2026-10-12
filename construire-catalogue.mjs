@@ -135,8 +135,27 @@ const dungeons = await all('dungeons', {}, d => {
   const m = (d.monsters || []).filter(id => known.has(id));
   if (!name || !m.length) return null;
   const maps = d.mapIds || [];   // mps : les salles du donjon dans l'ordre (une par vague en campagne) ; mp : la dernière, celle du boss
-  return { id: d.id, n: name, l: d.optimalPlayerLevel ?? d.minLevel ?? 1, m, b: (d.bosses || []).filter(id => known.has(id)), mp: maps[maps.length - 1] || 0, mps: maps };
+  return { id: d.id, n: name, l: d.optimalPlayerLevel ?? d.minLevel ?? 1, m, b: (d.bosses || []).filter(id => known.has(id)), mp: maps[maps.length - 1] || 0, mps: maps, e: d.entranceMapId || 0 };
 }, 'Donjons');
+
+// ---------- Zones : la région du monde où se trouve l'entrée de chaque donjon (z), et sa sous-zone (sz).
+// La campagne est rangée par région : Incarnam, Astrub, Amakna… Facultatif : sans réponse, le jeu range par niveau.
+try {
+  const sous = {}, zones = {};
+  let n = 0;
+  for (const d of dungeons) {
+    process.stdout.write(`\rZones : ${++n} / ${dungeons.length}   `);
+    if (!d.e) continue;
+    const pos = await get(`${API}/map-positions/${d.e}`).catch(() => null);
+    const sid = pos && pos.subAreaId; if (sid == null) continue;
+    if (!(sid in sous)) { const sa = await get(`${API}/subareas/${sid}`).catch(() => null); sous[sid] = sa ? { n: fr(sa.name).trim(), a: sa.areaId } : null; }
+    const S = sous[sid]; if (!S) continue;
+    if (!(S.a in zones)) { const ar = await get(`${API}/areas/${S.a}`).catch(() => null); zones[S.a] = ar ? fr(ar.name).trim() : ''; }
+    d.sz = S.n; d.z = zones[S.a] || '';
+  }
+  process.stdout.write('\n');
+} catch (e) { console.log(`\nZones ignorées (${e.message}). La campagne sera rangée par niveau.`); }
+for (const d of dungeons) delete d.e;
 
 const cat = { v: 2, source: 'api.dofusdb.fr', date: new Date().toISOString().slice(0, 10), monsters, spells, spellIcons, items, gear, dungeons };
 await writeFile('catalogue.json', JSON.stringify(cat));

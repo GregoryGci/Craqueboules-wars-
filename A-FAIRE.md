@@ -30,12 +30,14 @@
 - **Effets de sorts** : rendre les combats beaucoup plus visuels, avec plus d'identité par personnage, lisibles
   mais riches en effets.
 
-## En attente d'une image
+## Essais en cours
 
-- **Icône de l'encyclopédie / bestiaire.** Celle du bandeau est dessinée à la main. Deux recherches (web et wiki
-  Dofus) n'ont rien donné d'exploitable : il faut un lien direct vers l'image, comme pour l'ogrine.
+- **Arène vue de face** (façon Summoners War) : adversaires au fond, équipe devant, sol en perspective. Fait
+  sur les duels d'arène seulement, pour juger. À étendre ou à retirer selon l'avis.
+- **Campagne par régions** : une région s'ouvre quand le premier donjon de la précédente est fini, et ses
+  donjons s'enchaînent à l'intérieur. La règle d'ouverture est un choix de ma part, à valider.
 
 ## Fait
 
-- Affaiblir le mode Gelées (12/10) · Changement de classe via le Temple des Dopeuls (12/10) · Dragons assumés
+- Icônes Dofus 2 de la boutique et du bestiaire, découpées dans la planche fournie (12/10) · Affaiblir le mode Gelées (12/10) · Changement de classe via le Temple des Dopeuls (12/10) · Dragons assumés
   comme contenu de milieu et fin de partie (12/10).
