@@ -149,6 +149,12 @@ h1,h2,h3{font-family:var(--font); margin:0; line-height:1.15; text-wrap:balance}
 .pan.ency{width:min(980px, 100%)}
 .pan > .wb{display:grid; gap:9px; max-height:calc(100vh - 110px); max-height:calc(100dvh - 110px); overflow:auto}
 .pan.grand .chatlist{height:min(54vh, 480px)}
+.evjours{display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:6px}
+.evj{position:relative; display:grid; gap:2px; padding:7px 9px; border-radius:7px; background:var(--row2); border:1px solid var(--panel-line); font-size:11.5px; min-height:56px; align-content:start}
+.evj b{font-size:12.5px}
+.evj.pret{border-color:var(--orange2); box-shadow:0 0 0 1px var(--orange2), 0 0 10px #ef750066}
+.evj.pris{opacity:.55}
+.evj i{position:absolute; right:7px; top:5px; font-style:normal; color:var(--good); font-weight:bold}
 .optl{display:flex; justify-content:space-between; align-items:center; gap:10px; min-height:30px}
 .optl > span{min-width:0}
 .pan textarea{width:100%; min-height:70px; background:var(--panel); color:var(--ink); border:1px solid var(--win-out); border-radius:6px; font:11px ui-monospace, monospace; padding:6px; box-sizing:border-box}
@@ -1385,7 +1391,7 @@ function foodXp(f, mon){
 }
 
 // ---- Invocation
-const SUMMON = { label:'Pierre d\'âme pleine', rates:{1:22, 2:38, 3:27, 4:10, 5:3} };
+const SUMMON = { label:'Pierre d\'âme pleine', rates:{1:22, 2:38, 3:27, 4:12, 5:1} };
 
 /* =====================================================================
    2. RÈGLES PARTAGÉES — petites fonctions pures sur les objets.
@@ -1995,6 +2001,16 @@ const Eco = (() => {
     save.monsters = save.monsters.filter(m => m !== mon);
     return { ok:true, kamas };
   }
+  // Invocation offerte : ne coûte pas de pierre. etoiles : force le nombre d'étoiles (première invocation du tutoriel).
+  function summonLibre(save, etoiles){
+    const stars = etoiles || +weighted(SUMMON.rates);
+    let pool = [];
+    for (let d = 0; !pool.length && d < 5; d++) pool = Object.keys(MONSTERS).filter(k => (!ROSTER || ROSTER.has(k)) && Math.abs(MONSTERS[k].stars - stars) === d);
+    const key = pick(pool), isNew = !save.monsters.some(m => m.key === key) && !save.seen.includes(key);
+    if (!save.seen.includes(key)) save.seen.push(key);
+    save.sum = (save.sum || 0) + 1;
+    return { ok:true, mon:addMonster(save, key, 1), isNew };
+  }
   function summon(save){
     if (save.stones < 1) return { err:'Plus de pierre d\'âme pleine.' };
     save.stones--; save.sum = (save.sum || 0) + 1;
@@ -2055,7 +2071,7 @@ const Eco = (() => {
     }
     return s;
   }
-  return { skillUp, dupOf, genItem, itemsOf, monDef, equip, unequip, upgrade, upCost, sell, sellValue, awaken, awakenCost, release, summon, loot, newSave, monByUid, itemById,
+  return { skillUp, dupOf, genItem, itemsOf, monDef, equip, unequip, upgrade, upCost, sell, sellValue, awaken, awakenCost, release, summon, summonLibre, ajouter:addMonster, loot, newSave, monByUid, itemById,
     genGear, fuse, fusibles, gearById, gearOf, equipGear, unequipGear, sellGear, gearValue, fodder, feed, mangeables };
 })();
 
@@ -3447,7 +3463,7 @@ const starSvg = `<svg viewBox="0 0 34 34" aria-hidden="true"><path d="M17 1.5l4.
 const teamMons = () => save.team.map(uid => Eco.monByUid(save, uid)).filter(Boolean);
 // Une équipe mémorisée par mode : on ne refait pas sa composition à chaque fois qu'on change de contenu.
 // save.team reste l'équipe qui part au combat ; les autres sont rangées dans save.teams.
-const TEAM_MODES = [['camp','Campagne'],['gel','Gelées'],['raid','Raids'],['dragon','Dragons'],['arene','Arène'],['rta','Arène en direct']];
+const TEAM_MODES_TOUS = [['camp','Campagne'],['gel','Gelées'],['raid','Raids'],['dragon','Dragons'],['arene','Arène'],['rta','Arène en direct']];
 let teamCtx = 'camp';   // mode dont on modifie l'équipe dans l'onglet Équipe
 const teamOf = m => { save.teams = save.teams || {}; return save.teams[m] || []; };
 // Charge l'équipe du mode avant d'y jouer ; si elle est vide, on garde celle en place
@@ -3518,7 +3534,8 @@ const clsAvatar = (c, sex, sz = 52) => `<span class="cls-av" style="--av:${sz}px
 function renderTop(){
   const pc = classOf(), pb = $('#pbadge');
   if (pb) pb.innerHTML = pc && save.player
-    ? `${clsAvatar(pc, save.player.sex, 38)}<span class="pb-t"><b>${esc(save.player.name)}</b><span>${pc.n}</span></span>`
+    ? `${clsAvatar(pc, save.player.sex, 38)}<span class="pb-t"><b>${esc(save.player.name)}</b><span>${pc.n} · niv. ${invDe(save).lvl}</span>
+        <span class="xpbar" title="Niveau d'invocateur ${invDe(save).lvl} · ${invDe(save).xp} / ${invNeed(invDe(save).lvl)} XP" style="width:74px; height:5px"><b style="width:${invDe(save).lvl >= INV_MAX ? 100 : invDe(save).xp / invNeed(invDe(save).lvl) * 100}%"></b></span></span>`
     : '';
   $('#res').innerHTML = `
     <li title="Kamas">${kamaIcon(16)}${fmt(save.kamas)}</li>
@@ -3527,15 +3544,152 @@ function renderTop(){
     <li title="Parchemins de sort">${resIcon(SCROLL_ICON,16)}${save.scrolls}</li>`;
   const ready = ACHS.filter(a => achState(save, a).ready).length;
   const tabs = [['jouer','Jouer'],['equipe','Équipe'],['trophees','Inventaire'],['invocation','Invocation']];
-  if (sb) tabs.push(['hdv', 'Hôtel de vente' + (hdvGains.length ? ` <b class="tabn">${hdvGains.length}</b>` : '')]);
+  if (sb && debloque('hdv')) tabs.push(['hdv', 'Hôtel de vente' + (hdvGains.length ? ` <b class="tabn">${hdvGains.length}</b>` : '')]);
   const nonLus = chatUnread + mpNonLus(), a = autoRun, o = $('#outils');
   if (o) o.innerHTML = (a ? `<button class="obtn ${a.on ? 'tourne' : ''}" data-act="pan" data-v="auto" title="Série automatique : ${a.done} / ${a.total}" aria-label="Série automatique">${ICO.auto}<b class="tabn">${a.on ? `${a.done}/${a.total}` : '✓'}</b></button>` : '')
+    + `<button class="obtn" data-act="pan" data-v="event" title="Événements" aria-label="Événements">${ICO.cadeau}${evPrets() ? `<b class="tabn">${evPrets()}</b>` : ''}</button>`
+    + `<button class="obtn" data-act="pan" data-v="quetes" title="Quêtes du jour" aria-label="Quêtes du jour">${ICO.quete}${quetesPretes() ? `<b class="tabn">${quetesPretes()}</b>` : ''}</button>`
     + `<button class="obtn" data-act="pan" data-v="ency" title="Encyclopédie" aria-label="Encyclopédie">${ICO.livre}</button>`
     + `<button class="obtn" data-act="pan" data-v="succes" title="Succès${ready ? ` : ${ready} à réclamer` : ''}" aria-label="Succès">${ICO.ogrine}${ready ? `<b class="tabn">${ready}</b>` : ''}</button>`
     + (sb ? `<button class="obtn" data-act="pan" data-v="chat" title="Chat" aria-label="Chat">${ICO.bulle}${nonLus ? `<b class="tabn">${nonLus}</b>` : ''}</button>` : '')
     + `<button class="obtn" data-act="pan" data-v="opt" title="Réglages" aria-label="Réglages">${ICO.roue}</button>`;
   const cur = ['donjons','arene','boss'].includes(view) ? 'jouer' : view;   // ces vues sont des enfants du hub
   $('#tabs').innerHTML = tabs.map(([v,l]) => `<button data-act="nav" data-v="${v}" ${cur === v ? 'aria-current="page"' : ''}>${l}</button>`).join('');
+}
+/* ---------- Niveau d'invocateur, quêtes du jour et événements ----------
+   Le niveau d'invocateur est celui du compte : il monte en gagnant des combats et en finissant des quêtes,
+   et il ouvre les modes un par un, pour ne pas tout déballer à la première minute. */
+const INV_MAX = 50, invNeed = l => 80 + 50 * l;
+const UNLOCK = { camp:1, arene:3, gel:4, raid:5, hdv:6, boss:8, dragon:10, rta:12 };
+const UNLOCK_NOM = { arene:'l\'Arène', gel:'les Gelées', raid:'les Raids', hdv:'l\'Hôtel de vente', boss:'le Boss mondial', dragon:'les Dragons', rta:'l\'Arène en direct' };
+function invDe(sv){
+  if (!sv.inv){                                    // partie d'avant : on reconstitue un niveau d'après les victoires déjà acquises
+    let xp = (sv.wins || 0) * 45, lvl = 1; while (lvl < INV_MAX && xp >= invNeed(lvl)){ xp -= invNeed(lvl); lvl++; }
+    sv.inv = { lvl, xp };
+  }
+  return sv.inv;
+}
+const debloque = k => !UNLOCK[k] || TEST || invDe(save).lvl >= UNLOCK[k];
+function invGain(xp){
+  const I = invDe(save); if (I.lvl >= INV_MAX) return;
+  I.xp += Math.round(xp);
+  while (I.lvl < INV_MAX && I.xp >= invNeed(I.lvl)){
+    I.xp -= invNeed(I.lvl); I.lvl++; save.stones++;
+    const ouvre = Object.keys(UNLOCK).filter(k => UNLOCK[k] === I.lvl).map(k => UNLOCK_NOM[k]);
+    toast(`Niveau d'invocateur ${I.lvl} : +1 pierre d'âme pleine${ouvre.length ? ` · tu débloques ${ouvre.join(' et ')}` : ''}.`);
+  }
+}
+// Quêtes du jour : dix objectifs remis à zéro à minuit. Chacune rapporte des kamas et de l'expérience
+// d'invocateur ; les dix finies et réclamées donnent dix parchemins dorés.
+const QUETES = [
+  { id:'w3',  t:'Gagner 3 combats',                         k:'win',     n:3 },
+  { id:'w10', t:'Gagner 10 combats',                        k:'win',     n:10 },
+  { id:'c2',  t:'Terminer 2 donjons de campagne',           k:'camp',    n:2 },
+  { id:'inv', t:'Invoquer un monstre',                      k:'invoc',   n:1 },
+  { id:'nou', t:'Nourrir ou faire évoluer un monstre',      k:'nourrir', n:1 },
+  { id:'for', t:'Tenter d\'améliorer un trophée',          k:'forge',   n:1 },
+  { id:'equ', t:'Équiper un objet ou un trophée',           k:'equip',   n:1 },
+  { id:'ven', t:'Vendre 3 objets',                          k:'vente',   n:3 },
+  { id:'are', t:'Gagner un duel d\'arène',                 k:'arene',   n:1, besoin:'arene', sinon:{ t:'Gagner 5 combats',  k:'win', n:5 } },
+  { id:'wb',  t:'Lancer un assaut contre le boss mondial',  k:'wb',      n:1, besoin:'boss',  sinon:{ t:'Gagner 15 combats', k:'win', n:15 } },
+];
+const QUETE_XP = 30, QUETES_BONUS = 10;
+function quetesDuJour(){
+  const d = dayKey();
+  if (!save.q || save.q.day !== d) save.q = { day:d, c:{}, pris:[], bonus:false };
+  return save.q;
+}
+const queteVue = q => q.besoin && !debloque(q.besoin) ? { ...q, ...q.sinon } : q;
+const queteEtat = q => { const Q = quetesDuJour(), v = queteVue(q), fait = Math.min(v.n, Q.c[v.k] || 0); return { v, fait, fini:fait >= v.n, pris:Q.pris.includes(q.id) }; };
+const queteKamas = () => 100 + 40 * invDe(save).lvl;
+function quete(k, n = 1){ if (!save) return; const Q = quetesDuJour(); Q.c[k] = (Q.c[k] || 0) + n; }
+const quetesPretes = () => QUETES.filter(q => { const e = queteEtat(q); return e.fini && !e.pris; }).length
+  + (QUETES.every(q => queteEtat(q).pris) && !quetesDuJour().bonus ? 1 : 0);
+// Événements. « Lancement » : une récompense par jour de connexion, sept fois. « Ruée vers les donjons » : chaque
+// victoire rapporte un point, et des paliers de points donnent des récompenses, pendant quatorze jours.
+const gel = (sv, st, n = 1) => { const k = gelKeys()[st - 1]; if (k) for (let i = 0; i < n; i++) Eco.ajouter(sv, k, 1); };
+const EV_JOURS = [
+  { t:'3 pierres d\'âme pleines',                         f:sv => { sv.stones += 3; } },
+  { t:'5 000 kamas',                                        f:sv => { sv.kamas += 5000; } },
+  { t:'5 pierres d\'âme pleines',                         f:sv => { sv.stones += 5; } },
+  { t:'3 parchemins de sort',                               f:sv => { sv.scrolls += 3; } },
+  { t:'2 gelées 3 ★ et 20 parchemins dorés',                f:sv => { gel(sv, 3, 2); sv.gold += 20; } },
+  { t:'10 pierres d\'âme pleines',                        f:sv => { sv.stones += 10; } },
+  { t:'20 pierres d\'âme pleines et une gelée 5 ★',       f:sv => { sv.stones += 20; gel(sv, 5); } },
+];
+const EV_RUEE_JOURS = 14;
+const EV_RUEE = [
+  { p:5,   t:'2 pierres d\'âme pleines',            f:sv => { sv.stones += 2; } },
+  { p:15,  t:'3 000 kamas',                           f:sv => { sv.kamas += 3000; } },
+  { p:30,  t:'5 pierres d\'âme pleines',            f:sv => { sv.stones += 5; } },
+  { p:60,  t:'2 parchemins de sort',                  f:sv => { sv.scrolls += 2; } },
+  { p:100, t:'Une gelée 4 ★ et 15 parchemins dorés',  f:sv => { gel(sv, 4); sv.gold += 15; } },
+  { p:150, t:'10 pierres d\'âme pleines',           f:sv => { sv.stones += 10; } },
+  { p:220, t:'5 parchemins de sort et une gelée 5 ★', f:sv => { sv.scrolls += 5; gel(sv, 5); } },
+];
+function evDe(){ if (!save.ev) save.ev = { j:{ n:0, day:'' }, r:{ t0:Date.now(), pts:0, got:[] } }; return save.ev; }
+const evJourPret = () => { const E = evDe().j; return E.n < EV_JOURS.length && E.day !== dayKey(); };
+const evRueeReste = () => Math.max(0, Math.ceil((evDe().r.t0 + EV_RUEE_JOURS * 864e5 - Date.now()) / 864e5));
+const evPrets = () => (evJourPret() ? 1 : 0) + EV_RUEE.filter((x, i) => evDe().r.pts >= x.p && !evDe().r.got.includes(i)).length;
+// Une victoire, quel que soit le mode : expérience d'invocateur, quêtes, point d'événement.
+function apresVictoire(dg){
+  invGain(20 + Math.min(MAX_LVL, dg.lvl || 1) * .4);
+  quete('win'); if (dg.mode === 'camp') quete('camp'); if (dg.mode === 'arena') quete('arene');
+  if (evRueeReste() > 0) evDe().r.pts++;
+}
+function quetesCorps(){
+  const Q = quetesDuJour(), finies = QUETES.filter(q => queteEtat(q).pris).length, tout = finies === QUETES.length;
+  const lignes = QUETES.map(q => { const e = queteEtat(q);
+    return `<li class="ach ${e.pris ? 'done' : e.fini ? 'ready' : ''}"><span class="achn"><b>${e.v.t}</b><br><span class="muted">${kamaIcon(12)} ${fmt(queteKamas())} · ${QUETE_XP} XP d'invocateur</span></span>
+      <span class="achp"><span class="xpbar"><b style="width:${e.fait / e.v.n * 100}%"></b></span><span class="muted">${e.fait} / ${e.v.n}</span></span>
+      <span class="achr">${e.pris ? '<span class="ok">Réclamée</span>' : `<button class="btn sm" data-act="quetePrendre" data-id="${q.id}" ${e.fini ? '' : 'disabled'}>Réclamer</button>`}</span></li>`; }).join('');
+  return ['Quêtes du jour', `${finies} / ${QUETES.length}`, `<div class="row" style="justify-content:space-between; flex-wrap:nowrap; align-items:flex-start"><p class="muted" style="margin:0">Dix quêtes par jour, remises à zéro à minuit.</p>
+      <button class="btn sm" data-act="queteTout" style="flex:none" ${QUETES.some(q => { const e = queteEtat(q); return e.fini && !e.pris; }) ? '' : 'disabled'}>Tout réclamer</button></div>
+    <ul class="achs">${lignes}</ul>
+    <div class="band slate"><span>Les dix quêtes finies</span><span>${resIcon(GOLD_ICON, 14)} ${QUETES_BONUS} parchemins dorés</span></div>
+    <div class="row" style="justify-content:flex-end">${Q.bonus ? '<span class="ok">Récompense du jour réclamée</span>' : `<button class="btn" data-act="queteBonus" ${tout ? '' : 'disabled'}>${tout ? 'Réclamer les parchemins' : `Encore ${QUETES.length - finies} quête${QUETES.length - finies > 1 ? 's' : ''}`}</button>`}</div>`];
+}
+function eventCorps(){
+  const E = evDe(), pret = evJourPret(), reste = evRueeReste();
+  const jours = EV_JOURS.map((j, i) => `<div class="evj ${i < E.j.n ? 'pris' : i === E.j.n && pret ? 'pret' : ''}"><b>Jour ${i + 1}</b><span>${j.t}</span>${i < E.j.n ? '<i>✓</i>' : ''}</div>`).join('');
+  const paliers = EV_RUEE.map((x, i) => { const ok = E.r.pts >= x.p, pris = E.r.got.includes(i);
+    return `<li class="ach ${pris ? 'done' : ok ? 'ready' : ''}"><span class="achn"><b>${x.p} victoires</b><br><span>${x.t}</span></span>
+      <span class="achp"><span class="xpbar"><b style="width:${Math.min(100, E.r.pts / x.p * 100)}%"></b></span><span class="muted">${Math.min(E.r.pts, x.p)} / ${x.p}</span></span>
+      <span class="achr">${pris ? '<span class="ok">Réclamé</span>' : `<button class="btn sm" data-act="evPalier" data-i="${i}" ${ok ? '' : 'disabled'}>Réclamer</button>`}</span></li>`; }).join('');
+  return ['Événements', '', `<div class="band"><span>Lancement du jeu</span><span>${E.j.n} / ${EV_JOURS.length} jours</span></div>
+    <p class="hint" style="margin:0">Une récompense par jour où tu te connectes, sept fois. Les jours n'ont pas besoin de se suivre.</p>
+    <div class="evjours">${jours}</div>
+    <div class="row" style="justify-content:flex-end">${E.j.n >= EV_JOURS.length ? '<span class="ok">Les sept récompenses sont réclamées</span>' : `<button class="btn" data-act="evJour" ${pret ? '' : 'disabled'}>${pret ? `Réclamer le jour ${E.j.n + 1}` : 'Reviens demain'}</button>`}</div>
+    <div class="band"><span>Ruée vers les donjons</span><span>${reste ? `${reste} jour${reste > 1 ? 's' : ''} restant${reste > 1 ? 's' : ''}` : 'terminée'}</span></div>
+    <p class="hint" style="margin:0">Chaque combat gagné, dans n'importe quel mode, rapporte un point. Tu en as <b>${E.r.pts}</b>.${reste ? '' : ' L\'événement est fini : les paliers atteints restent à réclamer.'}</p>
+    <ul class="achs">${paliers}</ul>`];
+}
+// Tutoriel du premier lancement : le combat, les effets, puis une invocation ×10 offerte avec un 5 ★ garanti.
+let tutoPas = 0;
+const TUTO = [
+  ['Bienvenue, invocateur', `<p style="margin:0">Tu diriges une équipe de <b>trois monstres</b>. Tu les envoies en donjon, tu les équipes, tu en invoques de plus forts.</p>
+    <p style="margin:0">Les modes de jeu s'ouvrent un par un avec ton <b>niveau d'invocateur</b>, qui monte à chaque victoire. Pour l'instant : la Campagne.</p>`],
+  ['Le combat, tour par tour', `<p style="margin:0">En haut de l'arène, l'<b>ordre des tours</b> : chaque monstre remplit sa barre d'attaque selon sa <b>vitesse</b>, et joue quand elle est pleine.</p>
+    <p style="margin:0">À ton tour, choisis un <b>sort</b> en bas, puis une <b>cible</b>. Le premier sort est toujours disponible ; les autres ont une <b>recharge</b> de quelques tours.</p>
+    <p style="margin:0">Les boutons ×1 ×2 ×3 règlent la vitesse, et <b>Auto</b> laisse ton équipe jouer seule.</p>`],
+  ['Les effets des sorts', `<ul class="rows">
+    <li><span><span class="fx" style="display:inline-flex"><span class="bad">DEF−</span></span> Fragilité</span><b>la cible perd 70 % de sa défense</b></li>
+    <li><span><span class="fx" style="display:inline-flex"><span class="good">ATK+</span></span> Puissance</span><b>+50 % d'attaque</b></li>
+    <li><span><span class="fx" style="display:inline-flex"><span class="good">VIT+</span></span> Hâte · <span class="fx" style="display:inline-flex"><span class="bad">VIT−</span></span> Ralentissement</span><b>±30 % de vitesse</b></li>
+    <li><span><span class="fx" style="display:inline-flex"><span class="bad">ÉTD</span></span> Étourdi</span><b>passe son tour</b></li>
+    <li><span>Barre d'attaque + ou −</span><b>avance ou recule le prochain tour</b></li></ul>
+    <p class="hint" style="margin:0">Un bon enchaînement : poser Fragilité, puis frapper fort. Les malus peuvent être résistés : la <b>Précision</b> de l'attaquant joue contre la <b>Résistance</b> de la cible.</p>`],
+  ['Les éléments', `<p style="margin:0; text-align:center; font-size:15px"><b style="color:var(--el-eau)">Eau</b> › <b style="color:var(--el-feu)">Feu</b> › <b style="color:var(--el-terre)">Terre</b> › <b style="color:var(--el-air)">Air</b> › <b style="color:var(--el-eau)">Eau</b></p>
+    <p style="margin:0">Chaque monstre a un élément. Contre celui qu'il bat, il inflige <b>×1,5</b>. Contre celui qui le bat, <b>×0,5</b>. En combat, la cible affiche « Avantage » ou « Désavantage ».</p>
+    <p style="margin:0">Regarde les éléments des salles d'un donjon avant d'y aller, et compose ton équipe en fonction.</p>`],
+  ['Ta première invocation', `<p style="margin:0">Les monstres vont de 1 à 5 étoiles. Les <b>5 ★</b> sont rares (1 % par invocation) et chacun a des sorts que personne d'autre ne possède.</p>
+    <p style="margin:0">Pour bien commencer, voici <b>dix invocations offertes</b>, dont <b>un 5 ★ garanti</b>.</p>`],
+];
+function tutoCorps(){
+  const [titre, corps] = TUTO[tutoPas], dernier = tutoPas === TUTO.length - 1;
+  return [titre, `${tutoPas + 1} / ${TUTO.length}`, `<div style="display:grid; gap:9px; font-size:13.5px">${corps}</div>
+    <div class="row" style="justify-content:space-between">${tutoPas ? '<button class="btn grey" data-act="tutoPrec">‹ Retour</button>' : '<span></span>'}
+      ${dernier ? (save.tuto === 1 ? '<button class="btn" data-act="panOff">Fermer</button>' : '<button class="btn" data-act="tutoInvoc">Lancer mes 10 invocations</button>') : '<button class="btn" data-act="tutoSuiv">Suivant ›</button>'}</div>`];
 }
 const VUES = ['jouer', 'equipe', 'trophees', 'invocation', 'hdv', 'donjons', 'arene', 'boss'];
 // Icônes des raccourcis, dessinées en code comme le reste de l'interface.
@@ -3544,6 +3698,8 @@ const ICO = {
   bulle:  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7l-5 4v-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" fill="currentColor"/><path d="M6.5 9h11M6.5 12.5h7" stroke="#e9e4d3" stroke-width="1.6" stroke-linecap="round"/></svg>',
   ogrine: '<img src="assets/ogrine.png" alt="">',   // l'icône d'ogrine de Dofus
   livre:  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4.5C6 3 9 3 12 5c3-2 6-2 9-.5V19c-3-1.5-6-1.5-9 .5-3-2-6-2-9-.5z" fill="#8a5a26" stroke="#4a2f10" stroke-width="1"/><path d="M4.6 6c2.3-.8 4.4-.6 6.4.7v10.6c-2-1.1-4.1-1.3-6.4-.7zM19.4 6c-2.3-.8-4.4-.6-6.4.7v10.6c2-1.1 4.1-1.3 6.4-.7z" fill="#f3ead2"/><path d="M6 8.6c1.3-.3 2.5-.2 3.6.3M6 11c1.3-.3 2.5-.2 3.6.3M14.4 8.9c1.1-.5 2.3-.6 3.6-.3M14.4 11.3c1.1-.5 2.3-.6 3.6-.3" stroke="#8a7a55" stroke-width=".9" fill="none"/></svg>',
+  cadeau: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="10" width="18" height="11" rx="1.5" fill="#c9412b" stroke="#6e1c10"/><rect x="2" y="6.5" width="20" height="4.5" rx="1.2" fill="#e25a3f" stroke="#6e1c10"/><rect x="10.3" y="6.5" width="3.4" height="14.5" fill="#ffd66a"/><path d="M12 6.5C9 1.5 4.5 3.5 7 6.5zM12 6.5c3-5 7.5-3 5 0z" fill="#ffd66a" stroke="#8a6a12" stroke-width=".8"/></svg>',
+  quete:  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h11a2 2 0 0 1 2 2v13a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V5a2 2 0 0 1 2-2z" fill="#f0e3bf" stroke="#7a5a22"/><path d="M4 18a3 3 0 0 0 3 3h9a3 3 0 0 1-3-3z" fill="#d9c48f" stroke="#7a5a22"/><rect x="10.6" y="6" width="2.8" height="7" rx="1.2" fill="#c0281a"/><circle cx="12" cy="15.4" r="1.5" fill="#c0281a"/></svg>',
   auto:   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 1-7.4 5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M2.2 4.6 5 10.4l5.6-2.6z" fill="currentColor"/></svg>',
 };
 function render(){
@@ -3680,17 +3836,19 @@ function viewJouer(){
   const ligne = o => `<button class="drow hrow" data-act="${o.act}" data-v="${o.v}"${o.off ? ' disabled' : ''}>${o.art}
     <span class="dn"><b>${o.t}</b><span class="muted">${o.s}</span></span>
     <span class="hst"><b>${o.n}</b><span class="xpbar"><b style="width:${Math.round((o.r || 0) * 100)}%"></b></span></span></button>`;
+  const verrou = k => debloque(k) ? null : `Invocateur niv. ${UNLOCK[k]}`;
   const mode = k => {
     const C = MODE_CARD[k], L = STAGES[k] || [], done = doneIn(save, k);
+    if (verrou(k)) return ligne({ t:C.t, s:C.s, act:'play', v:k, off:true, art:'<span class="por"></span>', r:0, n:'🔒 ' + verrou(k) });
     const nx = L.findIndex(d => !save.cleared.includes(d.id)), d = L[nx < 0 ? L.length - 1 : nx], bk = d && stageBoss(d);
     return ligne({ t:C.t, s:C.s, act:'play', v:k, off:!L.length, art: bk ? portrait(bk, 44, { badge:false }) : '<span class="por"></span>',
       r: L.length ? done / L.length : 0, n: L.length ? `${done} / ${L.length}` : 'Bientôt' });
   };
   const foes = arenaFoes(save), won = foes.filter(f => f.done).length, W = daily(save).wb, B = wbBoss();
-  const defis = ligne({ t:'Arène', s:'Dix duels par jour, payés en parchemins dorés', act:'nav', v:'arene', art:`<span class="por">${resIcon(GOLD_ICON, 30)}</span>`,
-      r: foes.length ? won / foes.length : 0, n:`${won} / ${foes.length}` })
-    + ligne({ t:'Boss mondial', s:W.bb ? `Record : ${wbTxt(W.bb)} barres brisées` : 'Trois assauts par jour, rang selon les barres brisées', act:'nav', v:'boss',
-      art:portrait(B.key, 44, { badge:false }), r:W.tries / WB_TRIES, n:`${W.tries} / ${WB_TRIES}` });
+  const defis = ligne({ t:'Arène', s:'Dix duels par jour, payés en parchemins dorés', act:'nav', v:'arene', ...(verrou('arene') ? { off:true, nv:'🔒 ' + verrou('arene') } : {}), art:`<span class="por">${resIcon(GOLD_ICON, 30)}</span>`,
+      r: foes.length ? won / foes.length : 0, n:verrou('arene') ? '🔒 ' + verrou('arene') : `${won} / ${foes.length}` })
+    + ligne({ t:'Boss mondial', ...(verrou('boss') ? { off:true } : {}), s:W.bb ? `Record : ${wbTxt(W.bb)} barres brisées` : 'Trois assauts par jour, rang selon les barres brisées', act:'nav', v:'boss',
+      art:portrait(B.key, 44, { badge:false }), r:W.tries / WB_TRIES, n:verrou('boss') ? '🔒 ' + verrou('boss') : `${W.tries} / ${WB_TRIES}` });
   const bloc = (titre, lignes) => `<div class="band"><span>${titre}</span></div><div class="panel hlist">${lignes}</div>`;
   return `<section class="win"><div class="wt"><h2>Jouer</h2></div>
     <div class="wb" style="display:grid; gap:8px">
@@ -3707,7 +3865,7 @@ function viewDonjons(){
   return backToModes + teamStrip() + `<div class="split dsplit">
     <section class="win"><div class="wt"><h2>${MODE_LABEL[mode]}<small>${doneIn(save, mode)} / ${stages().length} terminés</small></h2></div>
       <div class="wb" style="display:grid; gap:8px">
-      <div class="row modes" role="group" aria-label="Mode de jeu">${Object.keys(MODE_LABEL).map(k => `<button class="btn grey sm" data-act="mode" data-v="${k}" aria-pressed="${mode === k}">${MODE_LABEL[k]}</button>`).join('')}</div>
+      <div class="row modes" role="group" aria-label="Mode de jeu">${Object.keys(MODE_LABEL).filter(debloque).map(k => `<button class="btn grey sm" data-act="mode" data-v="${k}" aria-pressed="${mode === k}">${MODE_LABEL[k]}</button>`).join('')}</div>
       <input class="search" id="dq" type="search" placeholder="Rechercher un donjon ou un monstre" value="${esc(dq)}" aria-label="Rechercher">
       <div class="panel dlist" id="dlist">${dgListHtml()}</div></div></section>
     ${dgDetail(selDg)}</div>`;
@@ -3730,7 +3888,7 @@ function viewEquipe(){
   if (!mon) return eqTabs() + '<section class="win"><div class="wb muted">Invoque un monstre pour commencer.</div></section>';
   const barreEquipes = `<div class="teambar">
     <span style="font-size:11.5px; color:#d6cdb8">Équipe de</span>
-    ${TEAM_MODES.map(([k, l]) => { const t = teamOf(k).filter(u => Eco.monByUid(save, u));
+    ${TEAM_MODES_TOUS.filter(([k]) => debloque(k)).map(([k, l]) => { const t = teamOf(k).filter(u => Eco.monByUid(save, u));
       return `<button class="btn ${teamCtx === k ? '' : 'grey'} sm" data-act="teamCtx" data-v="${k}" aria-pressed="${teamCtx === k}"
         title="${t.length ? t.map(u => MONSTERS[Eco.monByUid(save, u).key].name).join(', ') : 'aucune composition enregistrée'}">${l}${t.length ? ` <b class="tn">${t.length}</b>` : ''}</button>`; }).join('')}
     <span style="font-size:11px; margin-left:auto; color:#c9bfa9">Chaque mode garde sa composition.</span></div>`;
@@ -3788,9 +3946,10 @@ function popPaint(){
     return;
   }
   const [titre, sous, corps] = panneau === 'opt' ? ['Réglages', '', optCorps()] : panneau === 'succes' ? ['Succès', ...succesCorps()]
+    : panneau === 'quetes' ? quetesCorps() : panneau === 'event' ? eventCorps() : panneau === 'tuto' ? tutoCorps()
     : panneau === 'auto' ? autoCorps() : chatCorps();
   const garde = box.querySelector('.pan > .wb'), pos = garde ? garde.scrollTop : 0;
-  box.innerHTML = `<div class="over modal" data-act="panOff"><div class="win pan ${panneau === 'chat' || panneau === 'succes' ? 'grand' : ''}" data-stop>
+  box.innerHTML = `<div class="over modal" data-act="panOff"><div class="win pan ${['chat', 'succes', 'quetes', 'event'].includes(panneau) ? 'grand' : ''}" data-stop>
     <div class="wt"><h2>${titre}${sous ? `<small>${sous}</small>` : ''}</h2><button class="x" data-act="panOff" aria-label="Fermer">×</button></div>
     <div class="wb">${corps}</div></div></div>`;
   if (panneau === 'chat') chatPaint(); else if (pos) box.querySelector('.pan > .wb').scrollTop = pos;
@@ -3812,6 +3971,7 @@ function optCorps(){
     <div class="optl"><span>Combats en plein écran</span>${bascule('optPlein', plein)}</div>
     <div class="optl"><span>Combats en automatique</span>${bascule('optAuto', auto)}</div>
     <div class="optl"><span>Vitesse des combats</span><span class="seg" role="group" aria-label="Vitesse">${[1, 2, 3].map(v => `<button data-act="optVit" data-s="${v}" aria-pressed="${speed === v}">×${v}</button>`).join('')}</span></div>
+    <div class="optl"><span>Tutoriel</span><button class="btn grey sm" data-act="optTuto">Revoir</button></div>
     <div class="band">Sauvegarde</div>
     <div class="row"><button class="btn grey sm" data-act="copySave">Copier ma sauvegarde</button><button class="btn grey sm" data-act="toggleImport">Importer</button>
       <button class="btn grey sm" data-act="resetSave" id="resetBtn">Nouvelle partie</button></div>
@@ -4567,6 +4727,7 @@ function autoFinish(){
   a.done++;
   if (!a.res.win) return autoEnd(`Défaite au combat ${a.done} (${waveWord(a.dg).toLowerCase()} ${a.res.wave + 1} / ${a.dg.waves.length}).`, true);
   const L = Eco.loot(save, a.dg, a.team);
+  apresVictoire(a.dg);
   a.wins++; a.kamas += L.kamas; a.stones += L.stones; a.items.push(...L.items); a.ups += L.xp.reduce((t, x) => t + x.ups, 0);
   persist(); renderTop();
   if (a.done >= a.total) return autoEnd('Série terminée.');
@@ -4614,7 +4775,7 @@ function arenaFight(r){
     } });
 }
 function viewArene(){
-  const tabs = backToModes + `<div class="row modes">${[['duel','Duels du jour'],['shop','Boutique'],['rta','Joueurs (RTA)']].map(([k,l]) => `<button class="btn grey sm" data-act="arTab" data-v="${k}" aria-pressed="${arTab === k}">${l}</button>`).join('')}</div>`;
+  const tabs = backToModes + `<div class="row modes">${[['duel','Duels du jour'],['shop','Boutique'],['rta','Joueurs (RTA)']].filter(([k]) => k !== 'rta' || debloque('rta')).map(([k,l]) => `<button class="btn grey sm" data-act="arTab" data-v="${k}" aria-pressed="${arTab === k}">${l}</button>`).join('')}</div>`;
   if (arTab === 'shop') return tabs + `<section class="win"><div class="wt"><h2>Boutique de l'arène<small>${save.gold} parchemins dorés</small></h2></div><div class="wb">
     <ul class="shop">${ARENA_SHOP.map(o => `<li><span class="achn"><b>${o.name}</b><br><span class="muted">${o.desc}</span></span>
       <button class="btn sm" data-act="arBuy" data-id="${o.id}" ${save.gold >= o.cost ? '' : 'disabled'}>${resIcon(GOLD_ICON, 14)} ${o.cost}</button></li>`).join('')}</ul></div></section>`;
@@ -4797,7 +4958,7 @@ function viewRta(){
 function wbFight(){
   const W = daily(save).wb; if (W.tries >= WB_TRIES) return toast('Tes 3 assauts du jour sont faits.');
   const B = wbBoss(), bn = MONSTERS[B.key].name;
-  W.tries++; persist();   // l'assaut est compté dès le départ : fuir le consomme
+  W.tries++; quete('wb'); persist();   // l'assaut est compté dès le départ : fuir le consomme
   startCombat({ id:'wb', mode:'wb', name:`Boss mondial · ${bn}`, map:'grotte', mapId:B.mapId, lvl:B.lvl, enemies:[B.def], waves:[[B.def]], back:'boss',
     forceAuto:true, turnCap:WB_TURNS, endLabel:'Assaut terminé', team:() => topMons(save, WB_TEAM),
     finish(){
@@ -4909,7 +5070,7 @@ const ACT = {
   gequip(d){
     const g = Eco.gearById(save, +d.id); if (!g) return;
     if (g.owner != null && g.owner !== selMon){ volPick = { t:'g', id:g.id, sl:d.v }; return render(); }   // porté ailleurs : on demande
-    Eco.equipGear(save, Eco.monByUid(save, selMon), g, d.v);
+    Eco.equipGear(save, Eco.monByUid(save, selMon), g, d.v); quete('equip');
     confirmKey = null; persist(); render();
   },
   volOui(){
@@ -4941,13 +5102,13 @@ const ACT = {
     const k = 'gsell' + g.id;
     if (confirmKey !== k){ confirmKey = k; return render(); }
     confirmKey = null;
-    const v = Eco.sellGear(save, g);
+    const v = Eco.sellGear(save, g); quete('vente');
     persist(); toast(`Vendu pour ${fmt(v)} kamas.`); render();
   },
   equip(d){
     const it = Eco.itemById(save, +d.id);
     if (it && it.owner != null && it.owner !== selMon){ volPick = { t:'i', id:it.id }; return render(); }   // porté ailleurs : on demande
-    Eco.equip(save, Eco.monByUid(save, selMon), it, slotPick);
+    Eco.equip(save, Eco.monByUid(save, selMon), it, slotPick); quete('equip');
     selItem = it.id; swapOpen = false; upMsg = null; upFx = null;   // l'emplacement reste ouvert sur le nouvel objet
     persist(); render();
   },
@@ -4967,12 +5128,13 @@ const ACT = {
     let n = 0;
     for (const g of (save.gear || []).slice()) if (g.owner == null && !estVerrou(g) && invMontre(g)){ Eco.sellGear(save, g); n++; }
     for (const i of save.items.slice()) if (i.owner == null && !estVerrou(i) && invMontre(i)){ Eco.sell(save, i); n++; }
-    selItem = null; persist();
+    selItem = null; if (n) quete('vente', n); persist();
     toast(n ? `${n} objet${n > 1 ? 's' : ''} vendu${n > 1 ? 's' : ''} pour ${fmt(save.kamas - avant)} kamas.` : 'Rien à vendre.');
     render();
   },
   upgrade(){
     const it = Eco.itemById(save, selItem), r = Eco.upgrade(save, it);
+    if (!r.err) quete('forge');
     upFx = r.ok && r.sub ? r.sub : null;
     if (r.err) upMsg = { ok:false, text:r.err };
     else if (!r.ok) upMsg = { ok:false, text:`Échec. ${fmt(r.cost)} kamas perdus, l'objet reste à +${it.lvl}.` };
@@ -5001,16 +5163,17 @@ const ACT = {
     const k = 'sell' + selItem;
     if (confirmKey !== k){ confirmKey = k; return render(); }
     confirmKey = null; const it = Eco.itemById(save, selItem), v = Eco.sellValue(it);
-    Eco.sell(save, it); persist(); toast(`Vendu pour ${v} kamas.`); selItem = null; upMsg = null; slotPick = null; swapOpen = false; render();
+    Eco.sell(save, it); quete('vente'); persist(); toast(`Vendu pour ${v} kamas.`); selItem = null; upMsg = null; slotPick = null; swapOpen = false; render();
   },
   summon10(){
     if (sumBusy) return;
     if (save.stones < 10) return toast('Il te faut 10 pierres d\'âme pleines.');
     const rs = []; for (let i = 0; i < 10; i++) rs.push(Eco.summon(save));
+    quete('invoc', 10);
     lastSummon = rs.reduce((a, b) => MONSTERS[b.mon.key].stars > MONSTERS[a.mon.key].stars ? b : a);
     persist(); render(); summonShow(rs);
   },
-  summon(){ if (sumBusy) return; const r = Eco.summon(save); if (r.err) return toast(r.err); lastSummon = r; persist(); render(); summonShow(r); },
+  summon(){ if (sumBusy) return; const r = Eco.summon(save); if (r.err) return toast(r.err); quete('invoc'); lastSummon = r; persist(); render(); summonShow(r); },
   copySave(){
     const code = btoa(unescape(encodeURIComponent(JSON.stringify(save))));
     const box = $('#importBox'), ta = $('#importTxt');
@@ -5698,6 +5861,7 @@ function showEnd(w){
   const dg = curStage, win = w === 'A';
   const custom = dg.finish ? dg.finish(win) : null;   // combat spécial : sa propre récompense
   const L = win && !dg.finish ? Eco.loot(save, dg) : null;
+  if (win) apresVictoire(dg);
   if (win || dg.finish){ persist(); renderTop(); }
   const nx = curDg + 1;
   endAll = false;
@@ -5896,6 +6060,8 @@ function lauStart(){
   $('#wrap').hidden = false;
   render(); window.scrollTo(0,0);
   if (sb) chatLoad().then(() => { chatWatch(); if (panneau === 'chat') chatPaint(); });
+  invDe(save); evDe();
+  if (save.tuto !== 1){ if ((save.wins || 0) > 0 || save.cleared.length){ save.tuto = 1; persist(); } else { tutoPas = 0; panneau = 'tuto'; } }   // les parties déjà entamées ne le revoient pas
   optPaint();
   if (netOn()){ netAnnoncer(); mpCharger().then(() => { mpWatch(); renderTop(); if (panneau === 'chat') chatPaint(); }); }
   if (sb) hdvCharger().then(renderTop);   // pour la pastille des ventes conclues
@@ -5934,7 +6100,7 @@ Object.assign(ACT, {
   evoPick(d){ const u = +d.uid, n = Eco.awakenCost(Eco.monByUid(save, selMon)).n;
     evoSel = evoSel.includes(u) ? evoSel.filter(x => x !== u) : evoSel.length < n ? evoSel.concat(u) : evoSel.slice(1).concat(u); render(); },   // au-delà du compte, le plus ancien choix cède sa place
   evoAuto(){ const mon = Eco.monByUid(save, selMon); evoSel = Eco.fodder(save, mon).filter(f => !MONSTERS[f.key].food).sort((a, b) => a.level - b.level).slice(0, Eco.awakenCost(mon).n).map(f => f.uid); render(); },
-  evoGo(){ const r = Eco.awaken(save, Eco.monByUid(save, selMon), evoSel); if (r.err) return toast(r.err);
+  evoGo(){ const r = Eco.awaken(save, Eco.monByUid(save, selMon), evoSel); if (r.err) return toast(r.err); quete('nourrir');
     evoOn = false; evoSel = [];
     persist(); toast(r.awakened ? `${r.st} ★ atteintes : le monstre s'éveille !` : `Évolué en ${r.st} ★.`); render(); },
   feedOn(){ feedOn = true; feedSel = []; render(); }, feedOff(){ feedOn = false; feedSel = []; render(); },
@@ -5942,10 +6108,28 @@ Object.assign(ACT, {
   feedPetits(){ const mon = Eco.monByUid(save, selMon); feedSel = Eco.mangeables(save, mon).filter(f => !MONSTERS[f.key].food && starsOf(f) <= 2).map(f => f.uid); render(); },
   feedGo(){
     const mon = Eco.monByUid(save, selMon), r = Eco.feed(save, mon, feedSel); if (r.err) return toast(r.err);
+    quete('nourrir');
     feedOn = false; feedSel = []; persist();
     toast(`+${fmt(r.xp)} XP${r.ups ? ` · niveau ${mon.level}` : ''}${r.sorts ? ` · +${r.sorts} niveau${r.sorts > 1 ? 'x' : ''} de sort` : ''}.`); render(); },
   aideLigne(d, el){ if (el.title) toast(el.title); },   // au doigt, pas de survol : un appui affiche l'équivalence
   tauxOn(){ tauxOn = true; render(); }, tauxOff(){ tauxOn = false; render(); },
+  quetePrendre(d){ const q = QUETES.find(x => x.id === d.id), e = q && queteEtat(q); if (!e || !e.fini || e.pris) return;
+    quetesDuJour().pris.push(q.id); save.kamas += queteKamas(); invGain(QUETE_XP); persist(); render(); popPaint(); },
+  queteTout(){ let n = 0; for (const q of QUETES){ const e = queteEtat(q); if (e.fini && !e.pris){ quetesDuJour().pris.push(q.id); save.kamas += queteKamas(); invGain(QUETE_XP); n++; } }
+    if (n){ persist(); toast(`${n} quête${n > 1 ? 's' : ''} réclamée${n > 1 ? 's' : ''}.`); render(); popPaint(); } },
+  queteBonus(){ const Q = quetesDuJour(); if (Q.bonus || !QUETES.every(q => queteEtat(q).pris)) return;
+    Q.bonus = true; save.gold += QUETES_BONUS; persist(); toast(`+${QUETES_BONUS} parchemins dorés.`); render(); popPaint(); },
+  evJour(){ if (!evJourPret()) return; const E = evDe().j, j = EV_JOURS[E.n]; j.f(save); E.n++; E.day = dayKey(); persist(); toast(`Jour ${E.n} : ${j.t}.`); render(); popPaint(); },
+  evPalier(d){ const E = evDe().r, i = +d.i, x = EV_RUEE[i]; if (!x || E.pts < x.p || E.got.includes(i)) return; x.f(save); E.got.push(i); persist(); toast(x.t + '.'); render(); popPaint(); },
+  tutoSuiv(){ tutoPas = Math.min(TUTO.length - 1, tutoPas + 1); popPaint(); }, tutoPrec(){ tutoPas = Math.max(0, tutoPas - 1); popPaint(); },
+  tutoInvoc(){
+    if (save.tuto === 1 || sumBusy) return;
+    const rs = []; for (let i = 0; i < 9; i++) rs.push(Eco.summonLibre(save));
+    rs.splice(Math.floor(Math.random() * 10), 0, Eco.summonLibre(save, 5));      // le 5 ★ garanti, à une place au hasard
+    save.tuto = 1; lastSummon = rs.reduce((a, b) => MONSTERS[b.mon.key].stars > MONSTERS[a.mon.key].stars ? b : a);
+    panneau = null; popPaint(); persist(); view = 'invocation'; render(); summonShow(rs);
+  },
+  optTuto(){ tutoPas = 0; panneau = 'tuto'; popPaint(); },
   pan(d){ panneau = d.v; optMsg = ''; optBusy = false; popPaint(); renderTop(); },
   panOff(){ if (optBusy) return; panneau = null; popPaint(); renderTop(); },
   optTheme(d){ theme = d.v; try { localStorage.setItem('idd-theme', theme); } catch(e){} themeOn(); popPaint(); },
