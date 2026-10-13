@@ -95,6 +95,11 @@ body{background:var(--bg); background-image:radial-gradient(ellipse at 50% 0%, v
   #main > .split > section{min-height:0; display:flex; flex-direction:column}
   #main > .split > section > .wb{min-height:0; overflow:auto}
   #main:has(> .split){overflow:hidden}
+  /* La liste des donjons était plafonnée à 540 px en dur : sur un grand écran la fenêtre s'étirait
+     mais pas elle, et il restait une bande vide sous le dernier donjon. Elle prend la hauteur
+     disponible, le champ de recherche et les onglets de mode restant calés en haut. */
+  #main > .split > section > .wb:has(.dlist){grid-template-rows:auto auto minmax(0, 1fr); overflow:hidden}
+  #main > .split > section > .wb .dlist{max-height:none; height:100%}
   .foot{padding-block:0}
 }
 button, select, input{font:inherit; color:inherit}
