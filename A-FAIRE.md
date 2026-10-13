@@ -51,3 +51,17 @@
 
 - Page et animation d'invocation refaites (12/10) · Icônes Dofus 2 de la boutique et du bestiaire, découpées dans la planche fournie (12/10) · Affaiblir le mode Gelées (12/10) · Changement de classe via le Temple des Dopeuls (12/10) · Dragons assumés
   comme contenu de milieu et fin de partie (12/10).
+
+## Demandé le 13/10
+
+- **Élément de faiblesse des donjons** : l'afficher, il n'est visible nulle part aujourd'hui.
+- **Page quêtes quotidiennes / succès** : à refaire. Ne colle pas à la date, ergonomie à revoir.
+- **Événements journaliers** : gains trop faibles, à remonter.
+- **Événement de donjon** : 10 pierres d'âme à chaque palier.
+- **Détail des dégâts** : au clic sur « détails », ventiler (explosion, poison, suivi, etc.) au lieu d'un total.
+- **Invocation des 5 ★** : animation spéciale pour Légendaires et Prysmaradites, façon Summoners War.
+  Un proc spécial annonce un 5 ★ sans révéler lequel ; le monstre apparaît d'abord en ombre, le temps
+  de faire monter le suspense, avant le dévoilage. Retirer le flash au dévoilage des multi-invocations.
+- **Boss mondial** : beaucoup plus de vie, nombre de barres en progression exponentielle.
+- **Effets de sorts** : animations officielles Ankama (clips Dofus Retro) à la place des particules.
+  Extraction au point : 222 sorts sur 287 localisés, outils dans le scratchpad.

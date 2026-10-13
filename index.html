@@ -70,7 +70,7 @@ html[data-theme="sombre"] .fx .good{background:#2f4a1a; color:#c9f08a} html[data
 html[data-theme="sombre"] .unit.targetable.adv .tag{background:#2f4a1a; color:#c9f08a} html[data-theme="sombre"] .unit.targetable.dis .tag{background:#5a2218; color:#ffc2b5}
 html[data-theme="sombre"] .chat li{color:#b9d79a} html[data-theme="sombre"] .chat li.sk{color:#9cc4ea} html[data-theme="sombre"] .chat li.dmg{color:#ff9a86}
 html[data-theme="sombre"] .chat li.kill{color:#ff6a52} html[data-theme="sombre"] .chat li.sys{color:#a39d8e} html[data-theme="sombre"] .chat{background:#161514; border-color:#45423c}
-html[data-theme="sombre"] .dcenter{background:radial-gradient(circle at 50% 55%, #3a3833, #1b1a18 75%)}
+html[data-theme="sombre"] .dcenter{background:var(--panel)}
 html[data-theme="sombre"] .ecell .sl{background:#0009; color:#b9b3a4}
 html[data-theme="sombre"] .ecell.empty .gh{color:#8b8678}
 html[data-theme="sombre"] .gdlines .mini{background:#4a4741}
@@ -264,6 +264,30 @@ body.in-combat .tabs{display:none}
 .dcard.locked .mini, .dcard.locked .foes{filter:grayscale(1); opacity:.5}
 
 .dsplit{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}
+/* Ventilation des dégâts dans le bilan. Chaque source a sa teinte, reprise par la barre empilée et par
+   la pastille de la liste, pour que l'œil fasse le lien entre les deux sans lire les libellés. */
+.dmgb{margin-left:7px; padding:1px 7px; border:1px solid var(--panel-line); border-radius:9px; background:none; color:var(--ink2);
+  font:inherit; font-size:10px; cursor:pointer; white-space:nowrap}
+.dmgb:hover{color:var(--ink); border-color:var(--orange2)}
+.dmgb.on{background:var(--orange2); border-color:var(--orange2); color:#fff}
+.dmgwrap[hidden]{display:none}
+.dmgd{margin:6px 0 2px; padding:7px 8px; border-radius:6px; background:color-mix(in srgb, var(--panel) 60%, transparent); border:1px solid var(--panel-line)}
+.dmgstack{display:flex; height:7px; border-radius:4px; overflow:hidden; background:var(--panel-line)}
+.dmgstack i{display:block; height:100%}
+.dmgd ul{list-style:none; margin:6px 0 0; padding:0; display:grid; gap:3px}
+.dmgd li{display:grid; grid-template-columns:auto 1fr auto auto; gap:7px; align-items:center; font-size:11px; white-space:nowrap}
+.dmgd li b{font-variant-numeric:tabular-nums}
+.dmgd li em{font-style:normal; color:var(--ink2); min-width:34px; text-align:right; font-variant-numeric:tabular-nums}
+.sico{display:inline-grid; place-items:center; width:15px; height:15px; border-radius:50%; color:#fff; font-size:9px; line-height:1}
+.s-coup{background:#c8632a} .s-suivi{background:#d9a21f} .s-dot{background:#5a9e3a}
+.s-explo{background:#d9481f} .s-reac{background:#8c5bd6} .s-self{background:#7a6f60}
+/* Faiblesse élémentaire d'un donjon : la puce porte la couleur de l'élément à amener */
+.elp{display:inline-block; padding:2px 9px; border-radius:11px; background:var(--e); color:#fff; font-size:11.5px; white-space:nowrap; text-shadow:0 1px 1px #0006}
+.faib{display:flex; gap:9px; align-items:flex-start; padding:8px 10px; border-radius:7px; font-size:12px; line-height:1.45;
+  border:1px solid color-mix(in srgb, var(--panel-line) 70%, transparent); background:color-mix(in srgb, var(--panel) 55%, transparent)}
+.faib .elp{flex:none; margin-top:1px}
+.faib em{font-style:normal; display:block; margin-top:2px}
+.faib em.ok{color:var(--good)} .faib em.ko{color:var(--bad)}
 .dgart{position:relative; border-radius:7px; overflow:hidden; background:#0d0b08}
 .dgart canvas{display:block; width:100%}
 .dgboss{position:absolute; left:0; right:0; bottom:0; display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; column-gap:8px; align-items:end; padding:22px 10px 8px;
@@ -316,13 +340,15 @@ body.in-combat .tabs{display:none}
 .seg-bar.red i.on{background:linear-gradient(#ff6a4d, #c0281a)}
 .doll{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:8px; align-items:center; padding:10px; position:relative}
 .dcol{display:grid; gap:8px}
+/* Fond uni : les anneaux concentriques cerclaient le monstre de traits parasites et le cercle d'équipe
+   bleu, utile en combat pour repérer son camp, n'a rien à faire sur une fiche où il est seul. */
 .dcenter{position:relative; display:grid; place-items:center; min-height:200px; border-radius:8px; border:1px solid var(--panel-line);
-  background:radial-gradient(circle at 50% 55%, #e9e6d8 0 28%, #dcd8c6 29% 30%, #e3dfcf 31% 46%, #d6d2bf 47% 48%, #dedacb 49%)}
+  background:var(--panel)}
 .dcenter .por{--sz:120px; background:none; border:0; box-shadow:none}
 .dcenter .por:not(.img){background:radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--elc) 38%, #fff) 0, var(--elc) 70%, color-mix(in srgb, var(--elc) 55%, #000) 100%); border-radius:50%; --sz:100px}
 .dcenter .por:has(.pimg){--sz:150px; background:none; border:0; border-radius:0}
 .dcenter .por .pimg{background:none; padding:0}
-.dcenter .ring{position:absolute; bottom:22px; width:96px; height:22px; border-radius:50%; border:3px solid var(--ally); background:#2b7bd633; z-index:0}
+.dcenter .ring{display:none}
 .dcenter .por{z-index:1}
 /* Page d'équipement façon Dofus 2 : la colonne des Dofus et trophées à gauche, deux colonnes
    d'emplacements autour du monstre, le détail de l'objet en dessous. */
@@ -659,6 +685,17 @@ body.in-combat .tabs{display:none}
 .s2sum h3{margin:0; font-size:clamp(24px, 6.5vw, 34px); text-shadow:0 0 18px var(--c), 0 2px 0 #000} .s2sum p{margin:0 0 6px; font-size:14px; color:#e8e2d0}
 .s2btns{position:absolute; left:0; right:0; bottom:calc(46px + env(safe-area-inset-bottom, 0px)); padding:0 12px; margin:0}
 .s2:not(.recap) .s2btns{bottom:calc(46px + env(safe-area-inset-bottom, 0px))}
+/* Suspense : le monstre se tient d'abord en ombre chinoise sur le cercle. Le portrait est déjà là, à sa
+   taille et à sa pose définitives — seule la lumière manque. Le dévoilage n'est donc pas une apparition
+   mais un éclairage, et la silhouette a laissé le temps de deviner la bête. */
+.s2rev.ombre .s2art{filter:drop-shadow(0 0 26px var(--c)) drop-shadow(0 8px 6px #000a)}
+.s2rev.ombre .s2art .por{filter:brightness(0) saturate(0)}
+.s2rev.ombre .s2info{opacity:0}
+.s2art .por{transition:filter .42s cubic-bezier(.3,.8,.3,1)}
+.s2info{transition:opacity .3s ease-out}
+/* Bandeau du proc 5 ★ : il annonce le rang sans dire si c'est un Légendaire ou un Prisma */
+.s2ban.mystere{opacity:.92; color:#ffd76a; text-shadow:0 0 34px #ffb21a, 0 0 70px #ff8c00aa; animation:s2Ban .6s cubic-bezier(.2,1.5,.4,1) both, mystPulse 1.15s ease-in-out .6s infinite}
+@keyframes mystPulse{50%{opacity:.62; letter-spacing:.09em}}
 .s2flash{position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none}
 .s2skip{position:absolute; right:12px; top:calc(12px + env(safe-area-inset-top, 0px)); padding:5px 14px; border-radius:16px; border:1px solid #fff6; background:#0009; color:#fff; font:inherit; font-size:13px; cursor:pointer}
 .s2skip[hidden]{display:none}
@@ -1084,20 +1121,24 @@ body.fs .cwin .hudbar{display:none}
 .tabn{display:inline-block; min-width:16px; padding:0 4px; border-radius:8px; background:var(--foe); color:#fff; font-size:10px; line-height:16px; text-shadow:none}
 .achs{list-style:none; margin:0; padding:0; display:grid; gap:4px}
 /* Quêtes du jour et succès : un bandeau de récompense, puis une carte par objectif */
-.qhero{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:12px; align-items:center; padding:12px; border-radius:12px; color:#fff; border:2px solid #000;
-  background:radial-gradient(circle at 12% 30%, #3f8ea0 0, #0000 55%), linear-gradient(135deg, #1d3d47, #12222a); box-shadow:inset 0 1px 0 #fff3, 0 3px 10px #0005; margin-bottom:8px}
-.qhero.pret{background:radial-gradient(circle at 12% 30%, #ffd66a 0, #0000 55%), linear-gradient(135deg, #7a4a0c, #3a2204); animation:qPret 1.6s ease-in-out infinite}
-.qhero .muted{color:#cfe3e6}
-.qgem{position:relative; display:grid; place-items:center; filter:drop-shadow(0 0 10px #9df6ff)} .qgem b{position:absolute; right:-8px; bottom:-4px; padding:0 6px; border-radius:9px; background:var(--orange2); border:1px solid #000; font-size:13px}
+/* Le bandeau des quêtes suivait une esthétique de gacha mobile — dégradé turquoise, angles très ronds,
+   pastilles cyan — étrangère au reste du jeu, qui reprend l'interface Dofus 2.0 : beige parchemin,
+   bandeaux gris-brun, angles courts, accents orange. Il reprend maintenant cette grammaire. */
+.qhero{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:12px; align-items:center; padding:11px; border-radius:7px; color:#fff;
+  border:1px solid #2b2a26; background:linear-gradient(#5f5e58, #44433f); box-shadow:inset 0 1px 0 #fff2, 0 2px 8px #0004; margin-bottom:8px}
+.qhero.pret{background:linear-gradient(#8a5410, #5c3606); border-color:var(--orange-dk); animation:qPret 1.6s ease-in-out infinite}
+.qhero .muted{color:#d8d2c0}
+.qgem{position:relative; display:grid; place-items:center; filter:drop-shadow(0 0 8px #ffb21a88)} .qgem b{position:absolute; right:-8px; bottom:-4px; padding:0 6px; border-radius:9px; background:var(--orange2); border:1px solid #000; font-size:13px}
 .qhm{display:grid; gap:5px; min-width:0} .qhm > b{font-size:14.5px; line-height:1.2}
 .qpips, .spips{display:flex; gap:3px} .qpips i{flex:1; max-width:22px; height:7px; border-radius:3px; background:#ffffff2e} .qpips i.on{background:linear-gradient(#fff3a0, #ffb21a); box-shadow:0 0 6px #ffb21a}
 .spips i{width:9px; height:9px; border-radius:50%; background:var(--panel-line)} .spips i.on{background:var(--orange2); box-shadow:0 0 0 1px #0005}
 .qlist{list-style:none; margin:0; padding:0; display:grid; gap:6px}
-.qc{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:10px; align-items:center; padding:8px 10px; border-radius:10px; background:var(--row); border:1px solid var(--panel-line); transition:transform .1s}
+.qc{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:10px; align-items:center; padding:8px 10px; border-radius:6px; background:var(--row); border:1px solid var(--panel-line); transition:transform .1s}
 .qc.pret{border-color:var(--orange2); background:linear-gradient(90deg, #ffe7b8, var(--row)); box-shadow:0 0 0 1px var(--orange2), 0 2px 10px #ff9d1a55}
 .qc.pris{opacity:.55}
-.qi{display:grid; place-items:center; width:42px; height:42px; border-radius:50%; color:#fff; background:linear-gradient(#5aa7b8, #2c6f80); border:2px solid #0006; box-shadow:inset 0 2px 0 #fff4}
-.qc.pret .qi{background:linear-gradient(#ffcf5a, #e08a12)} .qc.pris .qi{background:linear-gradient(#8fb86a, #4d7a2c)}
+/* Les pastilles reprennent la case d'inventaire du jeu : carrée à coins courts, fond pierre, liseré clair. */
+.qi{display:grid; place-items:center; width:42px; height:42px; border-radius:6px; color:var(--ink); background:linear-gradient(var(--slot-hi), var(--slot)); border:1px solid var(--slot-line); box-shadow:inset 0 1px 0 #fff9}
+.qc.pret .qi{background:linear-gradient(var(--orange), var(--orange2)); border-color:var(--orange-dk); color:#fff} .qc.pris .qi{background:linear-gradient(#8fb86a, #4d7a2c); border-color:#3d6322; color:#fff}
 .qi.med{grid-template-rows:auto auto; align-content:center; line-height:1} .qi.med b{font-size:17px} .qi.med small{font-size:8.5px; opacity:.85}
 .qt{display:grid; gap:4px; min-width:0} .qt > b{font-size:13.5px; line-height:1.2} .sdesc{font-size:12px; opacity:.85}
 .qbar{position:relative; display:block; height:14px; border-radius:7px; background:#3d3c38; overflow:hidden; box-shadow:inset 0 1px 2px #000a}
@@ -1108,8 +1149,8 @@ body.fs .cwin .hudbar{display:none}
 .qa .btn{display:inline-flex; align-items:center; gap:4px} .qc.pret .qa .btn{animation:sumPulse 1s ease-in-out infinite}
 .qok{display:grid; place-items:center; width:28px; height:28px; border-radius:50%; background:#4d7a2c; color:#fff; font-weight:bold} .qok.gros{width:40px; height:40px; font-size:20px}
 .sring{--p:0; display:grid; place-items:center; width:62px; height:62px; border-radius:50%; background:conic-gradient(#ffb21a calc(var(--p) * 1%), #ffffff26 0); position:relative}
-.sring::before{content:''; position:absolute; inset:6px; border-radius:50%; background:#12222a} .sring b{position:relative; font-size:17px} .sring small{font-size:10px}
-.qhero.pret .sring::before{background:#3a2204}
+.sring::before{content:''; position:absolute; inset:6px; border-radius:50%; background:#44433f} .sring b{position:relative; font-size:17px} .sring small{font-size:10px}
+.qhero.pret .sring::before{background:#5c3606}
 @keyframes qPret{50%{box-shadow:inset 0 1px 0 #fff3, 0 0 18px #ffb21a}}
 html[data-theme="sombre"] .qc.pret{background:linear-gradient(90deg, #5a3a0c, var(--row))}
 .passif{display:grid; gap:2px; padding:7px 10px; border-radius:8px; border:1px solid var(--orange2); background:linear-gradient(90deg, #ffb21a22, #0000); font-size:12.5px} .passif b{color:var(--orange-dk)}
@@ -1777,7 +1818,10 @@ const Engine = (() => {
     }
     if (has(tgt,'endure') && dmg >= tgt.hp) dmg = Math.max(0, tgt.hp - 1);
     tgt.hp = Math.max(0, tgt.hp - dmg);
-    ev.push({ t:'dmg', id:tgt.id, amount:dmg, crit:!!o.crit, glance:!!o.glance, adv:!!o.adv, dis:!!o.dis, hp:tgt.hp });
+    // src : d'où vient ce coup. Le bilan de fin de combat le ventile — un Empoisonneur dont la moitié des
+    // dégâts passe par ses poisons ne se lit pas comme un cogneur, et c'est invisible sur un total unique.
+    ev.push({ t:'dmg', id:tgt.id, amount:dmg, crit:!!o.crit, glance:!!o.glance, adv:!!o.adv, dis:!!o.dis, hp:tgt.hp,
+      src:o.src || (o.dot ? 'dot' : 'coup') });
     if (tgt.hp <= 0 && tgt.bars && tgt.bar < tgt.bars.n - 1){
       // Boss à plusieurs barres de vie : la suivante est plus longue, et il frappe plus fort.
       tgt.bar++;
@@ -1832,7 +1876,7 @@ const Engine = (() => {
     if (rng()*100 < att.stats.crit + (op.critBonus||0)){ crit = true; dmg *= 1 + att.stats.critDmg/100; if (T) T.crit = true; }
     const elemK = att.side === 'A' && clsFx().elem || 1;
     if (adv) dmg *= ELEM_FORT * elemK; if (dis) dmg *= ELEM_FAIBLE;
-    const fait = subir(s, tgt, dmg * (.95 + rng()*.1), ev, { crit, glance, adv, dis });
+    const fait = subir(s, tgt, dmg * (.95 + rng()*.1), ev, { crit, glance, adv, dis, src:op.src });
     if (att.stats.vol && fait > 0 && att.alive) soin(s, att, fait * att.stats.vol / 100, ev);      // set Soigneur
     if (op.steal && fait > 0 && att.alive){                       // vol de vie : pour lui, ou pour l'allié le plus mal en point
       const qui = op.stealTo === 'lowest' ? mates(s, att).slice().sort((a, b) => a.hp / a.stats.hp - b.hp / b.stats.hp)[0] : att;
@@ -1841,7 +1885,7 @@ const Engine = (() => {
     if (reac){
       tgt.aura = null; if (T) T.reac = true;
       ev.push({ t:'reac', id:tgt.id, text:reac.n }); ev.push({ t:'fx', id:tgt.id, effects:fxSnap(tgt) });
-      if (reac.splash) for (const v of foes(s, att)) if (v !== tgt) subir(s, v, fait * reac.splash * rk, ev);
+      if (reac.splash) for (const v of foes(s, att)) if (v !== tgt) subir(s, v, fait * reac.splash * rk, ev, { src:'reac' });
       if (tgt.alive){
         if (reac.burn) addEffect(s, tgt, 'burn', 2, ev, Math.round(atkDe(att) * reac.burn * rk * DMG_K));
         if (reac.effet) addEffect(s, tgt, reac.effet, 1, ev);
@@ -1892,7 +1936,7 @@ const Engine = (() => {
       if (op.op === 'atbSelf'){ bonusAtb += op.amount; continue; }
       if (op.op === 'charge'){ for (let i = 0; i < op.n; i++) addEffect(s, actor, 'charge', 99, ev); continue; }
       if (op.op === 'cdReset'){ const id = actor.skills[op.i]; if (id && actor.cds[id] > 0){ actor.cds[id] = 0; ev.push({ t:'note', id:actor.id, text:'Recharge annulée' }); } continue; }
-      if (op.op === 'selfDmg'){ subir(s, actor, Math.min(actor.hp - 1, actor.hp * op.pct / 100), ev); continue; }
+      if (op.op === 'selfDmg'){ subir(s, actor, Math.min(actor.hp - 1, actor.hp * op.pct / 100), ev, { src:'self' }); continue; }
       if (op.op === 'balance'){                                       // met tous les alliés au même pourcentage de PV
         const m = mates(s, actor), moy = m.reduce((t, u) => t + u.hp / u.stats.hp, 0) / m.length;
         for (const u of m){ u.hp = Math.max(1, Math.round(u.stats.hp * moy)); ev.push({ t:'heal', id:u.id, amount:0, hp:u.hp }); }
@@ -1941,7 +1985,7 @@ const Engine = (() => {
           const ps = tgt.effects.filter(e => e.type === 'poison'); if (!ps.length) continue;
           const tot = ps.reduce((t, e) => t + e.v * e.turns, 0) * op.k;
           tgt.effects = tgt.effects.filter(e => e.type !== 'poison'); ev.push({ t:'fx', id:tgt.id, effects:fxSnap(tgt) });
-          ev.push({ t:'note', id:tgt.id, text:'Poison éclaté' }); subir(s, tgt, tot, ev);
+          ev.push({ t:'note', id:tgt.id, text:'Poison éclaté' }); subir(s, tgt, tot, ev, { src:'explo' });
         }
         else if (op.op === 'buff') addEffect(s, tgt, op.type, op.turns, ev);
         else if (op.op === 'shield') addEffect(s, tgt, 'shield', op.turns, ev, Math.round(actor.stats.hp * op.pct * pw / 100));
@@ -1993,7 +2037,7 @@ const Engine = (() => {
       if (!parRole && !(a.stats.echo && rng()*100 < a.stats.echo)) continue;
       const c = T.cible && T.cible.alive ? T.cible : visables(s, a)[0]; if (!c) break;
       ev.push({ t:'suivi', id:a.id, cible:c.id });
-      hit(s, a, c, { mult:parRole ? P.mult : 1.2, nTargets:1, pur:true }, ev, true);
+      hit(s, a, c, { mult:parRole ? P.mult : 1.2, nTargets:1, pur:true, src:'suivi' }, ev, true);
     }
     if (actor.stats.rejoue && bonusAtb < 100 && rng()*100 < actor.stats.rejoue){ bonusAtb = 100; ev.push({ t:'note', id:actor.id, text:'Rejoue' }); }   // set Fuyard
     actor.cds[skillId] = sk.cd - (lv >= SK_MAX && sk.cd > 0 ? 1 : 0);
@@ -2012,7 +2056,7 @@ const Engine = (() => {
     for (const e of finies) if (e.type === 'bomb' && actor.alive){
       ev.push({ t:'note', id:actor.id, text:'Explosion' });
       const autour = mates(s, actor).filter(u => u !== actor);
-      subir(s, actor, e.v, ev); for (const u of autour) subir(s, u, e.v * .4, ev);
+      subir(s, actor, e.v, ev, { src:'explo' }); for (const u of autour) subir(s, u, e.v * .4, ev, { src:'explo' });
     }
     ev.push({ t:'atb', id:actor.id, atb:0, reset:true });
     s.actor = null;
@@ -2969,7 +3013,7 @@ function buildCatalog(cat){
       h.hand = true;
       const ren = {}, real = (id, i, sfx = '') => {
         const sp = c.sp && c.sp[i], nid = key + '_' + i + (sfx && 'e');
-        SKILLS[nid] = { ...HAND_SKILLS[id], name:(sp && cat.spells && cat.spells[sp] ? cat.spells[sp] + sfx : HAND_SKILLS[id].name), ic:icons[sp] || 0 };
+        SKILLS[nid] = { ...HAND_SKILLS[id], name:(sp && cat.spells && cat.spells[sp] ? cat.spells[sp] + sfx : HAND_SKILLS[id].name), ic:icons[sp] || 0, sp:sp || 0 };
         return ren[id] = nid;
       };
       const skills = h.skills.map((id, i) => real(id, i)), swap = {};
@@ -2995,7 +3039,7 @@ function buildCatalog(cat){
     const n = (s >= 3 || role === 'Boss') ? 3 : 2;
     const skills = (s >= 5 ? kit5(h0) : KIT[role].slice(0, n)).map(([target, cd, ops], i) => {
       const id = key + '_' + i, sp = c.sp && c.sp[i];
-      SKILLS[id] = { name:(cat.spells && sp && cat.spells[sp]) || GEN_NAMES[role][i], cd, target, desc:descOf(target, ops), ops, ic:icons[sp] || 0 };
+      SKILLS[id] = { name:(cat.spells && sp && cat.spells[sp]) || GEN_NAMES[role][i], cd, target, desc:descOf(target, ops), ops, ic:icons[sp] || 0, sp:sp || 0 };
       return id;
     });
     MONSTERS[key] = { name:c.n, short:shortOf(c.n), el, stars, role, base, skills, awaken:{ stats:R.aw }, g:c.g, dofusLvl:c.l, sz:sizeOf(c) };
@@ -3303,15 +3347,22 @@ function arenaFoes(save){
 // longue que la précédente, et il frappe plus fort à chaque barre brisée : l'assaut commence doucement et se
 // durcit, au lieu de coucher l'équipe au premier tour. Il est du niveau moyen de l'équipe engagée, donc
 // jouable dès le début ; c'est le nombre de barres brisées qui fait le rang.
-const WB_TRIES = 3, WB_TEAM = 10, WB_TURNS = 300, WB_BARS = 10;
-const WB = { hp:8.5, atk:1.2, barHp:1.2, barAtk:1.6 };
+// Le boss mondial n'est pas fait pour tomber : chaque barre vaut le double de la précédente, donc les
+// 25 barres représentent 33 millions de fois la première. On ne le tue pas, on compare ses dégâts.
+// La base est descendue de 8,5 à 2,0 pour compenser : avec l'ancienne pente de 1,2, briser 5 barres
+// demandait (1,2^5−1)/0,2 ≈ 7,4 fois la base, soit ≈ 63 unités de PV ; à 2,0 de base et ×2 par barre,
+// ces mêmes 63 unités rendent (2^n−1) = 31, soit toujours 5 barres pour le joueur type mesuré au banc.
+// L'équipe à fond (7,7 barres avant) atterrit vers 6 : l'éventail se resserre, c'est le propre du ×2,
+// et c'est la part fractionnaire de la dernière barre qui départage au classement.
+const WB_TRIES = 3, WB_TEAM = 10, WB_TURNS = 300, WB_BARS = 25;
+const WB = { hp:2.0, atk:1.2, barHp:2, barAtk:1.35 };
 const WB_TIERS = [   // barres brisées → rang et récompenses
   { min:0,  rank:'D',  gold:2,  kamas:500,   stones:0 },
-  { min:1,  rank:'C',  gold:5,  kamas:1500,  stones:0 },
+  { min:2,  rank:'C',  gold:5,  kamas:1500,  stones:0 },
   { min:3,  rank:'B',  gold:8,  kamas:3000,  stones:1 },
-  { min:5,  rank:'A',  gold:12, kamas:6000,  stones:1 },
-  { min:7,  rank:'S',  gold:18, kamas:10000, stones:2 },
-  { min:9,  rank:'SS', gold:25, kamas:15000, stones:3 },
+  { min:4,  rank:'A',  gold:12, kamas:6000,  stones:1 },
+  { min:5,  rank:'S',  gold:18, kamas:10000, stones:2 },
+  { min:6,  rank:'SS', gold:25, kamas:15000, stones:3 },
 ];
 const wbTier = barres => WB_TIERS.filter(t => barres >= t.min).pop();
 const wbTxt = sc => sc.toFixed(1).replace('.', ',');
@@ -4069,17 +4120,34 @@ const lotIcone = (t, sz) => t === 'stones' ? gemIcon('perfect', sz) : t === 'kam
 const lotTexte = r => r.map(([t, n]) => `${fmt(n)} ${LOT_NOM[t]}`).join(' + ');
 const lotHtml = (r, sz = 34) => r.map(([t, n]) => `<span class="lot">${lotIcone(t, sz)}<b>×${n >= 1000 ? fmtC(n) : n}</b></span>`).join('');
 function lotDonner(sv, r){ for (const [t, n] of r){ if (t.startsWith('gel')){ const k = gelKeys()[+t.slice(3) - 1]; if (k) for (let i = 0; i < n; i++) Eco.ajouter(sv, k, 1); } else sv[t] = (sv[t] || 0) + n; } }
+// Le premier jour ouvre sur dix invocations : une pierre d'âme pleine vaut une invocation, et c'est ce
+// premier tir groupé qui donne une équipe de départ au lieu d'un monstre isolé. La semaine monte ensuite.
 const EV_JOURS = [
-  [['stones', 3]], [['kamas', 5000]], [['stones', 5]], [['scrolls', 3]], [['gel3', 2], ['gold', 20]], [['stones', 10]], [['stones', 20], ['gel5', 1]],
+  [['stones', 10]], [['kamas', 25000]], [['stones', 12]], [['scrolls', 8]], [['gel3', 3], ['gold', 50]], [['stones', 18]], [['stones', 30], ['gel5', 1]],
 ];
 const EV_RUEE_JOURS = 14;
+// Chaque palier de la ruée donne dix pierres d'âme, les extras venant par-dessus.
 const EV_RUEE = [
-  { p:5,   r:[['stones', 2]] }, { p:15, r:[['kamas', 3000]] }, { p:30, r:[['stones', 5]] }, { p:60, r:[['scrolls', 2]] },
-  { p:100, r:[['gel4', 1], ['gold', 15]] }, { p:150, r:[['stones', 10]] }, { p:220, r:[['scrolls', 5], ['gel5', 1]] },
+  { p:5,   r:[['stones', 10]] }, { p:15, r:[['stones', 10], ['kamas', 8000]] }, { p:30, r:[['stones', 10]] }, { p:60, r:[['stones', 10], ['scrolls', 5]] },
+  { p:100, r:[['stones', 10], ['gel4', 1], ['gold', 40]] }, { p:150, r:[['stones', 10]] }, { p:220, r:[['stones', 10], ['scrolls', 8], ['gel5', 1]] },
 ];
 function evDe(){ if (!save.ev) save.ev = { j:{ n:0, day:'' }, r:{ t0:Date.now(), pts:0, got:[] } }; return save.ev; }
 const evJourPret = () => { const E = evDe().j; return E.n < EV_JOURS.length && E.day !== dayKey(); };
-const evRueeReste = () => Math.max(0, Math.ceil((evDe().r.t0 + EV_RUEE_JOURS * 864e5 - Date.now()) / 864e5));
+// La Ruée partait de la première connexion de chaque joueur : « encore 11 jours » ne désignait donc pas
+// le même moment pour deux personnes, et l'événement ne tombait sur aucune date commune. Il court
+// désormais entre deux dates fixes, les mêmes pour tout le monde, et elles sont affichées.
+const EV_RUEE_DEBUT = new Date(2026, 9, 13);              // 13 octobre 2026, minuit local
+const EV_RUEE_FIN = new Date(EV_RUEE_DEBUT.getTime() + EV_RUEE_JOURS * 864e5);
+const evRueeReste = () => Math.max(0, Math.ceil((EV_RUEE_FIN - Date.now()) / 864e5));
+const DATE_FR = { day:'numeric', month:'long' };
+const dateTxt = d => d.toLocaleDateString('fr-FR', DATE_FR);
+// Prochaine remise à zéro : minuit local, comme dayKey(). On l'annonce en clair pour que le joueur
+// sache combien de temps il lui reste, au lieu de deviner.
+function resetDans(){
+  const d = new Date(); d.setHours(24, 0, 0, 0);
+  const ms = d - Date.now(), h = Math.floor(ms / 36e5), m = Math.floor(ms % 36e5 / 6e4);
+  return h ? `${h} h ${String(m).padStart(2, '0')}` : `${m} min`;
+}
 const evPrets = () => (evJourPret() ? 1 : 0) + EV_RUEE.filter((x, i) => evDe().r.pts >= x.p && !evDe().r.got.includes(i)).length;
 // Une victoire, quel que soit le mode : expérience d'invocateur, quêtes, point d'événement.
 function apresVictoire(dg){
@@ -4122,11 +4190,12 @@ function eventCorps(){
       <span class="eve">${pris ? '✓ Reçu' : ok ? 'Réclamer' : `encore ${x.p - E.r.pts}`}</span></${ok && !pris ? 'button' : 'div'}>`; }).join('');
   return ['Événements', '', `<div class="evhero" style="background-image:linear-gradient(#0a151a55, #0a151af0 82%), url('assets/portail.jpg')">
       <span class="evtag">Événement de lancement</span><h3>Sept jours, sept cadeaux</h3>
-      <p>Une récompense par jour où tu te connectes. Les jours n'ont pas besoin de se suivre.</p>
-      <div class="evbar"><i style="width:${E.j.n / EV_JOURS.length * 100}%"></i></div><span class="evcpt">${E.j.n} / ${EV_JOURS.length} jours${pret ? ' · <b>un cadeau t\'attend</b>' : E.j.n < EV_JOURS.length ? ' · prochain cadeau demain' : ' · tout est réclamé'}</span></div>
+      <p>Une récompense par jour où tu te connectes. Les jours n'ont pas besoin de se suivre : seul compte le nombre de jours où tu passes.</p>
+      <div class="evbar"><i style="width:${E.j.n / EV_JOURS.length * 100}%"></i></div><span class="evcpt">${E.j.n} / ${EV_JOURS.length} jours${pret ? ' · <b>un cadeau t\'attend</b>' : E.j.n < EV_JOURS.length ? ` · prochain cadeau dans ${resetDans()}` : ' · tout est réclamé'}</span></div>
     <div class="evgrille">${jours}</div>
     <div class="evhero ruee" style="background-image:linear-gradient(#1a0f0555, #1a0f05f0 82%), url('${IMG_OK ? IMG_BASE + '/maps/0.5/236717056.jpg' : 'assets/portail.jpg'}')">
       <span class="evtag">${reste ? `Encore ${reste} jour${reste > 1 ? 's' : ''}` : 'Terminé'}</span><h3>Ruée vers les donjons</h3>
+      <p class="evdates">Du <b>${dateTxt(EV_RUEE_DEBUT)}</b> au <b>${dateTxt(EV_RUEE_FIN)}</b>${reste ? ` · se termine dans ${reste} jour${reste > 1 ? 's' : ''}` : ''}</p>
       <p>Chaque combat gagné rapporte un point, dans n'importe quel mode.${reste ? '' : ' L\'événement est fini : les paliers atteints restent à réclamer.'}</p>
       <div class="evbar"><i style="width:${Math.min(100, E.r.pts / max * 100)}%"></i>${EV_RUEE.map(x => `<u style="left:${x.p / max * 100}%" class="${E.r.pts >= x.p ? 'on' : ''}"></u>`).join('')}</div>
       <span class="evcpt"><b>${E.r.pts}</b> victoire${E.r.pts > 1 ? 's' : ''}${prets ? ` · <b>${prets} récompense${prets > 1 ? 's' : ''} à réclamer</b>` : ''}</span></div>
@@ -4289,14 +4358,35 @@ function dropsHtml(d){
     : ''}`;
 }
 
+// Élément dominant d'un donjon, et celui qu'il faut amener contre lui. Le boss pèse double : c'est lui
+// qui décide de l'issue, et un donjon peut avoir une piétaille d'un élément et un boss d'un autre.
+// Le Neutre des Prismas est hors cycle — aucun élément n'a l'avantage sur lui, donc on n'annonce rien.
+function dgFaiblesse(d){
+  const poids = {};
+  for (const w of d.waves) for (const e of w){
+    const el = MONSTERS[e.key] && MONSTERS[e.key].el;
+    if (el && el !== 'neutre') poids[el] = (poids[el] || 0) + (e.boss ? 2 : 1);
+  }
+  const total = Object.values(poids).reduce((a, b) => a + b, 0);
+  if (!total) return null;
+  const dominant = Object.keys(poids).sort((a, b) => poids[b] - poids[a])[0];
+  const contre = Object.keys(BEATS).find(k => BEATS[k] === dominant);   // l'élément qui bat le dominant
+  return { dominant, contre, part:Math.round(poids[dominant] / total * 100) };
+}
+const elPuce = el => `<b class="elp" style="--e:${EL_HEX[el]}">${ELEM[el]}</b>`;
 function dgDetail(i){
   const d = stages()[i], un = isUnlocked(i), done = save.cleared.includes(d.id), team = teamMons();
   const tot = Object.values(d.rarity).reduce((a,b) => a+b, 0);
+  const fb = dgFaiblesse(d);
   return `<section class="win"><div class="wt"><h2>${d.name}<small>niv. ${d.lvl}</small></h2></div>
     <div class="wb" style="display:grid; gap:8px">
       <div class="dgart"><canvas class="mini big" data-map data-i="${i}" aria-hidden="true"></canvas>
         ${(() => { const b = d.enemies.find(e => e.boss) || d.enemies[0], m = b && MONSTERS[b.key]; return m ? `<span class="dgboss">${portrait(b.key, 96, { badge:false })}<b>${esc(m.name)}</b><small>${b.boss ? 'Boss · ' : ''}niv. ${b.level} · ${ELEM[m.el]}</small></span>` : ''; })()}</div>
       <p style="margin:0">${d.zone ? `<b>${esc(d.zone)}</b>${d.sz && d.sz !== d.zone ? ' · ' + esc(d.sz) : ''} — ` : ''}${d.desc}</p>
+      ${fb ? `<div class="faib">${elPuce(fb.contre)}
+        <span>Amène du <b>${ELEM[fb.contre].toLowerCase()}</b> : ${fb.part} % des monstres d'ici sont ${ELEM[fb.dominant].toLowerCase()}, et tu frapperas à ×1,25.
+        ${(() => { const bons = team.filter(m => MONSTERS[m.key].el === fb.contre).length, mauvais = team.filter(m => BEATS[fb.dominant] === MONSTERS[m.key].el).length;
+          return bons ? `<em class="ok">Ton équipe en compte ${bons}.</em>` : mauvais ? `<em class="ko">Ton équipe a ${mauvais} monstre${mauvais > 1 ? 's' : ''} en désavantage (×0,75).</em>` : '<em class="muted">Aucun dans ton équipe.</em>'; })()}</span></div>` : ''}
       ${SYNC_MODES.includes(d.mode) && team.some(m => m.level > d.lvl + SYNC) ? `<p class="hint" style="margin:0">Tes monstres au-dessus du niveau ${d.lvl + SYNC} combattront ici comme s'ils étaient niveau ${d.lvl + SYNC}.</p>` : ''}
       <div class="band">Butin possible</div>
       ${dropsHtml(d)}${apercuModal()}
@@ -5163,9 +5253,12 @@ async function summonShow(rs){
   // --- 2. Verdict : un temps de silence, puis le trait. Un 4 ★ ou mieux s'annonce parfois un cran plus bas avant de monter.
   fx.charge = 0; o.classList.add('hold'); await wi(320); o.classList.remove('hold');
   let vu = st >= 5 ? (Math.random() < .65 ? 4 : 3) : st === 4 ? (Math.random() < .5 ? 3 : 4) : st;
-  const jaillir = (k, fort) => { couleur(k); T.beam = 1; T.rays = k >= 5 ? 1 : k === 4 ? .55 : k === 3 ? .2 : 0; eclat(fort ? 120 : 50, fort ? 560 : 340); flash(fort); if (k >= 4) secousse();
+  // Le jet plafonne à l'or du 5 ★ : l'irisé du Prisma trahirait le tirage avant même la révélation.
+  // Couleur, rayons et son sont donc identiques pour un Légendaire et un Prisma.
+  const jaillir = (k, fort) => { const vk = Math.min(5, k);
+    couleur(vk); T.beam = 1; T.rays = vk >= 5 ? 1 : vk === 4 ? .55 : vk === 3 ? .2 : 0; eclat(fort ? 120 : 50, fort ? 560 : 340); flash(fort); if (vk >= 4) secousse();
     o.classList.remove('jet'); void o.offsetWidth; o.classList.add('jet');
-    if (!skipIntro && sonOn){ bruit(.35, fort ? .1 : .06, 900 + k * 300, .8); [0, 7, 12].slice(0, k >= 3 ? 3 : 2).forEach((semi, i) => blip(196 * 2 ** ((k * 3 + semi) / 12), .5, 'triangle', .06, i * .05)); } };
+    if (!skipIntro && sonOn){ bruit(.35, fort ? .1 : .06, 900 + vk * 300, .8); [0, 7, 12].slice(0, vk >= 3 ? 3 : 2).forEach((semi, i) => blip(196 * 2 ** ((vk * 3 + semi) / 12), .5, 'triangle', .06, i * .05)); } };
   jaillir(vu, vu >= 4); await wi(vu < st ? 780 : 900);
   while (vu < st){                                                    // la lumière force, le cercle se fend, elle monte d'un cran
     o.classList.add('fend'); if (!skipIntro && sonOn){ sonBlip(70, .5, 'sine', .14, 0, 40); sonBlip(180, .5, 'sawtooth', .04, 0, 520); }
@@ -5176,19 +5269,36 @@ async function summonShow(rs){
   phase = 'rev'; tap = false;
   $o('.s2stone').hidden = true; o.classList.add('ouvert'); T.beam = 0;
   const rv = $o('.s2rev'), art = $o('.s2art'), ban = $o('.s2ban'), cnt = $o('.s2count');
+  // Un 5 ★ ne dit pas lequel : Légendaire et Prisma passent par le même proc doré, et l'irisé du Prisma
+  // n'éclate qu'au dévoilage. Jusque-là on sait qu'on tient un 5 ★ sans savoir si c'est LE tirage.
   const montrer = async (x, i, n) => {
     const mm = MONSTERS[x.mon.key], k = rangDe(mm);
-    couleur(k); T.rays = k >= 5 ? 1 : k === 4 ? .6 : k === 3 ? .22 : 0; fx.embers = k >= 3 ? .12 * k : .05;
-    rv.hidden = true; void rv.offsetWidth; rv.hidden = false; rv.className = 's2rev k' + k;
+    const mystere = k >= 5, ombre = k >= 4;        // sous 4 ★ on ne fait pas durer : en ×10 ce serait pénible
+    couleur(mystere ? 5 : k); T.rays = k >= 5 ? 1 : k === 4 ? .6 : k === 3 ? .22 : 0; fx.embers = k >= 3 ? .12 * k : .05;
+    rv.hidden = true; void rv.offsetWidth; rv.hidden = false; rv.className = 's2rev k' + k + (ombre ? ' ombre' : '');
     art.innerHTML = portrait(x.mon.key, 260, { badge:false });
-    ban.textContent = k >= 6 ? 'Prisma' : k === 5 ? 'Légendaire' : ''; ban.className = 's2ban' + (k >= 5 ? ' on' : '') + (k >= 6 ? ' iris' : '');
+    ban.textContent = mystere ? '5 ★' : ''; ban.className = 's2ban' + (mystere ? ' mystere' : '');
     $o('.s2rank').textContent = RANG_WORD[k]; $o('.s2rank').className = 's2rank' + (k >= 6 ? ' iris' : '');
     $o('.s2info h3').textContent = mm.name;
     $o('.s2info p').innerHTML = `${ELEM[mm.el]} · ${mm.role}${x.isNew ? '<span class="sumnew">Nouveau !</span>' : ''}`;
     const stars = $o('.s2stars'); stars.innerHTML = '';
     cnt.textContent = n > 1 ? `${i + 1} / ${n}` : '';
-    eclat(k >= 4 ? 110 : k === 3 ? 60 : 30, k >= 4 ? 520 : 320); flash(k >= 4); if (k >= 4) secousse();
+    eclat(k >= 4 ? 110 : k === 3 ? 60 : 30, k >= 4 ? 520 : 320);
+    // Pas de flash au dévoilage en multi-invocation : dix éclairs d'affilée épuisent au lieu de marquer.
+    flash(!multi && k >= 4); if (k >= 4) secousse();
     if (!skipAll && sonOn){ if (k >= 4) bruit(.3, .09, 1800, .8); [0, 4, 7, 12, 16].slice(0, Math.max(2, k)).forEach((semi, j) => blip(330 * 2 ** (semi / 12), .4, 'triangle', .055, j * .06)); }
+    if (ombre){
+      // Le temps de l'ombre : long sur un 5 ★, où l'enjeu est de savoir si l'irisé va venir.
+      if (!skipAll && sonOn) sonBlip(mystere ? 58 : 80, .9, 'sine', .1, 0, mystere ? 26 : 44);
+      await z(mystere ? 1500 : 620);
+      rv.classList.remove('ombre');
+      couleur(k);                                  // ici seulement le Prisma s'irise
+      ban.textContent = k >= 6 ? 'Prisma' : k === 5 ? 'Légendaire' : '';
+      ban.className = 's2ban' + (k >= 5 ? ' on' : '') + (k >= 6 ? ' iris' : '');
+      if (mystere){ eclat(150, 620); if (!multi) flash(true); secousse();
+        if (!skipAll && sonOn){ bruit(.4, .12, k >= 6 ? 2600 : 1600, .85); [0, 7, 12, 19].forEach((semi, j) => blip(392 * 2 ** (semi / 12), .55, k >= 6 ? 'sine' : 'triangle', .07, j * .07)); } }
+      await z(260);
+    }
     for (let q = 0; q < mm.stars; q++){ const e = document.createElement('span'); e.textContent = '★'; stars.appendChild(e); son(660 * 2 ** (q * 2 / 12), .12, 'square', .03); await z(k >= 4 ? 140 : 70); }
     if (x.isNew && !skipAll) son(1320, .3, 'sine', .05, .05);
   };
@@ -5652,6 +5762,10 @@ const ACT = {
   selDg(d){ selDg = +d.i; render(); },
   refight(){ startCombat(curStage); },
   endAll(){ endAll = true; paintEnd(); },
+  // Ventilation des dégâts : on bascule à la main plutôt que de repeindre le bilan, qui perdrait
+  // les autres lignes déjà dépliées et refermerait tout à chaque clic.
+  dmgDet(d, b){ const w = document.getElementById(d.id); if (!w) return;
+    w.hidden = !w.hidden; b.setAttribute('aria-expanded', String(!w.hidden)); b.classList.toggle('on', !w.hidden); },
   nextStage(){ if (endData && endData.next != null) startCombat(endData.next); },
   flee(){ ACT.nav({ v:(curStage && curStage.back) || 'donjons' }); toast('Tu as fui le combat.'); },
   selMon(d){ selMon = +d.uid; feedOn = false; feedSel = []; evoOn = false; evoSel = []; slotPick = null; gearPick = null; teamPick = null; volPick = null; swapOpen = false; confirmKey = null; render(); },
@@ -5877,7 +5991,10 @@ let nodes = {}, tls = {}, field, logEl;
 let waveIdx = 0, pastFoes = [];      // vague en cours, ennemis des vagues précédentes (pour le bilan)
 let curLook = null;                  // allure du sort en cours, reprise par les impacts
 let tally = {}, curCaster = null;   // bilan du combat : dégâts, soins… par unité
-const tal = id => tally[id] || (tally[id] = { dmg:0, taken:0, heal:0, crits:0, hits:0, kills:0 });
+const tal = id => tally[id] || (tally[id] = { dmg:0, taken:0, heal:0, crits:0, hits:0, kills:0, par:{} });
+// Les sources de dégâts, dans l'ordre où le bilan les montre.
+const DMG_SRC = { coup:'Coups directs', suivi:'Attaques de suivi', dot:'Poison et brûlure', explo:'Explosions', reac:'Réactions élémentaires', self:'Dégâts sur soi' };
+const DMG_SRC_ICO = { coup:'⚔', suivi:'↯', dot:'☠', explo:'✸', reac:'✦', self:'⤫' };
 const wait = ms => new Promise(r => setTimeout(r, ms / speed));
 const uname = id => Engine.byId(state, id).name;
 const CELLS = {
@@ -6474,7 +6591,11 @@ async function play(events, my){
       }
       case 'dmg':
         tal(e.id).taken += e.amount;
-        if (curCaster){ const t = tal(curCaster); t.dmg += e.amount; t.hits++; if (e.crit) t.crits++; }
+        // Les dégâts qu'on s'inflige comptent comme subis, pas comme infligés : les porter au total
+        // gonflerait le score d'un monstre qui se sacrifie.
+        if (curCaster && e.src !== 'self'){ const t = tal(curCaster); t.dmg += e.amount; t.hits++; if (e.crit) t.crits++;
+          t.par[e.src] = (t.par[e.src] || 0) + e.amount; }
+        else if (e.src === 'self'){ const t = tal(e.id); t.par.self = (t.par.self || 0) + e.amount; }
         setHp(e.id, e.hp); hitFx(e.id, e.crit, e.glance);
         (e.crit ? SON.critique : e.glance ? SON.effleure : SON.coup)();
         pop(e.id, '−' + fmtC(e.amount), e.crit ? 'crit' : e.glance ? 'glance' : '');
@@ -6544,10 +6665,23 @@ function showEnd(w){
 }
 const END_HEAD = `<thead><tr><th>Nom</th><th class="c-sec">Niv.</th><th>Dégâts infligés</th><th class="c-sec">Critiques</th>
   <th class="c-sec">Dégâts subis</th><th class="c-sec">Soins</th><th class="c-sec">K.O.</th><th>XP gagnée</th></tr></thead>`;
+// Ventilation des dégâts d'une unité : une barre empilée par source, puis le tableau chiffré.
+// Elle ne s'affiche que s'il y a vraiment plusieurs sources — sinon le total dit déjà tout.
+function dmgDetailHtml(t){
+  const srcs = Object.keys(DMG_SRC).filter(k => t.par[k] > 0);
+  if (srcs.length < 2) return '';
+  const tot = srcs.reduce((s, k) => s + t.par[k], 0) || 1;
+  return `<div class="dmgd">
+    <div class="dmgstack">${srcs.map(k => `<i class="s-${k}" style="width:${t.par[k] / tot * 100}%" title="${DMG_SRC[k]}"></i>`).join('')}</div>
+    <ul>${srcs.map(k => `<li><span class="sico s-${k}">${DMG_SRC_ICO[k]}</span><span>${DMG_SRC[k]}</span><b>${fmt(t.par[k])}</b><em>${Math.round(t.par[k] / tot * 100)} %</em></li>`).join('')}</ul></div>`;
+}
+let dmgSeq = 0;   // les ennemis des vagues successives réutilisent les mêmes id : on numérote à part
 function endRow(r, top, dg){
   const { u, t, xp } = r;
-  return `<tr><td><span class="nmc">${portrait(u.key, 26, { badge:false })}${u.name}</span></td><td class="c-sec">${u.level}</td>
-    <td><span class="row" style="flex-wrap:nowrap"><b>${fmt(t.dmg)}</b><span class="xpbar dmgbar"><b style="width:${t.dmg / top * 100}%"></b></span></span></td>
+  const det = dmgDetailHtml(t), uid = 'dmg' + (++dmgSeq);
+  return `<tr${det ? ' class="hasd"' : ''}><td><span class="nmc">${portrait(u.key, 26, { badge:false })}${u.name}</span></td><td class="c-sec">${u.level}</td>
+    <td><span class="row" style="flex-wrap:nowrap"><b>${fmt(t.dmg)}</b>${det ? `<button class="dmgb" data-act="dmgDet" data-id="${uid}" aria-expanded="false" title="Ventiler les dégâts par source">détails</button>` : ''}<span class="xpbar dmgbar"><b style="width:${t.dmg / top * 100}%"></b></span></span>
+      ${det ? `<div class="dmgwrap" id="${uid}" hidden>${det}</div>` : ''}</td>
     <td class="c-sec">${t.hits ? `${t.crits}/${t.hits}` : '—'}</td><td class="c-sec">${fmt(t.taken)}</td>
     <td class="c-sec">${t.heal ? `<span class="pos">${fmt(t.heal)}</span>` : '—'}</td><td class="c-sec">${t.kills || '—'}</td>
     <td>${xp ? `<span class="row" style="flex-wrap:nowrap">+${dg.xp}<span class="xpbar"><b style="width:${Math.min(100, dg.xp / xpNeed(u.level) * 100)}%"></b></span>${xp.ups ? `<b class="pos">niv. ${xp.level}</b>` : ''}</span>` : '—'}</td></tr>`;
